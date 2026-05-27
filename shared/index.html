@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VEIL</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <b>VEIL</b>
+  <span>Vocabulary Engine for Individual Language — ハイライト語をクリックで変換候補を選択</span>
+</header>
+
+<div class="main">
+  <div class="input-area">
+    <textarea id="inp" placeholder="AIの出力テキストをここに貼り付け" spellcheck="false"></textarea>
+  </div>
+  <div class="col-headers">
+    <div class="col-hd">変換前</div>
+    <div class="col-hd">変換後 <span id="rep-count" style="color:#555;"></span></div>
+  </div>
+  <div class="compare-wrap" id="compare"></div>
+</div>
+
+<div class="side">
+  <div>
+    <div class="lbl">語彙を追加</div>
+    <input type="text" id="orig" placeholder="元の語（英語）">
+    <input type="text" id="pref1" placeholder="日本語1">
+    <input type="text" id="pref2" placeholder="カタカナ（任意）">
+    <input type="text" id="pref3" placeholder="日本語2（任意）">
+    <select id="cat">
+      <option value="1">説明語</option>
+      <option value="5">固有名詞・製品名</option>
+      <option value="6">プロジェクト固有用語</option>
+      <option value="7">境界が曖昧</option>
+    </select>
+    <button id="btn-add" onclick="addVocabForm()" style="width:100%;margin-top:2px;">追加 / 更新</button>
+  </div>
+
+  <hr>
+
+  <div class="lbl-row">
+    <div class="lbl">登録済み <span id="cnt" style="color:#555;"></span></div>
+    <div class="lbl-actions">
+      <button class="btn-icon" id="btn-sort" onclick="toggleSort()" title="並び順切り替え">頻度</button>
+      <button class="btn-icon" onclick="exportVocab()" title="JSONエクスポート">↓</button>
+      <button class="btn-icon" onclick="importVocab()" title="JSONインポート">↑</button>
+    </div>
+  </div>
+  <select id="cat-filter" onchange="onCatFilter(this.value)">
+    <option value="0">全カテゴリ</option>
+    <option value="1">説明語</option>
+    <option value="5">固有名詞・製品名</option>
+    <option value="6">プロジェクト固有</option>
+    <option value="7">境界曖昧</option>
+    <option value="-1">対象外</option>
+  </select>
+  <input type="file" id="import-file" accept=".json" hidden onchange="handleImportFile(event)">
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="検索..." oninput="onSearch(event)">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
+  </div>
+  <div class="vlist" id="vlist"></div>
+</div>
+
+<footer>
+  <button class="btn-p" onclick="convert()">変換する</button>
+  <button id="btn-add-footer" onclick="addVocabForm()">登録する</button>
+  <span id="summary"></span>
+</footer>
+
+<div id="popup">
+  <div class="pop-orig" id="pop-orig"></div>
+  <div class="pop-title">変換候補</div>
+  <div id="pop-items"></div>
+  <hr class="pop-sep">
+  <div class="pop-item" onclick="popRevert()"><span style="color:#777;">元に戻す</span></div>
+</div>
+
+<div id="quick-add">
+  <span class="qa-word"></span>
+  <button onclick="quickAddToForm()">+ 登録</button>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
