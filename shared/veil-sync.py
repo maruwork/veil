@@ -19,7 +19,7 @@ import json
 import re
 import urllib.request
 
-VEIL_URL = "http://localhost:8080/vocab/prompt"
+VEIL_URL = "http://localhost:8080/vocab/prompt"  # VEIL と同一ホストで実行する想定。別サーバーの場合は IP に変更
 CONFIG_DIR = os.path.expanduser("~/.veil")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
 

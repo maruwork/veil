@@ -74,7 +74,7 @@ section[id] { scroll-margin-top: 64px; }
       <a href="zh-hans.html" class="active">ZH 简</a>
       <a href="zh-hant.html">ZH 繁</a>
     </div>
-    <a href="http://localhost:8080" target="_blank">← 打开应用</a>
+    <a href="/" target="_blank">← 打开应用</a>
   </nav>
 </div>
 <div class="layout">
@@ -105,7 +105,7 @@ section[id] { scroll-margin-top: 64px; }
       <h2>概述</h2>
       <p>VEIL 是一个本地工具，可将 AI 生成的英文文本转换为您偏好的词汇。转换规则存储在 SQLite 中。自动生成翻译候选词使用 DeepL 免费 API（API 密钥为可选项）。</p>
       <table>
-        <tr><th>启动</th><td><code>python app.py</code> → <code>http://localhost:8080</code></td></tr>
+        <tr><th>启动</th><td><code>python app.py</code> → <code>http://&lt;主机&gt;:8080</code></td></tr>
         <tr><th>要求</th><td>Python 3.8 以上，仅使用标准库</td></tr>
         <tr><th>数据</th><td><code>vocab.db</code>（SQLite，首次运行时自动创建）</td></tr>
       </table>

@@ -12,7 +12,8 @@
 python app.py
 ```
 
-ブラウザで `http://localhost:8080` を開く。
+ブラウザで `http://<ホスト名またはIPアドレス>:8080` を開く。
+ローカルで起動した場合は `http://localhost:8080`。
 
 ---
 

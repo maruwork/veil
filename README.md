@@ -2,7 +2,7 @@
 
 **Vocabulary Engine for Individual Language**
 
-AIが生成した英語テキストを、あなたが使いたい日本語（または韓国語・中国語）に変換するローカルツール。
+AIが生成した英語テキストを、あなたが使いたい日本語（または韓国語・中国語）に変換するツール。
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -18,7 +18,7 @@ VEILはそのギャップをローカルで解消します。
 
 - **APIコストなし** — DeepL 無料 API のみ利用（翻訳候補の自動生成用。任意）
 - **依存ゼロ** — Python 標準ライブラリのみ。`pip install` 不要
-- **ローカル完結** — 変換処理はすべてローカル
+- **外部送信なし** — 変換処理はすべて自サーバー内で完結
 
 ---
 
@@ -32,7 +32,8 @@ cd veil/shared
 python app.py
 ```
 
-ブラウザで `http://localhost:8080` を開く。
+ブラウザで `http://<ホスト名またはIPアドレス>:8080` を開く。
+ローカルで起動した場合は `http://localhost:8080`。
 
 これだけで動作します。
 
@@ -136,7 +137,7 @@ veil/shared/
 ├── veil-sync.py         # 外部AIツール設定ファイルへの語彙同期
 ├── install-startup.py   # Windows自動起動の登録
 └── docs/
-    └── manual.html      # マニュアル（http://localhost:8080/manual）
+    └── manual.html      # マニュアル（http://<host>:8080/manual）
 ```
 
 ---

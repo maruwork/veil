@@ -340,5 +340,5 @@ if __name__ == "__main__":
     init_db()
     port = 8080
     server = HTTPServer(("0.0.0.0", port), Handler)
-    print(f"VEIL起動: http://localhost:{port}")
+    print(f"VEIL起動 (port {port}) — http://localhost:{port} またはサーバーの IP アドレスでアクセス")
     server.serve_forever()
