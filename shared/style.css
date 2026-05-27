@@ -38,6 +38,22 @@ header {
 }
 header b { color: #e8e0d0; font-size: 12px; letter-spacing: 0.1em; }
 header span { color: var(--text3); font-size: 11px; }
+.header-select {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid #2a2a2a;
+  color: var(--text3);
+  font-family: monospace;
+  font-size: 11px;
+  padding: 2px 4px;
+  cursor: pointer;
+  outline: none;
+  width: auto;
+  margin-bottom: 0;
+}
+.header-select:focus { border-color: #555; }
+.header-link { font-size: 11px; color: var(--text4); text-decoration: none; }
+.header-link:hover { color: var(--text2); }
 
 /* フッター */
 footer {
@@ -50,6 +66,7 @@ footer {
   gap: 10px;
 }
 footer span { font-size: 11px; color: var(--text3); }
+footer #summary { flex: 1; }
 
 /* メインエリア */
 .main {
@@ -284,6 +301,27 @@ hr { border: none; border-top: 1px solid var(--border); }
 .pop-sep { border: none; border-top: 1px solid #222; margin: 4px 0; }
 .pop-loading { padding: 8px 10px; font-size: 12px; color: var(--text4); }
 
+/* 未変換語チップ */
+.unmatched-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.unmatched-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface);
+  border: 1px solid #2a2a2a;
+  color: var(--text3);
+  font-size: 11px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.unmatched-chip:hover { border-color: #555; color: var(--text2); }
+.chip-cnt { color: var(--text4); font-size: 10px; }
+
 /* クイック登録 */
 #quick-add {
   display: none;
@@ -311,3 +349,27 @@ hr { border: none; border-top: 1px solid var(--border); }
   color: #8de0a8;
 }
 #quick-add button:hover { background: rgba(74,124,89,0.2); border-color: #8de0a8; color: #8de0a8; }
+
+/* render.js が付与するクラス */
+.vi-arrow { color: #555; font-size: 10px; }
+.vp-empty { color: #444; }
+.vi-inactive { opacity: 0.4; }
+.vocab-more { font-size: 11px; color: #444; text-align: center; padding: 6px 0; }
+.pop-cand-label { flex: 1; }
+.pop-cand-label.active { color: var(--hl-color); }
+.pop-cand-check { color: var(--hl-color); font-size: 10px; }
+.pop-custom-badge { flex: 0 0 auto; }
+.pop-custom-btn { font-size: 10px; padding: 3px 8px; }
+.btn-flash { border-color: #4a7c59 !important; color: #8de0a8 !important; }
+#custom-input {
+  flex: 1;
+  width: auto;
+  background: #181818;
+  border: 1px solid #333;
+  color: #eee;
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  margin: 0 4px;
+  margin-bottom: 0;
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VEIL 使用手冊</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f0f; --surface: #161616; --surface2: #1c1c1c;
+  --border: #2a2a2a; --border2: #333;
+  --text: #e8e8e8; --text2: #aaa; --text3: #666;
+  --hl: #8de0a8; --hl-bg: rgba(74,124,89,0.18); --hl-border: rgba(74,124,89,0.5);
+  --accent: #4a7c59; --warn: #c8a86e; --warn-bg: rgba(200,168,110,0.1);
+}
+body { font-family: 'Microsoft JhengHei', 'PingFang TC', system-ui, sans-serif; font-size: 15px; background: var(--bg); color: var(--text); line-height: 1.75; }
+.page-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 40px; display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 10; }
+.page-header .title { font-size: 15px; font-weight: 600; color: var(--hl); letter-spacing: 0.12em; }
+.page-header .sub { font-size: 13px; color: var(--text2); }
+.page-header nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.page-header nav a { font-size: 13px; color: var(--text2); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border2); border-radius: 4px; }
+.page-header nav a:hover { color: var(--text); border-color: var(--text3); }
+.lang-nav { display: flex; gap: 4px; }
+.lang-nav a { font-size: 11px; color: var(--text3); text-decoration: none; padding: 2px 7px; border: 1px solid var(--border); border-radius: 3px; }
+.lang-nav a:hover { color: var(--text2); border-color: var(--border2); }
+.lang-nav a.active { color: var(--hl); border-color: var(--accent); }
+.layout { display: grid; grid-template-columns: 200px 1fr; max-width: 960px; margin: 0 auto; padding: 40px 24px; gap: 48px; }
+.toc { position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 80px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+.toc-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text2); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.toc ul { list-style: none; }
+.toc a { display: block; padding: 6px 10px; font-size: 14px; color: var(--text); text-decoration: none; border-radius: 4px; }
+.toc a:hover { background: var(--surface2); color: var(--hl); }
+.toc li.sub a { padding-left: 22px; font-size: 13px; color: var(--text2); }
+.toc li.sub a:hover { color: var(--text); }
+.content { min-width: 0; }
+section { margin-bottom: 56px; padding-bottom: 56px; border-bottom: 1px solid var(--border); }
+section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+h2 { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+h2::before { content: ''; display: inline-block; width: 4px; height: 18px; background: var(--accent); border-radius: 2px; flex-shrink: 0; }
+h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 28px 0 10px; }
+p { color: var(--text); margin-bottom: 12px; }
+p:last-child { margin-bottom: 0; }
+strong { color: var(--text); font-weight: 600; }
+pre { font-family: 'Consolas', monospace; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 14px 16px; overflow-x: auto; margin: 14px 0; font-size: 13px; line-height: 1.6; color: var(--text); border-radius: 0 4px 4px 0; }
+code { font-family: 'Consolas', monospace; background: var(--surface2); border: 1px solid var(--border2); padding: 2px 6px; font-size: 13px; color: var(--hl); border-radius: 3px; }
+pre code { background: none; border: none; padding: 0; color: var(--text); border-radius: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text2); background: var(--surface); border-bottom: 1px solid var(--border2); padding: 8px 14px; }
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface); }
+.hl { background: var(--hl-bg); color: var(--hl); border-radius: 3px; border-bottom: 1px solid var(--hl-border); padding: 0 4px; cursor: default; }
+.steps { list-style: none; counter-reset: steps; margin: 14px 0; }
+.steps li { counter-increment: steps; display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--text); align-items: flex-start; }
+.steps li:last-child { border-bottom: none; }
+.steps li::before { content: counter(steps); flex: 0 0 24px; width: 24px; height: 24px; background: var(--accent); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; margin-top: 1px; }
+ul.bullets { list-style: none; margin: 10px 0; }
+ul.bullets li { color: var(--text); padding: 4px 0 4px 20px; position: relative; }
+ul.bullets li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); font-size: 12px; }
+.note { background: var(--warn-bg); border-left: 3px solid var(--warn); padding: 10px 14px; margin: 14px 0; font-size: 14px; color: var(--warn); border-radius: 0 4px 4px 0; }
+kbd { background: var(--surface2); border: 1px solid var(--border2); border-bottom: 2px solid var(--border2); border-radius: 4px; padding: 2px 8px; font-size: 12px; color: var(--text); white-space: nowrap; }
+section[id] { scroll-margin-top: 64px; }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <span class="title">VEIL</span>
+  <span class="sub">使用手冊</span>
+  <nav>
+    <div class="lang-nav">
+      <a href="../manual.html">JA</a>
+      <a href="en.html">EN</a>
+      <a href="ko.html">KO</a>
+      <a href="zh-hans.html">ZH 简</a>
+      <a href="zh-hant.html" class="active">ZH 繁</a>
+    </div>
+    <a href="http://localhost:8080" target="_blank">← 開啟應用程式</a>
+  </nav>
+</div>
+<div class="layout">
+  <nav class="toc">
+    <div class="toc-title">目錄</div>
+    <ul>
+      <li><a href="#overview">概述</a></li>
+      <li><a href="#basic">基本用法</a></li>
+      <li class="sub"><a href="#basic-input">文字輸入</a></li>
+      <li class="sub"><a href="#basic-convert">執行轉換</a></li>
+      <li class="sub"><a href="#basic-popup">變更候選詞</a></li>
+      <li><a href="#register">詞彙登錄</a></li>
+      <li class="sub"><a href="#register-form">表單登錄</a></li>
+      <li class="sub"><a href="#register-quick">快速登錄</a></li>
+      <li class="sub"><a href="#register-unmatched">從未轉換詞登錄</a></li>
+      <li><a href="#vocab-list">已登錄詞彙</a></li>
+      <li><a href="#export">匯出 / 匯入</a></li>
+      <li><a href="#sync">veil-sync</a></li>
+      <li><a href="#skip">不轉換的情況</a></li>
+      <li><a href="#cat">類別</a></li>
+      <li><a href="#shortcuts">快速鍵</a></li>
+      <li><a href="#startup">自動啟動</a></li>
+    </ul>
+  </nav>
+  <div class="content">
+
+    <section id="overview">
+      <h2>概述</h2>
+      <p>VEIL 是一個本地工具，可將 AI 生成的英文文字轉換為您偏好的詞彙。轉換規則儲存在 SQLite 中。自動生成翻譯候選詞使用 DeepL 免費 API（API 金鑰為選用項目）。</p>
+      <table>
+        <tr><th>啟動</th><td><code>python app.py</code> → <code>http://localhost:8080</code></td></tr>
+        <tr><th>要求</th><td>Python 3.8 以上，僅使用標準函式庫</td></tr>
+        <tr><th>資料</th><td><code>vocab.db</code>（SQLite，首次執行時自動建立）</td></tr>
+      </table>
+    </section>
+
+    <section id="basic">
+      <h2>基本用法</h2>
+      <h3 id="basic-input">文字輸入</h3>
+      <p>將 AI 生成的文字貼到畫面上方的文字方塊中。</p>
+      <h3 id="basic-convert">執行轉換</h3>
+      <ol class="steps">
+        <li>將文字貼到文字方塊中</li>
+        <li>點擊<strong>轉換</strong>（或按 <kbd>Ctrl</kbd>+<kbd>Enter</kbd>）</li>
+        <li>左欄顯示原文，右欄顯示轉換後的文字</li>
+        <li>已轉換的詞語<span class="hl">以綠色醒目顯示</span></li>
+      </ol>
+      <h3 id="basic-popup">變更候選詞</h3>
+      <p>點擊醒目顯示的詞語即可開啟快顯視窗。</p>
+      <table>
+        <tr><th>操作</th><th>說明</th></tr>
+        <tr><td>選擇候選詞</td><td>使用該翻譯。下次所選詞語將成為 p1（首選候選詞）</td></tr>
+        <tr><td>直接輸入</td><td>直接輸入並確認</td></tr>
+        <tr><td>還原</td><td>取消轉換並恢復原始英文（不更改資料庫）</td></tr>
+        <tr><td>排除</td><td>將該詞從轉換中排除，此後將略過</td></tr>
+      </table>
+    </section>
+
+    <section id="register">
+      <h2>詞彙登錄</h2>
+      <h3 id="register-form">表單登錄</h3>
+      <p>使用側邊欄上方的「新增詞彙」表單。</p>
+      <table>
+        <tr><th>欄位</th><th>說明</th></tr>
+        <tr><td>原詞（英文）</td><td>要轉換的英文單字或片語。必填</td></tr>
+        <tr><td>譯文 1</td><td>主要翻譯</td></tr>
+        <tr><td>讀音（選用）</td><td>發音或備用讀法</td></tr>
+        <tr><td>譯文 2（選用）</td><td>第二候選詞</td></tr>
+        <tr><td>類別</td><td>請參閱類別部分</td></tr>
+      </table>
+      <p>輸入原詞時，類別會自動偵測。如果設定了 DeepL API 金鑰，從快顯視窗或未轉換詞標籤開啟表單時，翻譯候選詞將自動填入。</p>
+      <p><strong>新增 / 更新</strong>按鈕會短暫變為綠色以確認登錄。重新登錄相同單字將執行 upsert（覆寫更新）。</p>
+      <h3 id="register-quick">快速登錄（文字選取）</h3>
+      <ol class="steps">
+        <li>在轉換後的輸出中拖曳選取文字</li>
+        <li>選取範圍附近會出現<strong>+ 登錄</strong>按鈕</li>
+        <li>點擊即可自動填寫表單並取得 DeepL 候選詞</li>
+      </ol>
+      <h3 id="register-unmatched">從未轉換詞登錄</h3>
+      <p>轉換後，未被轉換的英文詞語會以標籤形式顯示在側邊欄的「未轉換詞」部分（最多 10 個，按頻率排序）。點擊標籤即可自動填寫登錄表單。</p>
+      <div class="note">停用詞（a、the、is 等）和已登錄詞語將被排除。</div>
+    </section>
+
+    <section id="vocab-list">
+      <h2>已登錄詞彙</h2>
+      <p>側邊欄下方的「已登錄」清單可查看和管理詞彙。</p>
+      <table>
+        <tr><th>操作</th><th>說明</th></tr>
+        <tr><td>搜尋框</td><td>依原詞或譯文 1 篩選。最多顯示 20 筆</td></tr>
+        <tr><td>類別篩選</td><td>僅顯示特定類別</td></tr>
+        <tr><td>頻率 / 順序按鈕</td><td>切換排序方式</td></tr>
+        <tr><td>× 按鈕</td><td>刪除詞彙項目</td></tr>
+      </table>
+      <h3>清單說明</h3>
+      <table>
+        <tr><th>狀態</th><th>含義</th></tr>
+        <tr><td>正常（不透明）</td><td>轉換中使用的作用中項目</td></tr>
+        <tr><td>暗淡（半透明）</td><td>cat=2（已排除）或無翻譯。不用於轉換</td></tr>
+        <tr><td><code>（無翻譯）</code></td><td>屬於目標類別但未輸入翻譯。用作預留位置或等待輸入</td></tr>
+      </table>
+    </section>
+
+    <section id="export">
+      <h2>匯出 / 匯入</h2>
+      <p>使用頁尾右下角的按鈕備份和移轉詞彙資料。</p>
+      <h3>語言對與資料隔離</h3>
+      <p>
+        詞彙資料按<strong>語言對獨立管理</strong>。
+        EN→JA 和 EN→KO 的資料儲存在同一個 <code>vocab.db</code> 中，但互不干擾。
+        匯出和匯入均僅針對<strong>目前選取的語言對</strong>。
+      </p>
+      <h3>匯出</h3>
+      <p>將目前語言對中已登錄的所有詞彙下載為 JSON 檔案。</p>
+      <pre>檔案名稱: veil-vocab-YYYYMMDD.json</pre>
+      <h3>匯入</h3>
+      <p>選取 JSON 檔案載入。現有詞彙將執行 upsert（覆寫更新）。不會刪除任何內容。匯入的詞彙將<strong>登錄至目前的語言對</strong>。</p>
+      <div class="note">若要匯入其他語言的資料，請先切換標題列的語言選取器，再執行匯入。</div>
+      <div class="note">匯入檔案中唯一必填欄位是 <code>o</code>（原詞）。沒有 <code>p1</code> 的詞語將以無翻譯方式登錄。</div>
+    </section>
+
+    <section id="sync">
+      <h2>veil-sync — 與其他 AI 工具同步</h2>
+      <p>自動將已登錄詞彙插入 CLAUDE.md、AGENTS.md、.cursorrules 等設定檔。每次新增或刪除詞彙時都會在背景同步。</p>
+      <h3>初始設定</h3>
+      <pre>python veil-sync.py --add /path/to/CLAUDE.md</pre>
+      <p>登錄後立即同步。對多個檔案重複操作。</p>
+      <h3>指令</h3>
+      <table>
+        <tr><th>指令</th><th>說明</th></tr>
+        <tr><td><code>python veil-sync.py --add &lt;path&gt;</code></td><td>登錄同步目標</td></tr>
+        <tr><td><code>python veil-sync.py --list</code></td><td>列出已登錄目標</td></tr>
+        <tr><td><code>python veil-sync.py --remove &lt;path&gt;</code></td><td>取消登錄目標</td></tr>
+        <tr><td><code>python veil-sync.py</code></td><td>手動同步所有檔案</td></tr>
+      </table>
+      <h3>支援的檔案</h3>
+      <table>
+        <tr><th>工具</th><th>檔案</th></tr>
+        <tr><td>Claude Code</td><td><code>CLAUDE.md</code></td></tr>
+        <tr><td>Codex</td><td><code>AGENTS.md</code></td></tr>
+        <tr><td>Cursor</td><td><code>.cursorrules</code></td></tr>
+        <tr><td>GitHub Copilot</td><td><code>.github/copilot-instructions.md</code></td></tr>
+        <tr><td>Gemini CLI</td><td><code>GEMINI.md</code></td></tr>
+        <tr><td>Aider</td><td><code>.aider.conf.yml</code></td></tr>
+      </table>
+      <p>以下區塊將被插入設定檔中（<code>.yml</code>/<code>.yaml</code> 使用 <code>#</code> 格式）。</p>
+      <pre>&lt;!-- VEIL_START --&gt;
+Please follow these vocabulary rules in your output:
+- close → complete
+- branch → branch
+&lt;!-- VEIL_END --&gt;</pre>
+    </section>
+
+    <section id="skip">
+      <h2>不轉換的情況</h2>
+      <p>以下模式會被刻意略過。</p>
+      <table>
+        <tr><th>模式</th><th>範例</th></tr>
+        <tr><td>檔案名稱 / 路徑組成部分（<code>.</code> 相鄰）</td><td><code>workflow_close.py</code></td></tr>
+        <tr><td>連字號分隔的識別項（<code>-</code> 相鄰）</td><td><code>task-close-workflow</code></td></tr>
+        <tr><td>反引號內部</td><td><code>`close()`</code></td></tr>
+        <tr><td>雙引號內部</td><td><code>"close"</code></td></tr>
+        <tr><td><code>key=value</code> 格式</td><td><code>status=close</code></td></tr>
+        <tr><td>票券 ID（<code>LETTERS-000</code>）</td><td><code>BRANCH-046</code></td></tr>
+      </table>
+      <div class="note">如果發生意外略過，可以使用快顯視窗的「直接輸入」手動轉換。</div>
+    </section>
+
+    <section id="cat">
+      <h2>類別</h2>
+      <table>
+        <tr><th>cat</th><th>名稱</th><th>已轉換</th><th>用途</th></tr>
+        <tr><td>1</td><td>描述性</td><td>✓</td><td>通用技術英語（close → 完成 等）</td></tr>
+        <tr><td>2</td><td>固定 / 已排除</td><td>—</td><td>ALL_CAPS 常數、明確排除的詞語</td></tr>
+        <tr><td>5</td><td>專有名詞 / 產品名稱</td><td>✓</td><td>工具名稱、函式庫名稱</td></tr>
+        <tr><td>6</td><td>專案專用</td><td>✓</td><td>專案專用術語</td></tr>
+        <tr><td>7</td><td>模糊</td><td>✓</td><td>根據上下文需要轉換的詞語</td></tr>
+      </table>
+      <p>輸入原詞時，類別會自動偵測：</p>
+      <table>
+        <tr><th>模式</th><th>偵測到的類別</th></tr>
+        <tr><td><code>ALL_CAPS</code>、<code>UPPER_CASE</code></td><td>2（固定）</td></tr>
+        <tr><td><code>LETTERS-000</code>（票券 ID）</td><td>2（固定）</td></tr>
+        <tr><td>內部大寫（<code>camelCase</code>、<code>SQLite</code> 等）</td><td>5（專有名詞）</td></tr>
+        <tr><td>其他英文單字 / 片語</td><td>1（描述性）</td></tr>
+      </table>
+    </section>
+
+    <section id="shortcuts">
+      <h2>鍵盤快速鍵</h2>
+      <table>
+        <tr><th>按鍵</th><th>操作</th></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>執行轉換</td></tr>
+        <tr><td><kbd>Cmd</kbd>+<kbd>Enter</kbd>（Mac）</td><td>執行轉換</td></tr>
+      </table>
+    </section>
+
+    <section id="startup">
+      <h2>Windows 自動啟動</h2>
+      <p>登錄工作，使 VEIL 伺服器在 Windows 登入時自動啟動。</p>
+      <pre>python install-startup.py           # 登錄
+python install-startup.py --remove  # 取消登錄
+python install-startup.py --status  # 確認狀態</pre>
+      <p>登錄後，下次 Windows 登入時 VEIL 將自動啟動。不會顯示主控台視窗。</p>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>

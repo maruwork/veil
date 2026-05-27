@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>如何取得 DeepL API 金鑰 — VEIL</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f0f; --surface: #161616; --surface2: #1c1c1c;
+  --border: #2a2a2a; --border2: #333;
+  --text: #e8e8e8; --text2: #aaa; --text3: #666;
+  --hl: #8de0a8; --accent: #4a7c59;
+  --warn: #c8a86e; --warn-bg: rgba(200,168,110,0.1);
+}
+body {
+  font-family: 'Microsoft JhengHei', 'PingFang TC', system-ui, sans-serif;
+  font-size: 15px; background: var(--bg); color: var(--text);
+  line-height: 1.75; max-width: 680px; margin: 0 auto; padding: 40px 24px;
+}
+h1 { font-size: 22px; font-weight: 600; color: var(--hl); margin-bottom: 8px; }
+.sub { font-size: 13px; color: var(--text2); margin-bottom: 40px; }
+h2 {
+  font-size: 16px; font-weight: 600; color: var(--text);
+  margin: 36px 0 14px; display: flex; align-items: center; gap: 10px;
+}
+h2::before {
+  content: ''; display: inline-block; width: 4px; height: 16px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+}
+p { color: var(--text); margin-bottom: 12px; }
+.steps { list-style: none; counter-reset: steps; margin: 14px 0; }
+.steps li {
+  counter-increment: steps; display: flex; gap: 14px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+  color: var(--text); align-items: flex-start;
+}
+.steps li:last-child { border-bottom: none; }
+.steps li::before {
+  content: counter(steps); flex: 0 0 26px; width: 26px; height: 26px;
+  background: var(--accent); border-radius: 4px; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: #fff; margin-top: 1px;
+}
+code {
+  font-family: 'Consolas', monospace; background: var(--surface2);
+  border: 1px solid var(--border2); padding: 2px 7px;
+  font-size: 13px; color: var(--hl); border-radius: 3px;
+}
+pre {
+  font-family: 'Consolas', monospace; background: var(--surface);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  padding: 14px 16px; font-size: 13px; color: var(--text);
+  border-radius: 0 4px 4px 0; margin: 14px 0; overflow-x: auto;
+}
+.note {
+  background: var(--warn-bg); border-left: 3px solid var(--warn);
+  padding: 10px 14px; margin: 14px 0; font-size: 14px; color: var(--warn);
+  border-radius: 0 4px 4px 0;
+}
+a { color: var(--hl); }
+</style>
+</head>
+<body>
+
+<h1>如何取得 DeepL API 金鑰</h1>
+<p class="sub">VEIL 自動翻譯建議功能的設定指南 — 約需 5 分鐘</p>
+
+<h2>關於 DeepL API 免費方案</h2>
+<p>
+  DeepL API Free 方案每月可免費翻譯 <strong>50 萬個字元</strong>，無需綁定信用卡。
+  VEIL 僅在登錄詞彙時取得翻譯建議，一般使用幾乎不會超出免費額度。
+</p>
+
+<h2>取得步驟</h2>
+<ol class="steps">
+  <li>
+    <div>
+      開啟 <strong><a href="https://www.deepl.com/zh-TW/pro-api" target="_blank">deepl.com/pro-api</a></strong>，
+      點擊 <strong>「免費試用 API」</strong> 按鈕。
+    </div>
+  </li>
+  <li>
+    <div>
+      輸入電子郵件地址和密碼建立帳號。
+      收到驗證郵件後，點擊連結完成驗證。
+    </div>
+  </li>
+  <li>
+    <div>
+      登入後，點擊右上角帳號圖示 → <strong>「帳號」</strong> → <strong>「API 金鑰」</strong> 區塊。
+      複製顯示的 API 金鑰。
+    </div>
+  </li>
+  <li>
+    <div>
+      在 VEIL 專案目錄（<code>veil/shared/</code>）中建立 <code>.env</code> 檔案，寫入以下內容並儲存。
+      <pre>DEEPL_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx</pre>
+      ※ 免費方案的金鑰末尾帶有 <code>:fx</code>。
+    </div>
+  </li>
+  <li>
+    <div>
+      重新啟動 VEIL 伺服器。
+      <pre>python app.py</pre>
+      之後開啟詞彙登錄表單時，翻譯建議將自動填入。
+    </div>
+  </li>
+</ol>
+
+<h2>確認是否正常運作</h2>
+<p>
+  點擊側邊欄「未轉換詞」中的詞彙標籤，或在登錄表單的「原詞」欄位輸入英文單字。
+  顯示「獲取中...」後自動填入翻譯建議，即表示設定成功。
+</p>
+
+<div class="note">
+  即使沒有 API 金鑰，VEIL 也能正常運作。
+  只是無法自動填入翻譯建議，手動輸入功能仍然可以使用。
+</div>
+
+</body>
+</html>
