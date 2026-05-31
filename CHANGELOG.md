@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Export / Import ボタンをフッターからサイドバー語彙ラベル行のアイコンボタン（↓/↑）に移動
+
 ---
 
 ## [0.5.0] - 2026-05-27

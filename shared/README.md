@@ -24,7 +24,13 @@ python app.py
 | `app.py` | バックエンド（HTTPServer + SQLite） |
 | `index.html` | UI |
 | `style.css` | スタイル |
-| `main.js` | フロントエンドロジック |
+| `main.js` | 初期化エントリーポイント |
+| `locales.js` | UI文字列（多言語） |
+| `js/state.js` | グローバル状態・定数 |
+| `js/api.js` | バックエンド API 通信 |
+| `js/convert.js` | テキスト変換エンジン（2パス） |
+| `js/render.js` | DOM 描画 |
+| `js/ui.js` | イベントハンドラ・UI操作 |
 | `veil-sync.py` | 外部 AI ツール設定ファイルへの語彙同期 |
 | `install-startup.py` | Windows ログイン時自動起動の登録 |
 | `vocab.db` | SQLite DB（初回起動時に自動生成） |

@@ -70,7 +70,7 @@ function renderList(filter = '') {
   const filtered = filter
     ? items.filter(v =>
         v.o.toLowerCase().includes(filter.toLowerCase()) ||
-        v.p1.toLowerCase().includes(filter.toLowerCase()))
+        (v.p1 || '').toLowerCase().includes(filter.toLowerCase()))
     : items;
 
   document.getElementById('cnt').textContent = `(${filtered.length}/${vocab.length})`;

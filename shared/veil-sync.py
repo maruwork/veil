@@ -17,6 +17,8 @@ import sys
 import os
 import json
 import re
+import shutil
+import tempfile
 import urllib.request
 
 VEIL_URL = "http://localhost:8080/vocab/prompt"  # VEIL と同一ホストで実行する想定。別サーバーの場合は IP に変更
@@ -72,8 +74,13 @@ def do_sync(vocab_text, quiet=False):
             continue
         marker_start, marker_end = get_markers(path)
         block = f"{marker_start}\n{vocab_text}\n{marker_end}"
-        with open(path, encoding="utf-8") as f:
-            content = f.read()
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+        except OSError as e:
+            if not quiet:
+                print(f"  エラー: {path} ({e})")
+            continue
         pattern = re.escape(marker_start) + r".*?" + re.escape(marker_end)
         if re.search(pattern, content, flags=re.DOTALL):
             new_content = re.sub(pattern, block, content, flags=re.DOTALL)
@@ -83,8 +90,16 @@ def do_sync(vocab_text, quiet=False):
             if not quiet:
                 print(f"  変更なし: {path}")
             continue
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(new_content)
+        try:
+            dir_ = os.path.dirname(path) or '.'
+            with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=dir_, delete=False, suffix='.tmp') as tmp:
+                tmp.write(new_content)
+                tmp_path = tmp.name
+            shutil.move(tmp_path, path)
+        except OSError as e:
+            if not quiet:
+                print(f"  書き込みエラー: {path} ({e})")
+            continue
         if not quiet:
             print(f"  更新: {path}")
 

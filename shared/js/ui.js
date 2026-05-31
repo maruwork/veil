@@ -84,7 +84,7 @@ async function selectCand(label) {
   const seg = lineData[li].segs[si];
   const v = vocab.find(v => v.id === seg.vocabId);
   if (v && label !== v.p1) {
-    const others = [v.p1, v.p2, v.p3].filter(p => p && p !== label);
+    const others = [v.p1, v.p2, v.p3].filter(p => p && p !== label).slice(0, 2);
     await upsertVocab(v.o, label, others[0] || '', others[1] || '', v.cat);
   }
   closePopup();
@@ -260,7 +260,8 @@ function applyLocale() {
   setText('header-subtitle', 'subtitle');
   setPh('inp', 'inputPh');
   document.getElementById('col-hd-in').textContent = t('colIn');
-  document.getElementById('col-hd-out').firstChild.textContent = t('colOut') + ' ';
+  const fc = (id, text) => { const n = document.getElementById(id); if (n?.firstChild) n.firstChild.textContent = text; };
+  fc('col-hd-out', t('colOut') + ' ');
 
   setText('lbl-add', 'sectionAdd');
   setPh('orig',  'origPh');
@@ -271,8 +272,8 @@ function applyLocale() {
   Array.from(document.getElementById('cat').options).forEach(o => { if (catMap[o.value]) o.text = t(catMap[o.value]); });
   setText('btn-add', 'btnAdd');
 
-  document.getElementById('lbl-unmatched').firstChild.textContent = t('sectionUnmatched') + ' ';
-  document.getElementById('lbl-vocab').firstChild.textContent    = t('sectionVocab') + ' ';
+  fc('lbl-unmatched', t('sectionUnmatched') + ' ');
+  fc('lbl-vocab',     t('sectionVocab') + ' ');
   const cfMap = { '0': 'catAll', '1': 'cat1', '5': 'cat5', '6': 'cat6', '7': 'cat7', '-1': 'catExcluded' };
   Array.from(document.getElementById('cat-filter').options).forEach(o => { if (cfMap[o.value]) o.text = t(cfMap[o.value]); });
   setPh('search-input', 'searchPh');

@@ -252,7 +252,7 @@ class Handler(BaseHTTPRequestHandler):
     def _serve_static(self, rel_path):
         base_dir = os.path.normpath(os.path.dirname(__file__))
         target = os.path.normpath(os.path.join(base_dir, rel_path.lstrip('/')))
-        if not target.startswith(base_dir + os.sep) and target != base_dir:
+        if not target.lower().startswith((base_dir + os.sep).lower()) and target.lower() != base_dir.lower():
             return False
         ext = os.path.splitext(target)[1].lower()
         if ext not in STATIC_EXTS or not os.path.isfile(target):
@@ -275,12 +275,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         base = urllib.parse.urlparse(self.path).path
         if base == "/":
+            try:
+                with open(os.path.join(os.path.dirname(__file__), "index.html"), "rb") as f:
+                    body = f.read()
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            with open(os.path.join(os.path.dirname(__file__), "index.html"), "rb") as f:
-                self.wfile.write(f.read())
+            self.wfile.write(body)
         elif base == "/vocab":
             self.send_json(get_all_vocab(_parse_lang(self.path)))
         elif base == "/vocab/prompt":
@@ -291,18 +297,29 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         elif base == "/manual":
+            try:
+                with open(os.path.join(os.path.dirname(__file__), "docs", "manual.html"), "rb") as f:
+                    body = f.read()
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            with open(os.path.join(os.path.dirname(__file__), "docs", "manual.html"), "rb") as f:
-                self.wfile.write(f.read())
+            self.wfile.write(body)
         elif not self._serve_static(base):
             self.send_response(404)
             self.end_headers()
 
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length))
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(min(length, 1_048_576)))
+        except (ValueError, json.JSONDecodeError):
+            self.send_response(400)
+            self.end_headers()
+            return
         lang = body.get("lang", "en-ja")
 
         if self.path == "/vocab/upsert":
