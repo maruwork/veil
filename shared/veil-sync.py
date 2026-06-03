@@ -24,7 +24,7 @@ import urllib.request
 VEIL_URL = "http://localhost:8080/vocab/prompt"  # VEIL と同一ホストで実行する想定。別サーバーの場合は IP に変更
 CONFIG_DIR = os.path.expanduser("~/.veil")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
-BASE_RULES_FILE = os.path.join(CONFIG_DIR, "base-rules.md")
+BASE_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
 # ファイル種別ごとのマーカー
 MARKERS = {
@@ -65,13 +65,20 @@ def fetch_vocab():
 
 
 def load_base_rules():
-    if not os.path.exists(BASE_RULES_FILE):
+    if not os.path.isdir(BASE_RULES_DIR):
         return ""
-    try:
-        with open(BASE_RULES_FILE, encoding="utf-8") as f:
-            return f.read().strip()
-    except OSError:
-        return ""
+    parts = []
+    for fname in sorted(os.listdir(BASE_RULES_DIR)):
+        if not fname.endswith(".md"):
+            continue
+        try:
+            with open(os.path.join(BASE_RULES_DIR, fname), encoding="utf-8") as f:
+                content = f.read().strip()
+            if content:
+                parts.append(content)
+        except OSError:
+            pass
+    return "\n".join(parts)
 
 
 def do_sync(vocab_text, quiet=False):
