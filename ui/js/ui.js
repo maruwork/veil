@@ -49,7 +49,7 @@ async function showPopup(el, li, si) {
   popup.classList.add('show');
 
   const items = document.getElementById('pop-items');
-  if (v && (!v.p1 || !v.p2)) {
+  if (v && (!v.p1 && !v.p2)) {
     items.innerHTML = '';
     const loading = document.createElement('div');
     loading.className = 'pop-loading';

@@ -301,8 +301,12 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/vocab/upsert":
+            original = body.get("original", "").strip()
+            if not original:
+                self.send_json({"error": "original is required"}, status=400)
+                return
             upsert_vocab(
-                body.get("original", ""),
+                original,
                 body.get("p1", ""),
                 body.get("p2", ""),
                 body.get("p3", ""),

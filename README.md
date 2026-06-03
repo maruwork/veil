@@ -81,14 +81,16 @@ python veil-sync.py --add /path/to/AGENTS.md
 
 登録と同時に即時同期されます。対応ツールの例：
 
-| ツール | 設定ファイル |
-|--------|------------|
-| Claude Code | `CLAUDE.md` |
-| Codex | `AGENTS.md` |
-| Cursor | `.cursorrules` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Gemini CLI | `GEMINI.md` |
-| Aider | `.aider.conf.yml` |
+| ツール | 設定ファイル | マーカー形式 |
+|--------|------------|------------|
+| Claude Code | `CLAUDE.md` | `<!-- VEIL_START -->` |
+| Codex | `AGENTS.md` | `<!-- VEIL_START -->` |
+| Cursor | `.cursorrules` | `<!-- VEIL_START -->` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `<!-- VEIL_START -->` |
+| Gemini CLI | `GEMINI.md` | `<!-- VEIL_START -->` |
+| Aider | `.aider.conf.yml` | `# VEIL_START` |
+
+`.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` 拡張子のファイルは `# VEIL_START` / `# VEIL_END` マーカーを使用します。
 
 ### 3. スキルを配置する
 
@@ -191,10 +193,10 @@ veil/
 │   ├── main.js
 │   ├── locales.js
 │   └── js/
-│       ├── state.js
 │       ├── api.js
 │       ├── convert.js      # 2パス変換エンジン
 │       ├── render.js
+│       ├── state.js
 │       └── ui.js
 ├── skills/                 # スキルテンプレート
 │   ├── claude-code/

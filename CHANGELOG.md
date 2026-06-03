@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **フッター 登録ボタン**: 変換エリア近くから登録操作できる
 
 ### Changed
-- Import / Export ボタンをサイドバーからフッターへ移動
+- Export / Import ボタンをフッターへ移動（後のバージョンでサイドバーに戻された）
 
 ---
 

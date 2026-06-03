@@ -131,9 +131,10 @@ def cmd_sync():
     if not targets:
         print("同期先が未登録です。先に登録してください:\n  python veil-sync.py --add <path>")
         return
-    vocab = fetch_vocab() or ""
-    if not vocab:
+    vocab = fetch_vocab()
+    if vocab is None:
         print("警告: VEILサーバーに接続できません。base rules のみで同期します。\n      (app.py が起動中なら語彙DBも反映されます)")
+        vocab = ""
     base = load_base_rules()
     if not vocab and not base:
         print("同期するルールがありません。app.py を起動するか ~/.veil/rules/ にルールを追加してください。")
@@ -169,9 +170,10 @@ def cmd_add(path):
     print(f"登録: {path}")
 
     # 登録と同時に即時同期
-    vocab = fetch_vocab() or ""
-    if not vocab:
+    vocab = fetch_vocab()
+    if vocab is None:
         print("警告: VEILサーバーに接続できません。base rules のみで同期します。")
+        vocab = ""
     base = load_base_rules()
     do_sync(vocab, base)
 

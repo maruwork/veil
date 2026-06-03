@@ -189,5 +189,5 @@ CREATE TABLE vocab (
 
 - バインド: `127.0.0.1:8080` のみ（ネットワーク公開なし）
 - CORS: `Access-Control-Allow-Origin: http://127.0.0.1:8080`（ワイルドカード不使用）
-- パストラバーサル防止: `_serve_static` で case-insensitive チェック（`ui/` 配下のみ配信）
+- パストラバーサル防止: `_serve_static` で case-insensitive チェック（`ui/` 配下のみ配信）。`/` と `/manual` はハードコードパスで直接提供するため `_serve_static` を通らない
 - `.env`・`vocab.db` は `.gitignore` で git 管理外
