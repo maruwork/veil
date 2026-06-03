@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **未変換語リスト**: 変換後テキストの未マッチ英単語をサイドバーにチップ表示。クリックで登録フォームに自動入力
-- **クイック登録**: 変換後テキストをマウス選択すると `+ 登録` ボタンが浮き上がる。クリックでフォーム自動入力 + DeepL 候補取得
+- **クイック登録**: 変換後テキストをマウス選択すると `+ 登録` ボタンが浮き上がる。クリックでフォームに自動入力
 - **Ctrl+Enter** ショートカットで変換実行
 - **自動 veil-sync**: 語彙の追加・削除のたびにバックグラウンドで同期ファイルを自動更新
 - **Windows 自動起動**: `install-startup.py` でログオン時に自動起動を登録（Task Scheduler 使用）
@@ -75,11 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-05-27
 
 ### Added
-- **DeepL 自動翻訳**: `/vocab/generate` エンドポイント。`DEEPL_API_KEY` が設定されている場合に候補を自動取得
-- カタカナ判定: DeepL 結果がカタカナなら p2、日本語なら p1 に格納
 - **変換候補の p1 昇格**: ポップアップで別候補を選択すると p1 に自動昇格して DB に保存
 - テキスト選択でのクイック登録フォーム自動入力
-- `.env` ファイルから API キーを読み込む仕組み
 
 ### Fixed
 - p2 のみ（カタカナのみ）で登録しようとするとガードされて保存できなかった問題

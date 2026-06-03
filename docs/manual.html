@@ -368,7 +368,7 @@ section[id] { scroll-margin-top: 64px; }
       <h2>概要</h2>
       <p>
         VEIL は AI が生成した英語テキストを、あなたの語彙ルールに沿った日本語に変換するローカルツールです。
-        変換ルールは SQLite に保存され、変換候補の自動生成には DeepL 無料 API を使います（API キーがなくても動作します）。
+        変換ルールは SQLite に保存されます。
       </p>
       <table>
         <tr><th>起動</th><td><code>python app.py</code> → <code>http://&lt;ホスト&gt;:8080</code></td></tr>
@@ -419,7 +419,7 @@ section[id] { scroll-margin-top: 64px; }
       </table>
       <p>
         元の語を入力すると、カテゴリが自動推定されます。
-        DeepL API キーが設定されている場合、ポップアップや未変換語チップから登録フォームを開いた際に翻訳候補が自動入力されます。
+        元の語を入力するとカテゴリが自動推定されます。翻訳候補は手動で入力してください。
       </p>
       <p>
         <strong>追加 / 更新</strong> を押すとボタンが一時的に緑に変わり、登録完了を通知します。
@@ -430,7 +430,7 @@ section[id] { scroll-margin-top: 64px; }
       <ol class="steps">
         <li>変換後テキストをマウスでドラッグ選択</li>
         <li>選択語の近くに <strong>+ 登録</strong> ボタンが浮き上がる</li>
-        <li>クリックすると登録フォームに自動入力 + DeepL 候補取得</li>
+        <li>クリックすると登録フォームに自動入力</li>
       </ol>
 
       <h3 id="register-unmatched">未変換語リストから登録</h3>

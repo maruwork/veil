@@ -47,16 +47,3 @@ async function incrementCount(original) {
   });
 }
 
-async function generateTranslation(word) {
-  try {
-    const res = await fetch(BASE + '/vocab/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word })
-    });
-    if (!res.ok) return { p1: '', p2: '', p3: '' };
-    return await res.json();
-  } catch {
-    return { p1: '', p2: '', p3: '' };
-  }
-}

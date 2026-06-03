@@ -44,19 +44,6 @@ def trigger_sync():
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "vocab.db")
 
-def load_env(path):
-    try:
-        with open(path, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    os.environ.setdefault(k.strip(), v.strip())
-    except FileNotFoundError:
-        pass
-
-load_env(os.path.join(os.path.dirname(__file__), ".env"))
-
 SEEDS = [
     ("active",        "アクティブ", "",          "",       1),
     ("close record",  "完了記録",   "",          "",       1),
@@ -164,39 +151,6 @@ def delete_vocab(vocab_id):
     c.execute("DELETE FROM vocab WHERE id=?", (vocab_id,))
     conn.commit()
     conn.close()
-
-
-def is_katakana(text):
-    kat = sum(1 for c in text if '゠' <= c <= 'ヿ')
-    return kat > len(text) * 0.5 if text else False
-
-
-def generate_translation(word):
-    deepl_key = os.environ.get("DEEPL_API_KEY", "")
-    if not deepl_key:
-        return None
-    req_body = json.dumps({
-        "text": [word],
-        "source_lang": "EN",
-        "target_lang": "JA"
-    }).encode()
-    req = urllib.request.Request(
-        "https://api-free.deepl.com/v2/translate",
-        data=req_body,
-        headers={
-            "Authorization": f"DeepL-Auth-Key {deepl_key}",
-            "Content-Type": "application/json"
-        }
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read())
-            result = data["translations"][0]["text"]
-            if is_katakana(result):
-                return {"p1": "", "p2": result, "p3": ""}
-            return {"p1": result, "p2": "", "p3": ""}
-    except Exception:
-        return None
 
 
 def get_vocab_prompt():
@@ -339,10 +293,6 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/vocab/increment":
             increment_count(body.get("original", ""))
             self.send_json({"ok": True})
-
-        elif self.path == "/vocab/generate":
-            gen = generate_translation(body.get("word", "")) or {"p1": "", "p2": "", "p3": ""}
-            self.send_json(gen)
 
         else:
             self.send_response(404)

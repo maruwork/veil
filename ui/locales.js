@@ -35,7 +35,6 @@ const LOCALES = {
     popConfirm:       '確定',
     quickAddBtn:      '+ 登録',
     noTrans:          '(翻訳なし)',
-    generating:       '生成中...',
     flashDone:        '✓ 登録済み',
     replaced:         n => `${n}語置き換え済み`,
     noReplace:        '置き換えなし',

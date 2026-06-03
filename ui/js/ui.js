@@ -49,24 +49,6 @@ async function showPopup(el, li, si) {
   popup.classList.add('show');
 
   const items = document.getElementById('pop-items');
-  if (v && (!v.p1 && !v.p2 && !v.p3)) {
-    items.innerHTML = '';
-    const loading = document.createElement('div');
-    loading.className = 'pop-loading';
-    loading.textContent = t('generating');
-    items.appendChild(loading);
-    try {
-      const gen = await generateTranslation(seg.orig);
-      const newP1 = v.p1 || gen.p1 || '';
-      const newP2 = v.p2 || gen.p2 || '';
-      if (newP1 !== v.p1 || newP2 !== v.p2) {
-        const cat = v.cat === 1 ? inferCat(v.o) : v.cat;
-        await upsertVocab(v.o, newP1, newP2, v.p3, cat);
-        v = vocab.find(vv => vv.id === seg.vocabId);
-      }
-    } catch { /* DeepLキーなし or ネットワークエラー */ }
-  }
-
   renderPopupItems(seg, v);
 }
 
@@ -228,19 +210,12 @@ function hideQuickAdd() {
   quickWord = '';
 }
 
-async function fillAddForm(word) {
+function fillAddForm(word) {
   document.getElementById('orig').value = word;
   document.getElementById('cat').value = inferCat(word);
-  document.getElementById('pref1').value = t('generating');
+  document.getElementById('pref1').value = '';
   document.getElementById('pref2').value = '';
   document.getElementById('pref3').value = '';
-  try {
-    const gen = await generateTranslation(word);
-    document.getElementById('pref1').value = gen.p1 || '';
-    document.getElementById('pref2').value = gen.p2 || '';
-  } catch {
-    document.getElementById('pref1').value = '';
-  }
   document.getElementById('pref1').focus();
 }
 
