@@ -40,10 +40,11 @@ async function deleteVocab(id) {
 }
 
 async function incrementCount(original) {
-  await fetch(BASE + '/vocab/increment', {
+  const res = await fetch(BASE + '/vocab/increment', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ original })
   });
+  if (!res.ok) console.error(`incrementCount failed: ${res.status}`);
 }
 
