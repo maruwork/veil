@@ -34,9 +34,11 @@ def cmd_install():
         capture_output=True, text=True
     )
     if result.returncode == 0:
+        log_path = os.path.join(os.path.expanduser("~"), ".veil", "sync-error.log")
         print(f"登録完了: 次回Windowsログイン時から自動起動します")
         print(f"  実行ファイル: {pythonw}")
         print(f"  スクリプト: {APP_PATH}")
+        print(f"  同期エラーログ: {log_path}")
         ans = input("\n今すぐ起動しますか？ [y/N]: ").strip().lower()
         if ans == "y":
             subprocess.run(["schtasks", "/Run", "/TN", TASK_NAME])

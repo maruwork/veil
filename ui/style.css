@@ -373,3 +373,19 @@ hr { border: none; border-top: 1px solid var(--border); }
   margin: 0 4px;
   margin-bottom: 0;
 }
+
+#toast {
+  display: none;
+  position: fixed;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #c00;
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  z-index: 2000;
+  white-space: nowrap;
+}
+#toast.show { display: block; }

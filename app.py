@@ -10,6 +10,17 @@ import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 SYNC_SCRIPT = os.path.join(os.path.dirname(__file__), "veil-sync.py")
+SYNC_LOG = os.path.join(os.path.expanduser("~"), ".veil", "sync-error.log")
+
+
+def _log_sync_error(msg):
+    print(msg, file=sys.stderr)
+    try:
+        os.makedirs(os.path.dirname(SYNC_LOG), exist_ok=True)
+        with open(SYNC_LOG, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
 
 
 def trigger_sync():
@@ -24,11 +35,11 @@ def trigger_sync():
             )
             if result.returncode != 0:
                 msg = result.stderr.decode("utf-8", errors="replace").strip()
-                print(f"[veil-sync] 同期失敗 (exit {result.returncode}): {msg}", file=sys.stderr)
+                _log_sync_error(f"[veil-sync] 同期失敗 (exit {result.returncode}): {msg}")
         except subprocess.TimeoutExpired:
-            print("[veil-sync] 同期タイムアウト", file=sys.stderr)
+            _log_sync_error("[veil-sync] 同期タイムアウト")
         except Exception as e:
-            print(f"[veil-sync] 同期エラー: {e}", file=sys.stderr)
+            _log_sync_error(f"[veil-sync] 同期エラー: {e}")
     threading.Thread(target=_run, daemon=True).start()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "vocab.db")
