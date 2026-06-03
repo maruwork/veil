@@ -1,370 +1,191 @@
 # VEIL 設計書
 
 **Vocabulary Engine for Individual Language**
-AIの出力テキストを、使用者の個人語彙ルールに沿った日本語に変換するローカルツール。
 
 ---
 
-## 1. 設計方針
+## 1. 目的
 
-### 核となる制約
+AIが出力する語彙をできる限り汎用的にしつつ、使用者の好みに統一すること。
 
-- **APIコスト不要**: DeepL 無料API（翻訳候補の自動生成用）のみ。LLM API は使わない。
-- **依存ゼロ**: Python 標準ライブラリのみ。`pip install` 不要。
-- **ローカル完結**: SQLite + Python の HTTP サーバー。インターネット接続なしで変換機能は全動作する。
-
-### 解決する問題
-
-Claude Code や Codex など LLM が生成するテキストには、開発者が使いたい日本語表現と異なる語が混在する（例: "close" → 使いたい語は「完了」だが AI は「クローズ」と書く）。VEIL はそれを手元で即座に変換する。
+Claude Code・Codex などのAIは同じ概念を異なる語で表現する。VEILはそのばらつきを個人ルールとして蓄積し、すべてのAIツール設定ファイルに自動で反映するループを提供する。
 
 ---
 
-## 2. ファイル構成
+## 2. 設計方針
+
+- **ローカル完結**: SQLite + Python 標準ライブラリのみ。外部サービス不要
+- **依存ゼロ**: `pip install` 不要
+- **事前制御優先**: AIの出力後に修正するのではなく、設定ファイルに語彙ルールを事前注入して出力を統一する
+- **UIは補助**: Web UIは語彙DB管理・変換確認用。メインワークフローはスキルとveil-sync
+
+---
+
+## 3. アーキテクチャ
 
 ```
-veil/shared/
-├── app.py              # バックエンド (HTTP サーバー + SQLite + API)
-├── index.html          # UI エントリーポイント
-├── style.css           # スタイル
-├── main.js             # 初期化エントリーポイント
-├── locales.js          # UI文字列（多言語）
-├── js/
-│   ├── state.js        # グローバル状態・定数
-│   ├── api.js          # バックエンド API 通信
-│   ├── convert.js      # テキスト変換エンジン（2パス）
-│   ├── render.js       # DOM 描画
-│   └── ui.js           # イベントハンドラ・UI操作
-├── veil-sync.py        # 外部 AI ツール設定ファイルへの語彙同期
-├── install-startup.py  # Windows ログイン時自動起動の登録
-├── vocab.db            # SQLite DB（初回起動時自動生成、git 管理外）
-└── docs/
-    └── veil-design.md  # このファイル
+会話中のAI語彙
+      ↓
+/veil-capture スキル（Claude Code / Codex）
+      ↓  ← LLMが翻訳・分類
+~/.veil/rules/{letter}.md（語彙ルール保存）
+      ↓
+veil-sync.py
+      ↓
+CLAUDE.md / AGENTS.md / .cursorrules 等
+      ↓
+次セッションのAI出力が統一される
 ```
 
 ---
 
-## 3. データモデル
+## 4. コンポーネント詳細
 
-### vocab テーブル
+### 4-1. veil-capture スキル
 
-| カラム     | 型        | 説明                                |
-|-----------|-----------|-------------------------------------|
-| id        | INTEGER   | PRIMARY KEY AUTOINCREMENT           |
-| original  | TEXT      | 英語元語（UNIQUE）                  |
-| p1        | TEXT      | 日本語1（主要変換先）               |
-| p2        | TEXT      | カタカナ（任意）                    |
-| p3        | TEXT      | 日本語2 補助候補（任意）            |
-| cat       | INTEGER   | カテゴリ（下表参照）                |
-| use_count | INTEGER   | 変換実行時のマッチ累積回数          |
-| created_at| TIMESTAMP | 登録日時                            |
-| updated_at| TIMESTAMP | 更新日時                            |
+AIとの会話から英語・造語・略語を検出し、翻訳して `~/.veil/rules/` に書き込む。
 
-### カテゴリ定義
+**配置場所**
 
-| cat | 名称             | 変換対象 | 用途                                     |
-|-----|-----------------|---------|------------------------------------------|
-| 1   | 説明語           | ✓       | 一般的な技術英語（"close"→完了 等）       |
-| 2   | 固定値・対象外   | ✗       | ALL_CAPS 定数、変換したくない語           |
-| 3   | 変数名           | ✗       | camelCase 変数名等（現在未使用）          |
-| 4   | ID              | ✗       | BRANCH-046 などのチケット ID              |
-| 5   | 固有名詞・製品名 | ✓       | ツール名・ライブラリ名等                  |
-| 6   | プロジェクト固有 | ✓       | プロジェクト独自の用語                    |
-| 7   | 境界が曖昧       | ✓       | 文脈によって変換が必要な語               |
+| ツール | パス |
+|--------|------|
+| Claude Code（グローバル） | `~/.claude/commands/veil-capture.md` |
+| Codex（グローバル） | `~/.agents/skills/veil-capture/SKILL.md` |
 
-**TARGET_CATS = [1, 5, 6, 7]** のみ変換対象。cat=2 は「変換しない（対象外）」として機能する。
+**処理フロー**
 
-### inferCat() — 自動カテゴリ推定
+1. 解析対象テキストを決定（`args` があればそれ、なければ会話全体）
+2. 英語・造語・略語を検出（バッククォート内・固有名詞は除外）
+3. 変換候補を表形式で提示してユーザー確認
+4. `~/.veil/rules/{先頭文字}.md` に書き込む（大文字小文字を区別せず重複チェック、昇順整列）
+5. `veil-sync.py` を実行して即時同期
 
-登録時に元語のパターンから cat を自動推定する。
+**ルールファイルテンプレート**
 
-```js
-function inferCat(word) {
-  if (/^[A-Z][A-Z0-9_]+$/.test(word)) return 2;   // ALL_CAPS → 固定値
-  if (/^[A-Z]+-\d+$/.test(word))      return 2;   // LETTERS-000 → 固定値
-  if (/[a-z][A-Z]|[A-Z]{2,}/.test(word)) return 5; // 内部大文字 → 固有名詞
-  return 1;
-}
+```markdown
+# {letter}
+
+- {元語} → {推奨表記}
 ```
 
----
+### 4-2. ~/.veil/rules/
 
-## 4. バックエンド (app.py)
-
-### HTTP エンドポイント
-
-| メソッド | パス              | 説明                                  |
-|---------|------------------|---------------------------------------|
-| GET     | /                | index.html を返す                     |
-| GET     | /manual          | docs/manual.html を返す               |
-| GET     | /<static>        | css / js 等の静的ファイルを返す       |
-| GET     | /vocab           | 全語彙を JSON 配列で返す              |
-| GET     | /vocab/prompt    | AI ツール向け語彙ルールテキストを返す |
-| POST    | /vocab/upsert    | 語彙の追加・更新（upsert）            |
-| POST    | /vocab/delete    | 語彙の削除                            |
-| POST    | /vocab/increment | use_count をインクリメント            |
-| POST    | /vocab/generate  | DeepL で翻訳候補を生成                |
-
-### /vocab/prompt の出力形式
-
-AI ツールの設定ファイルに埋め込む語彙ルールテキスト。cat IN (1,5,6,7) かつ翻訳あり の語のみ出力。
+語彙ルールの保存場所。アルファベット1文字ごとにファイルを分割する。
 
 ```
-以下の語彙ルールに従って出力してください：
-- close → 完了 / クローズ
-- branch → ブランチ
-- workflow → ワークフロー
+~/.veil/
+├── rules/
+│   ├── m.md
+│   ├── u.md
+│   └── ...
+├── targets.json    # 同期先ファイルパスのリスト
+└── config.json     # veil-sync.py のパス（自動記録）
 ```
 
-### /vocab/generate — DeepL 翻訳
+### 4-3. veil-sync.py
 
-`DEEPL_API_KEY` 環境変数が設定されている場合のみ動作。
+語彙ルールを各AIツール設定ファイルに同期するスクリプト。
 
-```python
-# カタカナ比率 > 50% の場合は p2（カタカナ）、それ以外は p1（日本語1）に格納
-if is_katakana(result):
-    return {"p1": "", "p2": result, "p3": ""}
-return {"p1": result, "p2": "", "p3": ""}
-```
+**動作**
 
-APIキーがない場合は `{"p1":"","p2":"","p3":""}` を返す（エラーにはしない）。
+1. VEILサーバーの `/vocab/prompt` から語彙DBの内容を取得
+2. `~/.veil/rules/` 以下の全 `.md` ファイルをアルファベット順に読み込む（base rules）
+3. 語彙ブロックと base rules を結合してマーカー間に挿入・更新
 
-### 環境変数ロード
+**マーカー形式**
 
-2段階ロード。まず `shared/.env` を読み込み、次に個人設定パスを追加読み込みする。
-
-```python
-# 1. プロジェクト直下 .env（共有設定）
-# 2. 個人設定パス（上書き可）
-ENV_PATH = r"C:\Users\f_tan\keys\veil\env\.env"
-```
-
-`key=value` 形式のファイルを起動時に読み込む。`.env` ファイルは git 管理外。
-
-### 自動 veil-sync (trigger_sync)
-
-語彙の追加・削除が発生した際、バックグラウンドスレッドで `veil-sync.py --stdin` を呼び出す。
-
-```python
-def trigger_sync():
-    def _run():
-        text = get_vocab_prompt().encode("utf-8")
-        subprocess.run([sys.executable, SYNC_SCRIPT, "--stdin"],
-            input=text, timeout=10, capture_output=True)
-    threading.Thread(target=_run, daemon=True).start()
-```
-
-**--stdin モードを使う理由**: veil-sync がサーバーの `/vocab/prompt` を HTTP で取得しようとすると、シングルスレッドの HTTPServer がデッドロックする。stdin 経由で渡すことで回避。
-
----
-
-## 5. フロントエンド (js/ モジュール群)
-
-### 変換ロジック — 2パスアーキテクチャ
-
-**問題**: "reflection branch" と "branch" を個別に登録した場合、"branch" のマッチが "reflection branch" の中に食い込む。
-
-**解決**: 全登録語で領域を確保してから変換フィルタを適用する。
-
-```
-パス1（領域確保）: 全語彙エントリを長さ降順で処理
-  → cat や翻訳の有無に関わらず全語が領域を主張
-  → 先に確保した領域にはサブワードが入り込めない
-
-パス2（変換フィルタ）: claimed 領域のうち TARGET_CATS かつ翻訳ありのみ置換
-  → 翻訳なし・対象外の語が占めた領域は変換されず素通し
-```
-
-これにより「翻訳なし・cat=2 のエントリ」が**保護マーカー**として機能する。
-
-### isProtected() — 誤マッチ防止
-
-以下の文脈は変換対象から除外する。
-
-```js
-function isProtected(str, offset, matchLen) {
-  const b = str[offset - 1] || '';
-  const a = str[offset + matchLen] || '';
-  if ('._-'.includes(b) || '._-'.includes(a)) return true;  // ファイル名・変数名
-  const pre = str.slice(0, offset);
-  if ((pre.match(/`/g) || []).length % 2 === 1) return true; // バッククォート内
-  if ((pre.match(/"/g) || []).length % 2 === 1) return true; // ダブルクォート内
-  if (b === '=') return true;                                  // = の直後
-  const lineStart = str.lastIndexOf('\n', offset - 1) + 1;
-  if (/\S+=/.test(str.slice(lineStart, offset))) return true; // key=value 行
-  return false;
-}
-```
-
-### ポップアップ — 変換候補選択
-
-変換語（ハイライト）をクリックすると表示。
-
-- p1 / p2 / p3 の候補をリスト表示（空欄のものは非表示）
-- 別候補を選ぶと p1 に昇格し DB に自動保存（ローテーション）
-- 「自分で設定」でインライン入力も可能
-- 「元に戻す」で変換を取り消し（DB は変更しない）
-- 「変換しない（対象外へ）」で cat=2 に変更し以後スキップ
-
-### 未変換語リスト (renderUnmatched)
-
-変換後テキストの非置換部分から英単語を抽出し、サイドバーに候補チップとして表示。
-
-- 3文字以上の英単語が対象
-- STOP_WORDS（約60語）と既登録語を除外
-- 出現回数の多い順に最大10語表示
-- チップをクリックすると登録フォームに自動入力 + DeepL 候補取得
-
-### クイック登録
-
-変換後テキストをマウスで選択すると `+ 登録` ボタンが浮き上がる。クリックで登録フォームに反映 + DeepL 候補取得。
-
-### リアルタイム反映
-
-```
-語彙追加 / 削除
-    ↓
-loadVocab() が vocab[] を更新
-    ↓
-lineData が存在すれば reRenderCompare() を呼び出す
-    ↓
-buildSegments() を全行に再実行して変換後表示を即更新
-```
-
----
-
-## 6. veil-sync.py — 外部 AI ツールへの語彙同期
-
-### 目的
-
-CLAUDE.md, AGENTS.md, .cursorrules 等の AI ツール設定ファイルに VEIL の語彙ルールを埋め込む。語彙が変わるたびに自動で更新される。
-
-### 設定ファイル
-
-`~/.veil/targets.json` — 同期先ファイルパスのリスト。
-
-### マーカー形式
-
-```
-<!-- ファイル種別が .md, .html 等の場合 -->
+```markdown
 <!-- VEIL_START -->
 以下の語彙ルールに従って出力してください：
+- close → 完了
 ...
-<!-- VEIL_END -->
 
-# ファイル種別が .yml, .yaml, .toml 等の場合
-# VEIL_START
-...
-# VEIL_END
+表記統一ルール：
+- uncommitted → 未コミット
+<!-- VEIL_END -->
 ```
 
-初回登録時はファイル末尾に追記。次回以降は既存ブロックを置換。
+YAML系ファイル（.yml/.yaml/.toml 等）は `# VEIL_START` / `# VEIL_END` を使用。
 
-### コマンド一覧
+**コマンド**
 
 ```bash
-python veil-sync.py --add <path>     # 同期先を登録（即時同期も実行）
+python veil-sync.py                  # 全ターゲットを同期
+python veil-sync.py --add <path>     # 同期先を登録（即時同期）
 python veil-sync.py --list           # 登録済み一覧
 python veil-sync.py --remove <path>  # 登録を解除
-python veil-sync.py                  # 手動で全ターゲットを同期
-python veil-sync.py --stdin          # stdin から語彙テキストを受け取って同期（サーバー内部用）
+python veil-sync.py --stdin          # stdin から語彙を受け取って同期（サーバー内部用）
 ```
 
+**アトミック書き込み**: tempfile + shutil.move を使用。書き込み途中のファイル破損を防ぐ。
+
+### 4-4. app.py（Web UI バックエンド）
+
+語彙DB（SQLite）の管理と変換テスト用ローカルサーバー。ポート 8080。
+
+**エンドポイント**
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | `/` | index.html |
+| GET | `/manual` | UIマニュアル |
+| GET | `/vocab` | 全語彙をJSON配列で返す |
+| GET | `/vocab/prompt` | AI設定ファイル向け語彙ルールテキスト |
+| POST | `/vocab/upsert` | 語彙の追加・更新 |
+| POST | `/vocab/delete` | 語彙の削除 |
+| POST | `/vocab/increment` | use_count インクリメント |
+| POST | `/vocab/generate` | DeepL翻訳候補の生成 |
+
+**自動同期（trigger_sync）**
+
+語彙の追加・削除時にバックグラウンドスレッドで `veil-sync.py --stdin` を呼び出す。
+`--stdin` を使う理由：シングルスレッドの HTTPServer がデッドロックするため、HTTP経由ではなく stdin で語彙を渡す。
+
 ---
 
-## 7. install-startup.py — Windows 自動起動
+## 5. 語彙DB スキーマ
 
-Windows タスクスケジューラを使いログオン時に自動起動する。
-
-```bash
-python install-startup.py           # 登録
-python install-startup.py --remove  # 解除
-python install-startup.py --status  # 確認
+```sql
+CREATE TABLE vocab (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  original   TEXT UNIQUE NOT NULL,  -- 元語（英語）
+  p1         TEXT DEFAULT '',       -- 日本語1（主変換先）
+  p2         TEXT DEFAULT '',       -- カタカナ
+  p3         TEXT DEFAULT '',       -- 日本語2（補助候補）
+  cat        INTEGER DEFAULT 1,     -- カテゴリ（下表）
+  use_count  INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-- `pythonw.exe` が存在する場合はそちらを使用（コンソールウィンドウを非表示）
-- タスク名: `VEIL Server`
-- トリガー: ONLOGON
-- 権限: LIMITED（管理者権限不要）
+**カテゴリ定義**
+
+| cat | 名称 | 変換対象 |
+|-----|------|---------|
+| 1 | 説明語 | ✓ |
+| 2 | 固定値・対象外 | ✗（保護マーカーとして機能） |
+| 5 | 固有名詞・製品名 | ✓ |
+| 6 | プロジェクト固有 | ✓ |
+| 7 | 境界が曖昧 | ✓ |
 
 ---
 
-## 8. Export / Import
+## 6. 変換エンジン（js/convert.js）
 
-### Export
+2パスアーキテクチャでサブワード誤マッチを防ぐ。
 
-`vocab` 配列全体を JSON ファイルとしてダウンロード。
+**パス1（領域確保）**: 全語彙を長さ降順で処理し、先に確保した領域にはサブワードが入り込めない。
 
-```
-ファイル名: veil-vocab-YYYYMMDD.json
-内容: [{id, o, p1, p2, p3, cat, n}, ...]
-```
+**パス2（変換フィルタ）**: cat IN (1,5,6,7) かつ翻訳ありの語のみ置換。cat=2 のエントリは保護マーカーとして機能し、その部分は変換されず素通しになる。
 
-### Import
-
-JSON ファイルを選択してアップロード。`o`（元語）と `p1`（日本語1）が必須。既存語は upsert（上書き更新）される。
+**isProtected()**: バッククォート内・ダブルクォート内・`=`の直後・`key=value`行・ファイル名パターン（`._-`隣接）を変換対象から除外。
 
 ---
 
-## 9. UI レイアウト
+## 7. セキュリティ
 
-```
-┌────────────────────────────────────────────┐
-│ VEIL  Vocabulary Engine for Individual...  │  ← header
-├──────────────────────────────┬─────────────┤
-│  input-area (textarea)       │  sidebar    │
-├──────────────────────────────┤  ├ 語彙追加フォーム
-│  col-headers [変換前 | 変換後]│  ├ 未変換語チップ
-├──────────────────────────────┤  ├ 登録済み語彙リスト [↓] [↑]
-│  compare-wrap                │  │  (検索/フィルタ)
-│  ├ row: cell-in | cell-out   │  └ ...
-│  └ ...                       │
-├──────────────────────────────┴─────────────┤
-│ [変換する] [登録する]  N語置き換え済み             │  ← footer
-└────────────────────────────────────────────┘
-```
-
-**レイアウト実装**: CSS Grid `grid-template-columns: 1fr 240px; grid-template-rows: 36px 1fr 36px`
-
----
-
-## 10. キーボードショートカット
-
-| ショートカット    | 動作               |
-|----------------|-------------------|
-| Ctrl+Enter     | 変換実行           |
-| Cmd+Enter (Mac)| 変換実行           |
-
----
-
-## 11. 他 AI ツールとの統合
-
-| ツール       | 設定ファイル                          | マーカー形式    |
-|-------------|--------------------------------------|----------------|
-| Claude Code | CLAUDE.md                            | HTML コメント  |
-| Codex       | AGENTS.md                            | HTML コメント  |
-| Cursor      | .cursorrules                         | HTML コメント  |
-| GitHub Copilot | .github/copilot-instructions.md  | HTML コメント  |
-| Gemini CLI  | GEMINI.md                            | HTML コメント  |
-| Aider       | .aider.conf.yml                      | # コメント     |
-
-`veil-sync.py --add <path>` で任意のファイルを登録できる。
-
----
-
-## 12. 多言語対応（将来設計メモ）
-
-EN→JA / EN→KO / EN→ZH-HANS / EN→ZH-HANT の4言語ペア対応済み。
-
-- DB の `lang_pair` カラムでペアごとに語彙を分離
-- `/vocab?lang=en-ko` のようにクエリパラメータでフィルタリング
-- UI ヘッダーの言語セレクタで切り替え
-- DeepL の `target_lang` を切り替えて翻訳候補生成を流用
-
----
-
-## 13. セキュリティ・注意事項
-
-- CORS: `Access-Control-Allow-Origin: *`（ローカルサーバーのみ公開を前提）
+- CORS: `Access-Control-Allow-Origin: *`（ローカルのみ公開を前提）
 - ポート: 8080 固定
-- `.env` ファイルは git 管理外（`.gitignore` で除外済み）
-- `vocab.db` も git 管理外
+- パストラバーサル防止: `_serve_static` で case-insensitive チェック
+- `.env`・`vocab.db` は `.gitignore` で git 管理外

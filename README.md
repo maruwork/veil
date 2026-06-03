@@ -1,8 +1,6 @@
-# Vocabulary Engine for Individual Language（VEIL）
+# VEIL — Vocabulary Engine for Individual Language
 
-**Vocabulary Engine for Individual Language**
-
-AIが生成した英語テキストを、あなたが使いたい日本語（または韓国語・中国語）に変換するツール。
+AIが出力する語彙を、あなたの好みに統一するローカルツール。
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -10,15 +8,48 @@ AIが生成した英語テキストを、あなたが使いたい日本語（ま
 
 ---
 
-## 何ができるか
+## VEILとは
 
-Claude Code や Codex などのAIが出力するテキストには、開発者が使いたい表現と異なる語が混在することがあります（例: "close" → AIは「クローズ」と書くが、あなたは「完了」と呼んでいる）。
+Claude Code や Codex などのAIは、同じ概念を毎回異なる語で表現する。
 
-VEILはそのギャップをローカルで解消します。
+- "close" と書いたり「完了」と書いたり「クローズ」と書いたり
+- "merge" → 「マージ」「統合」「取り込み」が混在
+- "untracked" をそのまま英語で出力する
 
-- **APIコストなし** — DeepL 無料 API のみ利用（翻訳候補の自動生成用。任意）
-- **依存ゼロ** — Python 標準ライブラリのみ。`pip install` 不要
-- **外部送信なし** — 変換処理はすべて自サーバー内で完結
+VEILはこのばらつきを解消する。AIが使った語彙を捕捉・翻訳して個人ルールとして蓄積し、すべてのAIツールの設定ファイルに自動で反映する。
+
+---
+
+## 仕組み
+
+```
+会話中にAIが使った英語・造語・略語
+        ↓
+  /veil-capture（スキル）
+        ↓
+  AIが翻訳・判定
+        ↓
+ ~/.veil/rules/{letter}.md に書き込む
+        ↓
+  veil-sync.py が自動実行
+        ↓
+ CLAUDE.md / AGENTS.md / .cursorrules 等に反映
+        ↓
+次回セッションからAIが統一された語彙で出力する
+```
+
+この「キャプチャ → ルール → 同期」のループが核心。
+
+---
+
+## コンポーネント
+
+| コンポーネント | 役割 |
+|-------------|------|
+| `/veil-capture` スキル | 会話からAI語彙を検出・翻訳・ルールファイルへ書き込む |
+| `~/.veil/rules/{letter}.md` | 語彙ルールの保存場所（アルファベット別） |
+| `veil-sync.py` | ルールをAIツール設定ファイルへ同期 |
+| `app.py`（UI） | 語彙DBの管理・変換確認用Web UI（補助） |
 
 ---
 
@@ -29,128 +60,159 @@ Python 3.8 以上が必要です。
 ```bash
 git clone https://github.com/fumimaruwork/veil.git
 cd veil/shared
-python app.py
 ```
 
-ブラウザで `http://<ホスト名またはIPアドレス>:8080` を開く。
-ローカルで起動した場合は `http://localhost:8080`。
+### 1. 同期先ファイルを登録する
 
-これだけで動作します。
-
----
-
-## 翻訳候補の自動生成（任意）
-
-DeepL 無料 API キーがあると、語彙登録時に翻訳候補を自動取得できます。
-キーがなくても手動入力で全機能が使えます。
-
-`shared/.env` ファイルを作成して以下を記述：
-
-```
-DEEPL_API_KEY=your-api-key-here
-```
-
-または環境変数として設定：
+VEILのルールを反映したいAIツールの設定ファイルを登録します。
 
 ```bash
-# Mac / Linux
-export DEEPL_API_KEY=your-api-key-here
-
-# Windows (PowerShell)
-$env:DEEPL_API_KEY = "your-api-key-here"
+python veil-sync.py --add /path/to/CLAUDE.md
+python veil-sync.py --add /path/to/AGENTS.md
 ```
 
-DeepL 無料アカウントは https://www.deepl.com/pro-api から取得できます（月50万文字まで無料）。
+登録と同時に即時同期されます。対応ツールの例：
+
+| ツール | 設定ファイル |
+|--------|------------|
+| Claude Code | `CLAUDE.md` |
+| Codex | `AGENTS.md` |
+| Cursor | `.cursorrules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Gemini CLI | `GEMINI.md` |
+| Aider | `.aider.conf.yml` |
+
+### 2. スキルを配置する
+
+**Claude Code（グローバル）**
+
+```
+~/.claude/commands/veil-capture.md
+```
+
+このリポジトリの `.claude/commands/veil-capture.md` を上記パスにコピーします。
+
+**Codex（グローバル）**
+
+```
+~/.agents/skills/veil-capture/SKILL.md
+```
+
+Codex 用スキルは `.agents/skills/veil-capture/SKILL.md` を上記パスにコピーします。
 
 ---
 
 ## 使い方
 
-### 基本フロー
+### AIの語彙を捕捉する（メインワークフロー）
 
-1. AIが生成したテキストをテキストエリアに貼り付ける
-2. **変換する**（または `Ctrl+Enter`）をクリック
-3. 変換後テキストを確認。ハイライト語をクリックして別の候補に変更
+Claude Code で会話後に実行：
 
-### 語彙の登録
-
-- サイドバーの **語彙を追加** フォームから手動登録
-- 変換後テキストを選択すると **+ 登録** ボタンが浮き上がる（クイック登録）
-- **未変換語** リストのチップをクリックしてフォームに自動入力
-
-### 他のAIツールへの語彙同期
-
-登録済み語彙を CLAUDE.md, AGENTS.md, .cursorrules 等に自動挿入できます。
-
-```bash
-# 同期先ファイルを登録
-python veil-sync.py --add /path/to/CLAUDE.md
-
-# 登録済み一覧の確認
-python veil-sync.py --list
-
-# 手動で全ファイルを同期
-python veil-sync.py
+```
+/veil-capture
 ```
 
-対応ツール：Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Aider
+会話中にAIが使った英語・造語・略語を自動検出し、翻訳候補を提示します。確認後、`~/.veil/rules/` に書き込み、登録済みの全設定ファイルへ即時同期します。
 
-### Windows 自動起動（任意）
+外部テキスト（Codex の出力など）を解析する場合：
+
+```
+/veil-capture <対象テキストをここに貼り付け>
+```
+
+### ルールファイルの確認・編集
+
+```
+~/.veil/rules/
+├── m.md    # m で始まる語のルール
+├── u.md    # u で始まる語のルール
+└── ...
+```
+
+各ファイルは直接編集できます。
+
+```markdown
+# u
+
+- uncommitted → 未コミット
+- untracked → 未追跡
+```
+
+### 手動で同期する
 
 ```bash
-python install-startup.py           # 登録
-python install-startup.py --remove  # 解除
-python install-startup.py --status  # 確認
+# 全ターゲットを同期
+python veil-sync.py
+
+# 登録済み一覧を確認
+python veil-sync.py --list
+
+# 同期先を追加
+python veil-sync.py --add /path/to/file
+
+# 同期先を解除
+python veil-sync.py --remove /path/to/file
 ```
 
 ---
 
-## 変換されないケース
+## Web UI（補助機能）
 
-以下のパターンは意図的に変換をスキップします。
+語彙DBの確認・管理・変換テスト用のローカルUIです。メインワークフローには不要ですが、登録語彙の一覧確認や変換動作の確認に使えます。
 
-| パターン | 例 |
-|---------|-----|
-| ファイル名・パスの一部 | `workflow_close.py` |
-| ハイフン区切り識別子 | `task-close-workflow` |
-| バッククォート内 | `` `close()` `` |
-| `key=value` 形式 | `status=close` |
-| チケット ID | `BRANCH-046` |
+```bash
+python app.py
+```
+
+`http://localhost:8080` をブラウザで開く。
+
+**DeepL翻訳候補の自動取得（任意）**
+
+```
+DEEPL_API_KEY=your-api-key-here
+```
+
+`shared/.env` に記載するか環境変数として設定します。なくても全機能動作します。
+
+**Windows 自動起動（任意）**
+
+```bash
+python install-startup.py    # 登録
+python install-startup.py --remove  # 解除
+```
 
 ---
 
 ## ファイル構成
 
 ```
-veil/shared/
-├── app.py               # バックエンド（HTTPServer + SQLite）
-├── index.html           # UI
-├── style.css            # スタイル
-├── locales.js           # UI文字列（日本語/韓国語/中国語）
-├── main.js              # 初期化
-├── js/
-│   ├── state.js         # グローバル状態
-│   ├── api.js           # サーバー通信
-│   ├── convert.js       # 変換ロジック
-│   ├── render.js        # DOM描画
-│   └── ui.js            # イベントハンドラ
-├── veil-sync.py         # 外部AIツール設定ファイルへの語彙同期
-├── install-startup.py   # Windows自動起動の登録
-└── docs/
-    └── manual.html      # マニュアル（http://<host>:8080/manual）
+veil/
+├── README.md
+├── CHANGELOG.md
+├── .claude/
+│   └── commands/
+│       └── veil-capture.md     # Claude Code スキル
+├── .agents/
+│   └── skills/
+│       └── veil-capture/
+│           └── SKILL.md        # Codex スキル
+└── shared/
+    ├── app.py                  # Web UI バックエンド
+    ├── index.html              # Web UI
+    ├── style.css
+    ├── main.js / locales.js
+    ├── js/
+    │   ├── state.js
+    │   ├── api.js
+    │   ├── convert.js          # 2パス変換エンジン
+    │   ├── render.js
+    │   └── ui.js
+    ├── veil-sync.py            # ルール同期スクリプト
+    ├── install-startup.py      # Windows自動起動
+    └── docs/
+        ├── veil-design.md      # 設計書
+        └── manual.html         # UIマニュアル
 ```
-
----
-
-## カテゴリ
-
-| cat | 名称 | 変換対象 | 用途 |
-|-----|------|---------|------|
-| 1 | 説明語 | ✓ | 一般的な技術英語 |
-| 2 | 固定値・対象外 | — | ALL_CAPS定数、変換しない語 |
-| 5 | 固有名詞・製品名 | ✓ | ツール名・ライブラリ名 |
-| 6 | プロジェクト固有 | ✓ | プロジェクト独自の用語 |
-| 7 | 境界が曖昧 | ✓ | 文脈によって変換が必要な語 |
 
 ---
 
