@@ -99,13 +99,25 @@ python veil-sync.py --add /path/to/AGENTS.md
 **Claude Code**
 
 ```bash
+# macOS / Linux
 cp skills/claude-code/veil-capture.md ~/.claude/commands/veil-capture.md
+```
+
+```powershell
+# Windows (PowerShell)
+Copy-Item skills\claude-code\veil-capture.md $env:USERPROFILE\.claude\commands\veil-capture.md
 ```
 
 **Codex**
 
 ```bash
+# macOS / Linux
 cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
+```
+
+```powershell
+# Windows (PowerShell)
+Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\veil-capture
 ```
 
 ---
