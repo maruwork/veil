@@ -62,17 +62,9 @@ git clone https://github.com/fumimaruwork/veil.git
 cd veil
 ```
 
-### 1. app.py を起動する
+### 1. 同期先ファイルを登録する
 
-```bash
-python app.py
-```
-
-`veil-sync.py` は `app.py` が起動中の場合に語彙DBも同期します。起動していない場合は `~/.veil/rules/` の base rules のみ同期します。
-
-### 2. 同期先ファイルを登録する
-
-VEILのルールを反映したいAIツールの設定ファイルを登録します。
+VEILのルールを反映したいAIツールの設定ファイルを登録します。**この手順でスキルが参照する `~/.veil/config.json` が作成されます。スキルを使う前に必ず実行してください。**
 
 ```bash
 python veil-sync.py --add /path/to/CLAUDE.md
@@ -92,7 +84,7 @@ python veil-sync.py --add /path/to/AGENTS.md
 
 `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` 拡張子のファイルは `# VEIL_START` / `# VEIL_END` マーカーを使用します。
 
-### 3. スキルを配置する
+### 2. スキルを配置する
 
 `skills/` フォルダにスキルテンプレートが入っています。各AIツールのグローバルスキルフォルダにコピーしてください。
 
@@ -171,7 +163,7 @@ python veil-sync.py --remove <path> # 同期先を解除
 
 ## Web UI（補助機能）
 
-語彙DBの確認・管理・変換テスト用のローカルUIです。メインワークフローには不要ですが、登録語彙の一覧確認や変換動作の確認に使えます。
+語彙DBの確認・管理・変換テスト用のローカルUIです。メインワークフローには不要ですが、登録語彙の一覧確認や変換動作の確認に使えます。起動中は語彙DBの内容も同期に加わります。未起動の場合は `~/.veil/rules/` の語彙ルールのみ同期します。
 
 ```bash
 python app.py

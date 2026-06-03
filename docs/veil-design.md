@@ -27,7 +27,7 @@ Claude Code・Codex などのAIは同じ概念を異なる語で表現する。V
 会話中のAI語彙
       ↓
 /veil-capture スキル（Claude Code / Codex）
-      ↓  ← LLMが翻訳・分類
+      ↓  ← AIが候補を抽出、ユーザーが採用語を決定
 ~/.veil/rules/{letter}.md（語彙ルール保存）
       ↓
 veil-sync.py
@@ -43,7 +43,7 @@ CLAUDE.md / AGENTS.md / .cursorrules 等
 
 ### 4-1. veil-capture スキル
 
-AIとの会話から英語・造語・略語を検出し、翻訳して `~/.veil/rules/` に書き込む。
+AIとの会話から英語・造語・略語を検出し、ユーザーが採用語を決定して `~/.veil/rules/` に書き込む。
 
 **配置場所**
 
@@ -83,17 +83,26 @@ AIとの会話から英語・造語・略語を検出し、翻訳して `~/.veil
 └── config.json     # veil-sync.py のパス（自動記録）
 ```
 
+**設定の正本**
+
+| データ | 場所 | 備考 |
+|--------|------|------|
+| 語彙ルール | `~/.veil/rules/` | ユーザーホーム。clone先を変えても引き継がれる |
+| 同期先リスト | `~/.veil/targets.json` | ユーザーホーム。同上 |
+| 語彙DB | `{repodir}/vocab.db` | リポジトリ内（`.gitignore` 済み）。clone先が変わったら `app.py` を起動し直すだけで再作成される |
+| sync_scriptパス | `~/.veil/config.json` | `--add` 実行時に現在の `veil-sync.py` パスを自動記録。clone先変更後は `python veil-sync.py --add <path>` を再実行すること |
+
 ### 4-3. veil-sync.py
 
 語彙ルールを各AIツール設定ファイルに同期するスクリプト。
 
-**前提**: `app.py` が起動中であれば語彙DBの内容も同期する。未起動の場合は `~/.veil/rules/` の base rules のみで同期する（エラー終了しない）。
+**前提**: `app.py` が起動中であれば語彙DBの内容も同期する。未起動の場合は `~/.veil/rules/` の語彙ルールのみで同期する（エラー終了しない）。
 
 **動作**
 
-1. VEILサーバーの `/vocab/prompt` から語彙DBの内容を取得（サーバー未起動なら空文字として扱い、以降は base rules のみで処理）
-2. `~/.veil/rules/` 以下の全 `.md` ファイルをアルファベット順に読み込む（base rules）
-3. 語彙ブロックと base rules を結合してマーカー間に挿入・更新
+1. VEILサーバーの `/vocab/prompt` エンドポイントから語彙DBの内容を取得（サーバー未起動なら空として扱い、語彙ルールのみで処理）
+2. `~/.veil/rules/` 以下の全 `.md` ファイルをアルファベット順に読み込む（語彙ルール）
+3. 語彙DBと語彙ルールを結合してマーカー間に挿入・更新
 
 **マーカー形式**
 
