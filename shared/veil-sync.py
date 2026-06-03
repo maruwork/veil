@@ -25,6 +25,7 @@ VEIL_URL = "http://localhost:8080/vocab/prompt"  # VEIL と同一ホストで実
 CONFIG_DIR = os.path.expanduser("~/.veil")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
 BASE_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # ファイル種別ごとのマーカー
 MARKERS = {
@@ -140,6 +141,20 @@ def cmd_sync():
     print("\n完了")
 
 
+def save_config():
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    cfg = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+    cfg["sync_script"] = os.path.abspath(__file__)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+
+
 def cmd_add(path):
     path = os.path.abspath(path)
     targets = load_targets()
@@ -148,6 +163,7 @@ def cmd_add(path):
         return
     targets.append(path)
     save_targets(targets)
+    save_config()
     print(f"登録: {path}")
 
     # 登録と同時に即時同期
