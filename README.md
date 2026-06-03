@@ -4,7 +4,7 @@ AIが出力する語彙を、あなたの好みに統一するローカルツー
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](shared/app.py)
+[![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](app.py)
 
 ---
 
@@ -59,7 +59,7 @@ Python 3.8 以上が必要です。
 
 ```bash
 git clone https://github.com/fumimaruwork/veil.git
-cd veil/shared
+cd veil
 ```
 
 ### 1. 同期先ファイルを登録する
@@ -84,21 +84,19 @@ python veil-sync.py --add /path/to/AGENTS.md
 
 ### 2. スキルを配置する
 
-**Claude Code（グローバル）**
+`skills/` フォルダにスキルテンプレートが入っています。各AIツールのグローバルスキルフォルダにコピーしてください。
 
-```
-~/.claude/commands/veil-capture.md
-```
+**Claude Code**
 
-このリポジトリの `.claude/commands/veil-capture.md` を上記パスにコピーします。
-
-**Codex（グローバル）**
-
-```
-~/.agents/skills/veil-capture/SKILL.md
+```bash
+cp skills/claude-code/veil-capture.md ~/.claude/commands/veil-capture.md
 ```
 
-Codex 用スキルは `.agents/skills/veil-capture/SKILL.md` を上記パスにコピーします。
+**Codex**
+
+```bash
+cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
+```
 
 ---
 
@@ -141,17 +139,10 @@ Claude Code で会話後に実行：
 ### 手動で同期する
 
 ```bash
-# 全ターゲットを同期
-python veil-sync.py
-
-# 登録済み一覧を確認
-python veil-sync.py --list
-
-# 同期先を追加
-python veil-sync.py --add /path/to/file
-
-# 同期先を解除
-python veil-sync.py --remove /path/to/file
+python veil-sync.py              # 全ターゲットを同期
+python veil-sync.py --list       # 登録済み一覧
+python veil-sync.py --add <path> # 同期先を追加
+python veil-sync.py --remove <path> # 同期先を解除
 ```
 
 ---
@@ -168,17 +159,10 @@ python app.py
 
 **DeepL翻訳候補の自動取得（任意）**
 
+`.env` ファイルを作成して以下を記述：
+
 ```
 DEEPL_API_KEY=your-api-key-here
-```
-
-`shared/.env` に記載するか環境変数として設定します。なくても全機能動作します。
-
-**Windows 自動起動（任意）**
-
-```bash
-python install-startup.py    # 登録
-python install-startup.py --remove  # 解除
 ```
 
 ---
@@ -189,29 +173,29 @@ python install-startup.py --remove  # 解除
 veil/
 ├── README.md
 ├── CHANGELOG.md
-├── .claude/
-│   └── commands/
-│       └── veil-capture.md     # Claude Code スキル
-├── .agents/
-│   └── skills/
+├── LICENSE
+├── veil-sync.py            # ルール同期スクリプト（コアツール）
+├── app.py                  # Web UI バックエンド
+├── install-startup.py      # Windows自動起動
+├── index.html              # Web UI
+├── style.css
+├── main.js
+├── locales.js
+├── js/
+│   ├── state.js
+│   ├── api.js
+│   ├── convert.js          # 2パス変換エンジン
+│   ├── render.js
+│   └── ui.js
+├── skills/                 # スキルテンプレート
+│   ├── claude-code/
+│   │   └── veil-capture.md
+│   └── codex/
 │       └── veil-capture/
-│           └── SKILL.md        # Codex スキル
-└── shared/
-    ├── app.py                  # Web UI バックエンド
-    ├── index.html              # Web UI
-    ├── style.css
-    ├── main.js / locales.js
-    ├── js/
-    │   ├── state.js
-    │   ├── api.js
-    │   ├── convert.js          # 2パス変換エンジン
-    │   ├── render.js
-    │   └── ui.js
-    ├── veil-sync.py            # ルール同期スクリプト
-    ├── install-startup.py      # Windows自動起動
-    └── docs/
-        ├── veil-design.md      # 設計書
-        └── manual.html         # UIマニュアル
+│           └── SKILL.md
+└── docs/
+    ├── veil-design.md      # 設計書
+    └── manual.html         # UIマニュアル
 ```
 
 ---
