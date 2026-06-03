@@ -72,7 +72,7 @@
 `~/.veil/config.json` の `sync_script` キーからパスを取得する。
 
 ```bash
-python $(python3 -c "import json; print(json.load(open('$HOME/.veil/config.json'))['sync_script'])")
+python "$(python3 -c "import json; print(json.load(open('$HOME/.veil/config.json'))['sync_script'])")"
 ```
 
 `config.json` が存在しない、または `sync_script` キーがない場合はユーザーに場所を確認する。

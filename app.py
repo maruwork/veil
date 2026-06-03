@@ -211,22 +211,26 @@ def increment_count(original):
 
 
 STATIC_EXTS = {'.css': 'text/css', '.js': 'application/javascript', '.html': 'text/html'}
+UI_DIR = os.path.join(os.path.dirname(__file__), "ui")
 
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def _cors_origin(self):
+        return "http://127.0.0.1:8080"
+
     def send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
         self.end_headers()
         self.wfile.write(body)
 
     def _serve_static(self, rel_path):
-        base_dir = os.path.normpath(os.path.dirname(__file__))
+        base_dir = os.path.normpath(UI_DIR)
         target = os.path.normpath(os.path.join(base_dir, rel_path.lstrip('/')))
         if not target.lower().startswith((base_dir + os.sep).lower()) and target.lower() != base_dir.lower():
             return False
@@ -235,7 +239,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         self.send_response(200)
         self.send_header("Content-Type", STATIC_EXTS[ext] + "; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
         self.end_headers()
         with open(target, "rb") as f:
             self.wfile.write(f.read())
@@ -243,7 +247,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
@@ -252,7 +256,7 @@ class Handler(BaseHTTPRequestHandler):
         base = urllib.parse.urlparse(self.path).path
         if base == "/":
             try:
-                with open(os.path.join(os.path.dirname(__file__), "index.html"), "rb") as f:
+                with open(os.path.join(UI_DIR, "index.html"), "rb") as f:
                     body = f.read()
             except FileNotFoundError:
                 self.send_response(404)
@@ -260,7 +264,6 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(body)
         elif base == "/vocab":
@@ -269,7 +272,7 @@ class Handler(BaseHTTPRequestHandler):
             body = get_vocab_prompt().encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", self._cors_origin())
             self.end_headers()
             self.wfile.write(body)
         elif base == "/manual":
@@ -329,6 +332,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     init_db()
     port = 8080
-    server = HTTPServer(("0.0.0.0", port), Handler)
-    print(f"VEIL起動 (port {port}) — http://localhost:{port} またはサーバーの IP アドレスでアクセス")
+    server = HTTPServer(("127.0.0.1", port), Handler)
+    print(f"VEIL起動 (port {port}) — http://127.0.0.1:{port}")
     server.serve_forever()

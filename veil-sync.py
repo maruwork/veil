@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import urllib.request
 
-VEIL_URL = "http://localhost:8080/vocab/prompt"  # VEIL と同一ホストで実行する想定。別サーバーの場合は IP に変更
+VEIL_URL = "http://127.0.0.1:8080/vocab/prompt"
 CONFIG_DIR = os.path.expanduser("~/.veil")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
 BASE_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
@@ -58,9 +58,8 @@ def fetch_vocab():
     try:
         with urllib.request.urlopen(VEIL_URL, timeout=3) as resp:
             return resp.read().decode("utf-8").strip()
-    except Exception as e:
-        print(f"Error: VEILサーバーに接続できません ({e})")
-        sys.exit(1)
+    except Exception:
+        return None
 
 
 
@@ -82,20 +81,21 @@ def load_base_rules():
     return "\n".join(parts)
 
 
-def do_sync(vocab_text, quiet=False):
+def do_sync(vocab_text, base="", quiet=False):
     targets = load_targets()
-    if not targets or not vocab_text:
-        return
-    base = load_base_rules()
+    combined = vocab_text or ""
     if base:
-        vocab_text = vocab_text + "\n\n表記統一ルール：\n" + base
+        sep = "\n\n" if combined else ""
+        combined = combined + sep + "表記統一ルール：\n" + base
+    if not targets or not combined:
+        return
     for path in targets:
         if not os.path.exists(path):
             if not quiet:
                 print(f"  スキップ: {path} (ファイルが見つかりません)")
             continue
         marker_start, marker_end = get_markers(path)
-        block = f"{marker_start}\n{vocab_text}\n{marker_end}"
+        block = f"{marker_start}\n{combined}\n{marker_end}"
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
@@ -131,13 +131,15 @@ def cmd_sync():
     if not targets:
         print("同期先が未登録です。先に登録してください:\n  python veil-sync.py --add <path>")
         return
-    print("VEILから語彙を取得中...")
-    vocab = fetch_vocab()
+    vocab = fetch_vocab() or ""
     if not vocab:
-        print("語彙がまだ登録されていません。")
+        print("警告: VEILサーバーに接続できません。base rules のみで同期します。\n      (app.py が起動中なら語彙DBも反映されます)")
+    base = load_base_rules()
+    if not vocab and not base:
+        print("同期するルールがありません。app.py を起動するか ~/.veil/rules/ にルールを追加してください。")
         return
     print(f"\n{len(targets)}件を同期:\n")
-    do_sync(vocab)
+    do_sync(vocab, base)
     print("\n完了")
 
 
@@ -167,10 +169,11 @@ def cmd_add(path):
     print(f"登録: {path}")
 
     # 登録と同時に即時同期
-    print("即時同期中...")
-    vocab = fetch_vocab()
-    if vocab:
-        do_sync(vocab)
+    vocab = fetch_vocab() or ""
+    if not vocab:
+        print("警告: VEILサーバーに接続できません。base rules のみで同期します。")
+    base = load_base_rules()
+    do_sync(vocab, base)
 
 
 def cmd_list():
@@ -200,9 +203,9 @@ if __name__ == "__main__":
     if not args:
         cmd_sync()
     elif args[0] == "--stdin":
-        # サーバーからの自動呼び出し用: vocab テキストを stdin から受け取って同期
+        # app.py からの自動呼び出し用: vocab テキストを stdin から受け取って同期
         vocab = sys.stdin.read().strip()
-        do_sync(vocab, quiet=True)
+        do_sync(vocab, load_base_rules(), quiet=True)
     elif args[0] == "--add" and len(args) >= 2:
         cmd_add(args[1])
     elif args[0] == "--list":

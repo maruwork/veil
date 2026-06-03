@@ -62,7 +62,15 @@ git clone https://github.com/fumimaruwork/veil.git
 cd veil
 ```
 
-### 1. 同期先ファイルを登録する
+### 1. app.py を起動する
+
+```bash
+python app.py
+```
+
+`veil-sync.py` は `app.py` が起動中の場合に語彙DBも同期します。起動していない場合は `~/.veil/rules/` の base rules のみ同期します。
+
+### 2. 同期先ファイルを登録する
 
 VEILのルールを反映したいAIツールの設定ファイルを登録します。
 
@@ -82,7 +90,7 @@ python veil-sync.py --add /path/to/AGENTS.md
 | Gemini CLI | `GEMINI.md` |
 | Aider | `.aider.conf.yml` |
 
-### 2. スキルを配置する
+### 3. スキルを配置する
 
 `skills/` フォルダにスキルテンプレートが入っています。各AIツールのグローバルスキルフォルダにコピーしてください。
 
@@ -155,7 +163,7 @@ python veil-sync.py --remove <path> # 同期先を解除
 python app.py
 ```
 
-`http://localhost:8080` をブラウザで開く。
+`http://127.0.0.1:8080` をブラウザで開く。
 
 **DeepL翻訳候補の自動取得（任意）**
 
@@ -177,16 +185,17 @@ veil/
 ├── veil-sync.py            # ルール同期スクリプト（コアツール）
 ├── app.py                  # Web UI バックエンド
 ├── install-startup.py      # Windows自動起動
-├── index.html              # Web UI
-├── style.css
-├── main.js
-├── locales.js
-├── js/
-│   ├── state.js
-│   ├── api.js
-│   ├── convert.js          # 2パス変換エンジン
-│   ├── render.js
-│   └── ui.js
+├── ui/                     # Web UI フロントエンド
+│   ├── index.html
+│   ├── style.css
+│   ├── main.js
+│   ├── locales.js
+│   └── js/
+│       ├── state.js
+│       ├── api.js
+│       ├── convert.js      # 2パス変換エンジン
+│       ├── render.js
+│       └── ui.js
 ├── skills/                 # スキルテンプレート
 │   ├── claude-code/
 │   │   └── veil-capture.md
