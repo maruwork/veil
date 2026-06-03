@@ -289,11 +289,3 @@ function applyLocale() {
   setText('btn-quick-add', 'quickAddBtn');
 }
 
-// ── 言語切り替え ───────────────────────────────────────────
-
-function onLangChange(val) {
-  currentLang = val;
-  localStorage.setItem('veilLang', val);
-  applyLocale();
-  loadVocab();
-}

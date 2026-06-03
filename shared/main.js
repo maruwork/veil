@@ -6,8 +6,6 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  const langSel = document.getElementById('lang-select');
-  if (langSel) langSel.value = currentLang;
   applyLocale();
   loadVocab();
   document.getElementById('search-clear').style.display = 'none';

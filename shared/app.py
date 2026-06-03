@@ -11,19 +11,13 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 SYNC_SCRIPT = os.path.join(os.path.dirname(__file__), "veil-sync.py")
 
-LANG_TO_DEEPL = {
-    'en-ja':      'JA',
-    'en-ko':      'KO',
-    'en-zh-hans': 'ZH',
-    'en-zh-hant': 'ZH-HANT',
-}
 
-def trigger_sync(lang_pair='en-ja'):
+def trigger_sync():
     def _run():
         if not os.path.exists(SYNC_SCRIPT):
             return
         try:
-            text = get_vocab_prompt(lang_pair).encode("utf-8")
+            text = get_vocab_prompt().encode("utf-8")
             subprocess.run(
                 [sys.executable, SYNC_SCRIPT, "--stdin"],
                 input=text, timeout=10, capture_output=True
@@ -45,9 +39,7 @@ def load_env(path):
     except FileNotFoundError:
         pass
 
-# プロジェクト直下の .env を優先して読む
 load_env(os.path.join(os.path.dirname(__file__), ".env"))
-# 個人設定パス（任意）
 _CUSTOM_ENV = r"C:\Users\f_tan\keys\veil\env\.env"
 load_env(_CUSTOM_ENV)
 
@@ -85,74 +77,68 @@ def init_db():
     cols = [r[1] for r in c.fetchall()]
 
     if not cols:
-        # 新規作成
         c.execute("""
             CREATE TABLE vocab (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                original   TEXT NOT NULL,
+                original   TEXT UNIQUE NOT NULL,
                 p1         TEXT DEFAULT '',
                 p2         TEXT DEFAULT '',
                 p3         TEXT DEFAULT '',
                 cat        INTEGER DEFAULT 1,
                 use_count  INTEGER DEFAULT 0,
-                lang_pair  TEXT NOT NULL DEFAULT 'en-ja',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(original, lang_pair)
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-    elif 'lang_pair' not in cols:
-        # マイグレーション: lang_pair カラム追加 + UNIQUE制約の変更
+    elif 'lang_pair' in cols:
+        # マイグレーション: lang_pair カラムを削除（en-ja のみ保持）
         conn.executescript("""
             ALTER TABLE vocab RENAME TO vocab_old;
             CREATE TABLE vocab (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                original   TEXT NOT NULL,
+                original   TEXT UNIQUE NOT NULL,
                 p1         TEXT DEFAULT '',
                 p2         TEXT DEFAULT '',
                 p3         TEXT DEFAULT '',
                 cat        INTEGER DEFAULT 1,
                 use_count  INTEGER DEFAULT 0,
-                lang_pair  TEXT NOT NULL DEFAULT 'en-ja',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(original, lang_pair)
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
-            INSERT INTO vocab (id, original, p1, p2, p3, cat, use_count, created_at, updated_at, lang_pair)
-            SELECT id, original, p1, p2, p3, cat, use_count, created_at, updated_at, 'en-ja'
-            FROM vocab_old;
+            INSERT OR IGNORE INTO vocab (id, original, p1, p2, p3, cat, use_count, created_at, updated_at)
+            SELECT id, original, p1, p2, p3, cat, use_count, created_at, updated_at
+            FROM vocab_old WHERE lang_pair = 'en-ja';
             DROP TABLE vocab_old;
         """)
 
     for row in SEEDS:
         c.execute(
-            "INSERT OR IGNORE INTO vocab (original, p1, p2, p3, cat, lang_pair) VALUES (?,?,?,?,?,'en-ja')",
+            "INSERT OR IGNORE INTO vocab (original, p1, p2, p3, cat) VALUES (?,?,?,?,?)",
             row
         )
     conn.commit()
     conn.close()
 
 
-def get_all_vocab(lang_pair='en-ja'):
+def get_all_vocab():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""SELECT id, original, p1, p2, p3, cat, use_count FROM vocab
-                 WHERE lang_pair=? ORDER BY use_count DESC, id ASC""", (lang_pair,))
+    c.execute("SELECT id, original, p1, p2, p3, cat, use_count FROM vocab ORDER BY use_count DESC, id ASC")
     rows = c.fetchall()
     conn.close()
     return [{"id": r[0], "o": r[1], "p1": r[2], "p2": r[3], "p3": r[4], "cat": r[5], "n": r[6]} for r in rows]
 
 
-def upsert_vocab(original, p1, p2, p3, cat, lang_pair='en-ja'):
+def upsert_vocab(original, p1, p2, p3, cat):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        """INSERT INTO vocab (original, p1, p2, p3, cat, lang_pair)
-           VALUES (?,?,?,?,?,?)
-           ON CONFLICT(original, lang_pair) DO UPDATE SET
+        """INSERT INTO vocab (original, p1, p2, p3, cat)
+           VALUES (?,?,?,?,?)
+           ON CONFLICT(original) DO UPDATE SET
              p1=excluded.p1, p2=excluded.p2, p3=excluded.p3,
              cat=excluded.cat, updated_at=CURRENT_TIMESTAMP""",
-        (original, p1, p2, p3, cat, lang_pair)
+        (original, p1, p2, p3, cat)
     )
     conn.commit()
     conn.close()
@@ -171,15 +157,14 @@ def is_katakana(text):
     return kat > len(text) * 0.5 if text else False
 
 
-def generate_translation(word, lang_pair='en-ja'):
+def generate_translation(word):
     deepl_key = os.environ.get("DEEPL_API_KEY", "")
     if not deepl_key:
         return None
-    target_lang = LANG_TO_DEEPL.get(lang_pair, 'JA')
     req_body = json.dumps({
         "text": [word],
         "source_lang": "EN",
-        "target_lang": target_lang
+        "target_lang": "JA"
     }).encode()
     req = urllib.request.Request(
         "https://api-free.deepl.com/v2/translate",
@@ -193,22 +178,21 @@ def generate_translation(word, lang_pair='en-ja'):
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
             result = data["translations"][0]["text"]
-            # JA のみカタカナ判定で p2 に振り分け
-            if lang_pair == 'en-ja' and is_katakana(result):
+            if is_katakana(result):
                 return {"p1": "", "p2": result, "p3": ""}
             return {"p1": result, "p2": "", "p3": ""}
     except Exception:
         return None
 
 
-def get_vocab_prompt(lang_pair='en-ja'):
+def get_vocab_prompt():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
         SELECT original, p1, p2, p3 FROM vocab
-        WHERE lang_pair=? AND cat IN (1,5,6,7) AND (p1 != '' OR p2 != '' OR p3 != '')
+        WHERE cat IN (1,5,6,7) AND (p1 != '' OR p2 != '' OR p3 != '')
         ORDER BY use_count DESC, id ASC
-    """, (lang_pair,))
+    """)
     rows = c.fetchall()
     conn.close()
     if not rows:
@@ -220,18 +204,12 @@ def get_vocab_prompt(lang_pair='en-ja'):
     return "\n".join(lines)
 
 
-def increment_count(original, lang_pair='en-ja'):
+def increment_count(original):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""UPDATE vocab SET use_count=use_count+1, updated_at=CURRENT_TIMESTAMP
-                 WHERE original=? AND lang_pair=?""", (original, lang_pair))
+    c.execute("UPDATE vocab SET use_count=use_count+1, updated_at=CURRENT_TIMESTAMP WHERE original=?", (original,))
     conn.commit()
     conn.close()
-
-
-def _parse_lang(path):
-    qs = urllib.parse.urlparse(path).query
-    return urllib.parse.parse_qs(qs).get('lang', ['en-ja'])[0]
 
 
 STATIC_EXTS = {'.css': 'text/css', '.js': 'application/javascript', '.html': 'text/html'}
@@ -288,9 +266,9 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         elif base == "/vocab":
-            self.send_json(get_all_vocab(_parse_lang(self.path)))
+            self.send_json(get_all_vocab())
         elif base == "/vocab/prompt":
-            body = get_vocab_prompt(_parse_lang(self.path)).encode("utf-8")
+            body = get_vocab_prompt().encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -320,7 +298,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.end_headers()
             return
-        lang = body.get("lang", "en-ja")
 
         if self.path == "/vocab/upsert":
             upsert_vocab(
@@ -329,23 +306,21 @@ class Handler(BaseHTTPRequestHandler):
                 body.get("p2", ""),
                 body.get("p3", ""),
                 body.get("cat", 1),
-                lang
             )
             self.send_json({"ok": True})
-            trigger_sync(lang)
+            trigger_sync()
 
         elif self.path == "/vocab/delete":
             delete_vocab(body.get("id"))
             self.send_json({"ok": True})
-            trigger_sync(lang)
+            trigger_sync()
 
         elif self.path == "/vocab/increment":
-            increment_count(body.get("original", ""), lang)
+            increment_count(body.get("original", ""))
             self.send_json({"ok": True})
 
         elif self.path == "/vocab/generate":
-            word = body.get("word", "")
-            gen = generate_translation(word, lang) or {"p1": "", "p2": "", "p3": ""}
+            gen = generate_translation(body.get("word", "")) or {"p1": "", "p2": "", "p3": ""}
             self.send_json(gen)
 
         else:

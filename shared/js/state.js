@@ -8,11 +8,8 @@ let lineData   = [];
 let popTarget  = null;
 let sortBy     = 'freq';  // 'freq' | 'id'
 let catFilter  = 0;       // 0=全て -1=対象外 1/5/6/7=指定カテゴリ
-let currentLang = localStorage.getItem('veilLang') || 'en-ja';
-
 function t(key, ...args) {
-  const loc = LOCALES[currentLang] || LOCALES['en-ja'];
-  const val = loc[key] ?? LOCALES['en-ja'][key];
+  const val = LOCALES['en-ja'][key];
   return typeof val === 'function' ? val(...args) : (val ?? key);
 }
 
