@@ -87,7 +87,7 @@ def do_sync(vocab_text, quiet=False):
         return
     base = load_base_rules()
     if base:
-        vocab_text = base + "\n\n" + vocab_text
+        vocab_text = vocab_text + "\n\n表記統一ルール：\n" + base
     for path in targets:
         if not os.path.exists(path):
             if not quiet:
