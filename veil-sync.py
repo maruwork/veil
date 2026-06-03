@@ -160,6 +160,9 @@ def save_config():
 
 def cmd_add(path):
     path = os.path.abspath(path)
+    if not os.path.exists(path):
+        print(f"エラー: ファイルが存在しません: {path}")
+        return
     targets = load_targets()
     if path in targets:
         print(f"既に登録済み: {path}")

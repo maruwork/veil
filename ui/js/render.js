@@ -68,9 +68,13 @@ function renderList(filter = '') {
   }
 
   const filtered = filter
-    ? items.filter(v =>
-        v.o.toLowerCase().includes(filter.toLowerCase()) ||
-        (v.p1 || '').toLowerCase().includes(filter.toLowerCase()))
+    ? items.filter(v => {
+        const q = filter.toLowerCase();
+        return v.o.toLowerCase().includes(q) ||
+               (v.p1 || '').toLowerCase().includes(q) ||
+               (v.p2 || '').toLowerCase().includes(q) ||
+               (v.p3 || '').toLowerCase().includes(q);
+      })
     : items;
 
   document.getElementById('cnt').textContent = `(${filtered.length}/${vocab.length})`;

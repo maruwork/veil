@@ -18,12 +18,17 @@ def trigger_sync():
             return
         try:
             text = get_vocab_prompt().encode("utf-8")
-            subprocess.run(
+            result = subprocess.run(
                 [sys.executable, SYNC_SCRIPT, "--stdin"],
                 input=text, timeout=10, capture_output=True
             )
-        except Exception:
-            pass
+            if result.returncode != 0:
+                msg = result.stderr.decode("utf-8", errors="replace").strip()
+                print(f"[veil-sync] 同期失敗 (exit {result.returncode}): {msg}", file=sys.stderr)
+        except subprocess.TimeoutExpired:
+            print("[veil-sync] 同期タイムアウト", file=sys.stderr)
+        except Exception as e:
+            print(f"[veil-sync] 同期エラー: {e}", file=sys.stderr)
     threading.Thread(target=_run, daemon=True).start()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "vocab.db")
