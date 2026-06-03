@@ -40,8 +40,6 @@ def load_env(path):
         pass
 
 load_env(os.path.join(os.path.dirname(__file__), ".env"))
-_CUSTOM_ENV = r"C:\Users\f_tan\keys\veil\env\.env"
-load_env(_CUSTOM_ENV)
 
 SEEDS = [
     ("active",        "アクティブ", "",          "",       1),

@@ -9,8 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **veil-capture スキル（Claude Code）**: 会話からAI語彙を検出・翻訳し `~/.veil/rules/` に書き込む（`.claude/commands/veil-capture.md`）
+- **veil-capture スキル（Codex）**: Codex 対応版（`.agents/skills/veil-capture/SKILL.md`）
+- **base rules 統合**: `~/.veil/rules/{letter}.md` を昇順で読み込み、語彙ブロックと合わせて同期先に反映
+- **veil-sync.py**: `--add` 実行時に自身のパスを `~/.veil/config.json` に保存（スキルからの自動呼び出しに使用）
+- **アトミック書き込み**: `tempfile` + `shutil.move` によりファイル破損を防止
+
 ### Changed
 - Export / Import ボタンをフッターからサイドバー語彙ラベル行のアイコンボタン（↓/↑）に移動
+- README を全面書き直し（veil-capture / veil-sync ループを核心として再構成）
+- veil-design.md を最新アーキテクチャに合わせて書き直し
+
+### Removed
+- 多言語対応（韓国語・中国語）を削除し en→ja 専用に簡素化
+- 言語セレクタ UI を削除
+- `lang_pair` DB カラムを削除（既存 DB は自動マイグレーション）
+
+### Archived
+- `shared/docs/deepl_manual/` — DeepLリファレンス（未参照）
+- `shared/docs/manual/` — 多言語版マニュアル（未使用）
+- `shared/docs/vocab_layer_design_v2.md` — 旧設計書
 
 ---
 
