@@ -14,10 +14,6 @@ AIが勝手に決めた英語や造語が混入して理解できない、直し
 
 AI利用が日常化するほど、この問題は増えます。VEILはAIが使った語彙を捕捉し、ユーザーが採用語を決めて記録することで、最初から出ないようにします。動作は語彙登録時と呼んだときだけ。依存ゼロ、ローカル完結。
 
-語彙ルールの正本は `~/.veil/rules/` に保存されます。
-`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではありません。
-これらは、VEIL の語彙ルールを参照することを明記するための参照明記先です。
-
 **保存先の正本は `~/.veil/rules/` です。`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではなく、参照明記先です。**
 
 ---
