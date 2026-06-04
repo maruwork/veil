@@ -157,8 +157,8 @@ def get_vocab_prompt():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT original, p1, p2, p3 FROM vocab
-        WHERE cat IN (1,5,6,7) AND (p1 != '' OR p2 != '' OR p3 != '')
+        SELECT original, p1 FROM vocab
+        WHERE cat IN (1,5,6,7) AND p1 != ''
         ORDER BY use_count DESC, id ASC
     """)
     rows = c.fetchall()
@@ -166,9 +166,8 @@ def get_vocab_prompt():
     if not rows:
         return ""
     lines = ["以下の語彙ルールに従って出力してください："]
-    for original, p1, p2, p3 in rows:
-        variants = " / ".join(x for x in [p1, p2, p3] if x)
-        lines.append(f"- {original} → {variants}")
+    for original, p1 in rows:
+        lines.append(f"- {original} → {p1}")
     return "\n".join(lines)
 
 
