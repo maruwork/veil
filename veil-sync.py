@@ -26,6 +26,7 @@ CONFIG_DIR = os.path.expanduser("~/.veil")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
 BASE_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+BEHAVIOR_FILE = os.path.join(CONFIG_DIR, "behavior.md")
 
 # ファイル種別ごとのマーカー
 MARKERS = {
@@ -64,6 +65,16 @@ def fetch_vocab():
 
 
 
+def load_behavior():
+    if not os.path.exists(BEHAVIOR_FILE):
+        return ""
+    try:
+        with open(BEHAVIOR_FILE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def load_base_rules():
     if not os.path.isdir(BASE_RULES_DIR):
         return ""
@@ -87,6 +98,10 @@ def do_sync(vocab_text, base="", quiet=False):
     if base:
         sep = "\n\n" if combined else ""
         combined = combined + sep + "表記統一ルール：\n" + base
+    behavior = load_behavior()
+    if behavior:
+        sep = "\n\n" if combined else ""
+        combined = combined + sep + behavior
     if not targets or not combined:
         return
     for path in targets:
