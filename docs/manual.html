@@ -396,7 +396,7 @@ section[id] { scroll-margin-top: 64px; }
       <p>ハイライト語をクリックするとポップアップが開きます。</p>
       <table>
         <tr><th>操作</th><th>説明</th></tr>
-        <tr><td>候補を選択</td><td>その変換語を採用。選択した語が次回から p1（優先候補）になる</td></tr>
+        <tr><td>候補を選択</td><td>その変換語を採用。選択した語が次回から候補1になる</td></tr>
         <tr><td>自分で設定</td><td>入力欄に直接入力して確定</td></tr>
         <tr><td>元に戻す</td><td>変換を取り消して元の英語に戻す（DB は変更しない）</td></tr>
         <tr><td>変換しない（対象外へ）</td><td>この語を変換対象から除外。以後スキップ</td></tr>
@@ -412,9 +412,9 @@ section[id] { scroll-margin-top: 64px; }
       <table>
         <tr><th>フィールド</th><th>説明</th></tr>
         <tr><td>元の語（英語）</td><td>変換対象の英単語・フレーズ。必須</td></tr>
-        <tr><td>日本語1</td><td>メインの変換先</td></tr>
-        <tr><td>カタカナ（任意）</td><td>カタカナ表記の候補</td></tr>
-        <tr><td>日本語2（任意）</td><td>補助候補</td></tr>
+        <tr><td>候補1</td><td>採用語。実際の変換に使われる語</td></tr>
+        <tr><td>候補2（任意）</td><td>代替候補。候補として保持されるが同期はされない</td></tr>
+        <tr><td>候補3（任意）</td><td>予備候補。候補として保持されるが同期はされない</td></tr>
         <tr><td>カテゴリ</td><td>下の「カテゴリ」を参照</td></tr>
       </table>
       <p>
@@ -449,7 +449,7 @@ section[id] { scroll-margin-top: 64px; }
       <p>サイドバー下部の「登録済み」リストで登録語を確認・管理できます。</p>
       <table>
         <tr><th>操作</th><th>説明</th></tr>
-        <tr><td>検索ボックス</td><td>元語または日本語1で絞り込み。最大20件表示</td></tr>
+        <tr><td>検索ボックス</td><td>元語または候補1で絞り込み。最大20件表示</td></tr>
         <tr><td>カテゴリフィルタ</td><td>特定カテゴリのみ表示</td></tr>
         <tr><td>頻度 / 登録順 ボタン</td><td>ソート順を切り替え</td></tr>
         <tr><td>× ボタン</td><td>語彙を削除</td></tr>
@@ -469,13 +469,6 @@ section[id] { scroll-margin-top: 64px; }
       <h2>Export / Import</h2>
       <p>フッター右側のボタンから語彙データをバックアップ・移行できます。</p>
 
-      <h3>言語ペアとデータ分離</h3>
-      <p>
-        語彙データは <strong>言語ペアごとに独立して管理</strong>されます。
-        EN→JA と EN→KO のデータは同一の <code>vocab.db</code> に保存されますが、
-        互いに干渉しません。Export・Import はいずれも<strong>現在選択中の言語ペアのみ</strong>が対象です。
-      </p>
-
       <h3>Export</h3>
       <p>現在の言語ペアに登録されている語彙をすべて JSON ファイルとしてダウンロードします。</p>
       <pre>ファイル名: veil-vocab-YYYYMMDD.json</pre>
@@ -486,10 +479,7 @@ section[id] { scroll-margin-top: 64px; }
         削除はされません。読み込んだ語彙は<strong>現在の言語ペアに登録</strong>されます。
       </p>
       <div class="note">
-        別言語のデータをインポートする場合は、先にヘッダーの言語セレクタを切り替えてから Import してください。
-      </div>
-      <div class="note">
-        Import ファイルの必須フィールドは <code>o</code>（元語）のみです。<code>p1</code> がない語は翻訳なしで登録されます。
+        Import ファイルの必須フィールドは <code>o</code>（元語）のみです。候補1がない語は翻訳なしで登録されます。
       </div>
     </section>
 
@@ -525,11 +515,12 @@ section[id] { scroll-margin-top: 64px; }
         <tr><td>Aider</td><td><code>.aider.conf.yml</code></td></tr>
       </table>
 
-      <p>設定ファイルに以下のブロックが挿入されます（<code>.yml</code> / <code>.yaml</code> は <code>#</code> 形式）。</p>
+      <p>設定ファイルに以下のブロックが挿入されます（<code>.yml</code> / <code>.yaml</code> は <code>#</code> 形式）。同期されるのは候補1だけです。候補2 / 候補3 は同期されません。</p>
       <pre>&lt;!-- VEIL_START --&gt;
 以下の語彙ルールに従って出力してください：
-- close → 完了 / クローズ
-- branch → ブランチ
+- common asset → 共通資産
+- current state → 今の状態
+- validator → バリデータ
 &lt;!-- VEIL_END --&gt;</pre>
     </section>
 
