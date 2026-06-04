@@ -1,7 +1,5 @@
 # VEIL — Vocabulary Engine for Individual Language
 
-AIが出力する語彙を、あなたの好みに統一するローカルツール。
-
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](app.py)
@@ -10,12 +8,11 @@ AIが出力する語彙を、あなたの好みに統一するローカルツー
 
 ## VEILとは
 
-Claude Code や Codex などのAIは、同じ概念を毎回異なる語で表現する。
+- **AI の表記揺れを減らす** — "close"「完了」「クローズ」が混在しなくなる
+- **AI 専用語句をユーザー主導の語へ寄せる** — AI が勝手に決めた語彙を、自分の言葉に置き換えられる
+- **候補を見比べながら、使う語を自分で決められる** — 候補1 / 候補2 / 候補3 を提示し、採用語はユーザーが選ぶ
 
-- "close" と書いたり「完了」と書いたり「クローズ」と書いたり
-- "merge" → 「マージ」「統合」「取り込み」が混在
-
-VEILはこのばらつきを解消する。AIが使った語彙を捕捉・個人ルールとして蓄積し、すべてのAIツールの設定ファイルに自動で反映する。
+AIが使った語彙を捕捉・個人ルールとして蓄積し、すべてのAIツールの設定ファイルに自動で反映するローカルツール。
 
 **語彙ルールの正本は `~/.veil/rules/` です。`vocab.db` は Web UI の補助データであり、正本ではありません。**
 
