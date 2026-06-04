@@ -8,32 +8,32 @@
 
 ## VEILとは
 
-- **AI の表記揺れを減らす** — "close"「完了」「クローズ」が混在しなくなる
-- **AI 専用語句をユーザー主導の語へ寄せる** — AI が勝手に決めた語彙を、自分の言葉に置き換えられる
-- **候補を見比べながら、使う語を自分で決められる** — 候補1 / 候補2 / 候補3 を提示し、採用語はユーザーが選ぶ
+VEIL は、AI の表記揺れや AI 専用語句を減らし、候補を見比べながらユーザーが使う語を決めるためのローカルツールです。
 
-AIが使った語彙を捕捉・個人ルールとして蓄積し、すべてのAIツールの設定ファイルに自動で反映するローカルツール。
+語彙ルールの正本は `~/.veil/rules/` に保存されます。
+`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではありません。
+これらは、VEIL の語彙ルールを参照することを明記するための参照明記先です。
 
-**語彙ルールの正本は `~/.veil/rules/` です。`vocab.db` は Web UI の補助データであり、正本ではありません。**
+**保存先の正本は `~/.veil/rules/` です。`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではなく、参照明記先です。**
 
 ---
 
 ## 仕組み
 
 ```
-会話中にAIが使った英語・造語・略語
+会話中に AI が使った英語・造語・略語
         ↓
   /veil-capture（スキル）
         ↓
-  AIが候補を抽出、ユーザーが採用語を決定
+  AI が候補を抽出、ユーザーが採用語を決定
         ↓
- ~/.veil/rules/{letter}.md に書き込む  ← 正本
+  ~/.veil/rules/{letter}.md に保存する  ← 正本
         ↓
-  veil-sync.py が自動実行
+  veil-sync.py が参照明記先を更新する
         ↓
- CLAUDE.md / AGENTS.md / .cursorrules 等に反映
+  CLAUDE.md / AGENTS.md / .cursorrules 等に参照を明記する
         ↓
-次回セッションからAIが統一された語彙で出力する
+次回セッションから AI が統一された語彙で出力する
 ```
 
 ---
@@ -42,10 +42,10 @@ AIが使った語彙を捕捉・個人ルールとして蓄積し、すべての
 
 | コンポーネント | 役割 |
 |-------------|------|
-| `/veil-capture` スキル | 会話からAI語彙を検出し `~/.veil/rules/` に書き込む |
-| `~/.veil/rules/{letter}.md` | 語彙ルールの正本（アルファベット別） |
-| `veil-sync.py` | ルールをAIツール設定ファイルへ同期 |
-| `app.py`（UI） | 語彙DBの管理・変換確認用 Web UI（補助） |
+| `/veil-capture` スキル | 会話から AI 語彙を検出し `~/.veil/rules/` に保存する |
+| `~/.veil/rules/{letter}.md` | 語彙ルールの正本 |
+| `veil-sync.py` | 語彙ルールの参照明記を各 AI ツール設定ファイルへ反映する |
+| `app.py`（UI） | 語彙DBの確認・管理・変換確認用 Web UI（補助） |
 
 ---
 
@@ -58,7 +58,7 @@ git clone https://github.com/fumimaruwork/veil.git
 cd veil
 ```
 
-### 1. 同期先ファイルを登録する
+### 1. 参照明記先ファイルを登録する
 
 **この手順でスキルが参照する `~/.veil/config.json` が作成されます。スキルを使う前に必ず実行してください。**
 
@@ -67,7 +67,7 @@ python veil-sync.py --add /path/to/CLAUDE.md
 python veil-sync.py --add /path/to/AGENTS.md
 ```
 
-登録と同時に即時同期されます。対応ツールの例：
+登録と同時に即時反映されます。対応ツールの例：
 
 | ツール | 設定ファイル | マーカー形式 |
 |--------|------------|------------|
@@ -155,13 +155,13 @@ validator → バリデータ（候補1）、検査（候補2）
 - untracked → 未追跡
 ```
 
-### 手動で同期する
+### 参照明記先を手動で更新する
 
 ```bash
-python veil-sync.py              # 全ターゲットを同期
+python veil-sync.py              # 全参照明記先を更新
 python veil-sync.py --list       # 登録済み一覧
-python veil-sync.py --add <path> # 同期先を追加
-python veil-sync.py --remove <path> # 同期先を解除
+python veil-sync.py --add <path> # 参照明記先を追加
+python veil-sync.py --remove <path> # 参照明記先を解除
 ```
 
 ---
