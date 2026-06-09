@@ -37,7 +37,7 @@
 
 - VEIL は `AI-assisted technical writing` 向けの terminology guardrail として扱う
 - `veil-capture` は task close / 会話区切りで通す閉じ処理として扱う
-- `veil-capture` は current phase では SQLite canonical への抽出・記録経路であり、記録後に `~/.veil/rules/` mirror を生成する。候補語を一気に全部登録せず、判別して高需要語から採用し、残りは保留へ回す
+- `veil-capture` は current phase では SQLite canonical への抽出・記録経路であり、記録後に `~/.veil/rules/` mirror を生成する。候補語を一気に全部登録せず、判別して高需要語から採用し、残りはスキップする
 - `shared/runtime/veil-normalize.py` は記録前に候補語の正規化と既存ルール照合を補助する経路。出力は `既存一致:` / `新規候補:` の 2 グループ
 - `shared/runtime/veil-status.py` は canonical / mirror / sync targets / skill の状態確認とセットアップ診断を行う経路
 - `shared/runtime/veil-sync.py` は同期経路

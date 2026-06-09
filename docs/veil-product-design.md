@@ -98,7 +98,7 @@ VEIL の current product decision として、`capture` は次を default にす
 4. 状態語 / 判断語 / 構造語 / 運用ラベルを優先する
 5. single-word 一般語や一般動詞は、原則として強い採用候補へ上げない
 6. 用途が広い phrase も、回数だけで強い採用候補へ上げない
-7. 低頻度語、曖昧語、文脈依存語は保留や観察へ流せればよい
+7. 低頻度語、曖昧語、文脈依存語はスキップする
 8. candidate を拾っても、自動採用しない
 
 ### 5.2 normalize default
@@ -174,7 +174,7 @@ VEIL completed claim には、少なくとも次が必要である。
 - 高影響語の範囲
 - single-word 一般語の project-specific 例外範囲
 - phrase を高影響扱いにする条件
-- `capture` でどこまで絞り、`normalize` でどこまで保留へ逃がすか
+- `capture` でどこまで絞り、`normalize` でどこまでスキップに回すか
 
 ---
 
