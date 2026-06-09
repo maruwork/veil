@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VEIL マニュアル</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0f0f0f;
+  --surface:    #161616;
+  --surface2:   #1c1c1c;
+  --border:     #2a2a2a;
+  --border2:    #333;
+  --text:       #e8e8e8;
+  --text2:      #aaa;
+  --text3:      #666;
+  --hl:         #8de0a8;
+  --hl-bg:      rgba(74,124,89,0.18);
+  --hl-border:  rgba(74,124,89,0.5);
+  --warn:       #c8a86e;
+  --warn-bg:    rgba(200,168,110,0.1);
+  --accent:     #4a7c59;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+}
+
+/* ヘッダー */
+.page-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.page-header .title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--hl);
+  letter-spacing: 0.12em;
+}
+.page-header .sub {
+  font-size: 13px;
+  color: var(--text2);
+}
+.page-header nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.page-header nav a {
+  font-size: 13px;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+}
+.page-header nav a:hover {
+  color: var(--text);
+  border-color: var(--text3);
+}
+/* レイアウト */
+.layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  gap: 48px;
+}
+
+/* サイドナビ */
+.toc {
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.toc-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text2);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.toc ul { list-style: none; }
+.toc li { margin: 0; }
+.toc a {
+  display: block;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+.toc a:hover {
+  background: var(--surface2);
+  color: var(--hl);
+}
+.toc li.sub a {
+  padding-left: 22px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.toc li.sub a:hover {
+  color: var(--text);
+}
+
+/* コンテンツ */
+.content { min-width: 0; }
+
+section {
+  margin-bottom: 56px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--border);
+}
+section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 28px 0 10px;
+}
+p {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+p:last-child { margin-bottom: 0; }
+strong { color: var(--text); font-weight: 600; }
+
+/* コードブロック */
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 14px 0;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  border-radius: 0 4px 4px 0;
+}
+code {
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 2px 6px;
+  font-size: 13px;
+  color: var(--hl);
+  border-radius: 3px;
+}
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  border-radius: 0;
+}
+
+/* テーブル */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  padding: 8px 14px;
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface); }
+
+/* ハイライト語サンプル */
+.hl {
+  background: var(--hl-bg);
+  color: var(--hl);
+  border-radius: 3px;
+  border-bottom: 1px solid var(--hl-border);
+  padding: 0 4px;
+  cursor: default;
+}
+
+/* ステップ */
+.steps { list-style: none; counter-reset: steps; margin: 14px 0; }
+.steps li {
+  counter-increment: steps;
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  align-items: flex-start;
+}
+.steps li:last-child { border-bottom: none; }
+.steps li::before {
+  content: counter(steps);
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 1px;
+}
+
+/* 箇条書き */
+ul.bullets { list-style: none; margin: 10px 0; }
+ul.bullets li {
+  color: var(--text);
+  padding: 4px 0 4px 20px;
+  position: relative;
+}
+ul.bullets li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+/* 注記 */
+.note {
+  background: var(--warn-bg);
+  border-left: 3px solid var(--warn);
+  padding: 10px 14px;
+  margin: 14px 0;
+  font-size: 14px;
+  color: var(--warn);
+  border-radius: 0 4px 4px 0;
+}
+
+/* キーボードキー */
+kbd {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+section[id] { scroll-margin-top: 64px; }
+
+@media print {
+  .page-header nav, .toc { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  body { background: #fff; color: #111; }
+  pre { background: #f5f5f5; border-color: #ccc; color: #111; }
+  h2::before { background: #4a7c59; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <span class="title">VEIL</span>
+  <span class="sub">Vocabulary Engine for Individual Language — マニュアル</span>
+  <nav>
+    <a href="/" target="_blank">← アプリを開く</a>
+  </nav>
+</div>
+
+<div class="layout">
+
+  <!-- サイドナビ -->
+  <nav class="toc">
+    <div class="toc-title">目次</div>
+    <ul>
+      <li><a href="#overview">概要</a></li>
+      <li><a href="#basic">基本の使い方</a></li>
+      <li class="sub"><a href="#basic-input">テキスト入力</a></li>
+      <li class="sub"><a href="#basic-convert">変換実行</a></li>
+      <li class="sub"><a href="#basic-popup">候補の変更</a></li>
+      <li><a href="#register">語彙の登録</a></li>
+      <li class="sub"><a href="#register-form">フォーム登録</a></li>
+      <li class="sub"><a href="#register-quick">クイック登録</a></li>
+      <li class="sub"><a href="#register-unmatched">未変換語から</a></li>
+      <li><a href="#vocab-list">登録済み語彙</a></li>
+      <li><a href="#export">Export / Import</a></li>
+      <li><a href="#sync">veil-sync</a></li>
+      <li><a href="#skip">変換されないケース</a></li>
+      <li><a href="#cat">カテゴリ</a></li>
+      <li><a href="#shortcuts">ショートカット</a></li>
+      <li><a href="#startup">自動起動</a></li>
+    </ul>
+  </nav>
+
+  <!-- コンテンツ -->
+  <div class="content">
+
+    <!-- 概要 -->
+    <section id="overview">
+      <h2>概要</h2>
+      <p>
+        VEIL は AI が生成した英語テキストを、あなたの語彙ルールに沿った日本語に変換するローカルツールです。
+        語彙ルールの正本は <code>~/.veil/rules/</code> に保存されます。
+      </p>
+      <table>
+        <tr><th>起動</th><td><code>python app.py</code> → <code>http://&lt;ホスト&gt;:8080</code></td></tr>
+        <tr><th>依存</th><td>Python 3.8 以上、標準ライブラリのみ</td></tr>
+        <tr><th>正本データ</th><td><code>~/.veil/rules/</code>（語彙ルールの正本）</td></tr>
+        <tr><th>補助データ</th><td><code>{repo}/vocab.db</code>（SQLite、UI 管理用）</td></tr>
+      </table>
+      <div class="note">
+        新規 <code>vocab.db</code> には、少数の高需要・高確度語だけが helper seed として入ります。完全な辞書ではなく、既存 <code>vocab.db</code> を自動で掃除するものでもありません。
+      </div>
+      <p>既存 <code>vocab.db</code> の見直し材料が必要な時は、非破壊の監査補助を使います。</p>
+      <pre>python veil-audit-db.py
+python veil-audit-db.py --status drop-candidate
+python veil-audit-db.py --status review
+python veil-audit-db.py --json</pre>
+      <p>棚卸しでは、まず <code>drop-candidate</code> を見て、次に <code>review</code> を確認すると扱いやすいです。</p>
+      <ul>
+        <li><code>drop-candidate</code>: 不要なら語彙一覧の <strong>× ボタン</strong> で削除を検討する</li>
+        <li><code>review</code>: 候補1やカテゴリを見直し、必要なら編集フォームやポップアップ選択で上書き更新する</li>
+        <li><code>keep</code>: 通常はそのまま維持する</li>
+      </ul>
+      <p>語彙一覧には、各行の監査バッジ、件数サマリ、status 絞り込み、<code>棚卸し優先</code> の並び替えが表示されます。<code>review</code> と <code>drop-candidate</code> の行には、見直し焦点も薄く表示されます。<code>削除候補</code> は確認つきで一括削除でき、confirm に対象語 preview も出ます。<code>要見直し</code> ボタンでは、先頭候補を編集フォームへ送れ、現在編集中の review 候補も分かります。保存や削除でその語が <code>review</code> ではなくなった場合だけでなく、別の語の編集へ移った場合も、この表示は自動で外れます。</p>
+    </section>
+
+    <!-- 基本の使い方 -->
+    <section id="basic">
+      <h2>基本の使い方</h2>
+
+      <h3 id="basic-input">テキスト入力</h3>
+      <p>画面上部のテキストエリアに AI が出力したテキストを貼り付けます。</p>
+
+      <h3 id="basic-convert">変換実行</h3>
+      <ol class="steps">
+        <li>テキストを貼り付ける</li>
+        <li><strong>変換する</strong> ボタンをクリック（または <kbd>Ctrl</kbd>+<kbd>Enter</kbd>）</li>
+        <li>左列に元テキスト、右列に変換後テキストが表示される</li>
+        <li>変換された語は <span class="hl">緑色でハイライト</span> 表示される</li>
+      </ol>
+
+      <h3 id="basic-popup">変換候補の変更</h3>
+      <p>ハイライト語をクリックするとポップアップが開きます。</p>
+      <table>
+        <tr><th>操作</th><th>説明</th></tr>
+        <tr><td>候補を選択</td><td>その変換語を採用。選択した語が次回から候補1になる</td></tr>
+        <tr><td>自分で設定</td><td>入力欄に直接入力して確定</td></tr>
+        <tr><td>元に戻す</td><td>変換を取り消して元の英語に戻す（DB は変更しない）</td></tr>
+        <tr><td>変換しない（対象外へ）</td><td>この語を変換対象から除外。以後スキップ</td></tr>
+      </table>
+    </section>
+
+    <!-- 語彙の登録 -->
+    <section id="register">
+      <h2>語彙の登録</h2>
+
+      <h3 id="register-form">フォームから登録</h3>
+      <p>サイドバー上部の「語彙を追加」フォームを使います。</p>
+      <table>
+        <tr><th>フィールド</th><th>説明</th></tr>
+        <tr><td>元の語（英語）</td><td>変換対象の英単語・フレーズ。必須</td></tr>
+        <tr><td>候補1</td><td>採用語。実際の変換に使われる語</td></tr>
+        <tr><td>候補2（任意）</td><td>代替候補。候補として保持されるが同期はされない</td></tr>
+        <tr><td>候補3（任意）</td><td>予備候補。候補として保持されるが同期はされない</td></tr>
+        <tr><td>カテゴリ</td><td>下の「カテゴリ」を参照</td></tr>
+      </table>
+      <p>
+        元の語を入力すると、カテゴリが自動推定されます。翻訳候補は手動で入力してください。
+      </p>
+      <p>
+        <strong>追加 / 更新</strong> を押すとボタンが一時的に緑に変わり、登録完了を通知します。
+        同じ元語を再登録すると上書き更新（upsert）されます。
+      </p>
+
+      <h3 id="register-quick">クイック登録（テキスト選択）</h3>
+      <ol class="steps">
+        <li>変換後テキストをマウスでドラッグ選択</li>
+        <li>選択語の近くに <strong>+ 登録</strong> ボタンが浮き上がる</li>
+        <li>クリックすると登録フォームに自動入力</li>
+      </ol>
+
+      <h3 id="register-unmatched">未変換語リストから登録</h3>
+      <p>
+        変換実行後、サイドバーの「未変換語」セクションに変換されなかった英単語がチップで表示されます（最大10件、出現回数順）。
+        チップをクリックすると登録フォームに自動入力されます。
+      </p>
+      <div class="note">
+        ストップワード（a, the, is など一般的な英単語）と登録済みの語は除外されます。
+      </div>
+    </section>
+
+    <!-- 登録済み語彙 -->
+    <section id="vocab-list">
+      <h2>登録済み語彙</h2>
+      <p>サイドバー下部の「登録済み」リストで登録語を確認・管理できます。</p>
+      <table>
+        <tr><th>操作</th><th>説明</th></tr>
+        <tr><td>検索ボックス</td><td>元語または候補1で絞り込み。最大20件表示</td></tr>
+        <tr><td>カテゴリフィルタ</td><td>特定カテゴリのみ表示</td></tr>
+        <tr><td>頻度 / 登録順 ボタン</td><td>ソート順を切り替え</td></tr>
+        <tr><td>× ボタン</td><td>語彙を削除</td></tr>
+      </table>
+
+      <h3>表示の見方</h3>
+      <table>
+        <tr><th>表示状態</th><th>意味</th></tr>
+        <tr><td>通常（不透明）</td><td>変換対象の有効エントリ</td></tr>
+        <tr><td>薄い（半透明）</td><td>cat=2（対象外）または翻訳なし。変換に使われない</td></tr>
+        <tr><td><code>(翻訳なし)</code></td><td>変換対象カテゴリだが翻訳が未入力。複合フレーズの保護用途や入力待ち</td></tr>
+      </table>
+    </section>
+
+    <!-- Export / Import -->
+    <section id="export">
+      <h2>Export / Import</h2>
+      <p>フッター右側のボタンから語彙データをバックアップ・移行できます。</p>
+
+      <h3>Export</h3>
+      <p>現在の語彙DBに登録されている語彙をすべて JSON ファイルとしてダウンロードします。</p>
+      <pre>ファイル名: veil-vocab-YYYYMMDD.json</pre>
+
+      <h3>Import</h3>
+      <p>
+        JSON ファイルを選択して読み込みます。既存の語彙は upsert（上書き更新）されます。
+        削除はされません。読み込んだ語彙は<strong>現在の語彙DBに登録</strong>されます。
+      </p>
+      <div class="note">
+        Import ファイルの必須フィールドは <code>o</code>（元語）のみです。候補1がない語は翻訳なしで登録されます。
+      </div>
+    </section>
+
+    <!-- veil-sync -->
+    <section id="sync">
+      <h2>veil-sync — 他の AI ツールへの語彙同期</h2>
+      <p>
+        <code>~/.veil/rules/</code> にある語彙ルールを CLAUDE.md, AGENTS.md, .cursorrules などの設定ファイルに挿入します。
+        自動同期は行わず、必要なタイミングで <code>veil-sync.py</code> を実行します。
+      </p>
+
+      <h3>初期設定</h3>
+      <pre>python veil-sync.py --add /path/to/CLAUDE.md</pre>
+      <p>登録と同時に即時同期されます。複数ファイルを登録する場合は繰り返し実行します。</p>
+
+      <h3>コマンド一覧</h3>
+      <table>
+        <tr><th>コマンド</th><th>説明</th></tr>
+        <tr><td><code>python veil-sync.py --add &lt;path&gt;</code></td><td>同期先を登録</td></tr>
+        <tr><td><code>python veil-sync.py --list</code></td><td>登録済み一覧を表示</td></tr>
+        <tr><td><code>python veil-sync.py --remove &lt;path&gt;</code></td><td>登録を解除</td></tr>
+        <tr><td><code>python veil-sync.py</code></td><td>手動で全ファイルを同期</td></tr>
+      </table>
+
+      <h3>対応ファイル</h3>
+      <table>
+        <tr><th>ツール</th><th>ファイル</th></tr>
+        <tr><td>Claude Code</td><td><code>CLAUDE.md</code></td></tr>
+        <tr><td>Codex</td><td><code>AGENTS.md</code></td></tr>
+        <tr><td>Cursor</td><td><code>.cursorrules</code></td></tr>
+        <tr><td>GitHub Copilot</td><td><code>.github/copilot-instructions.md</code></td></tr>
+        <tr><td>Gemini CLI</td><td><code>GEMINI.md</code></td></tr>
+        <tr><td>Aider</td><td><code>.aider.conf.yml</code></td></tr>
+      </table>
+
+      <p>設定ファイルに以下のブロックが挿入されます（<code>.yml</code> / <code>.yaml</code> は <code>#</code> 形式）。同期されるのは候補1だけです。候補2 / 候補3 は同期されません。</p>
+      <pre>&lt;!-- VEIL_START --&gt;
+以下の語彙ルールに従って出力してください：
+- common asset → 共通資産
+- current state → 今の状態
+- validator → バリデータ
+&lt;!-- VEIL_END --&gt;</pre>
+    </section>
+
+    <!-- 変換されないケース -->
+    <section id="skip">
+      <h2>変換されないケース</h2>
+      <p>以下のパターンは意図的に変換をスキップします。</p>
+      <table>
+        <tr><th>パターン</th><th>例</th></tr>
+        <tr><td>ファイル名 / パスの一部（<code>.</code> 隣接）</td><td><code>workflow_close.py</code>, <code>path/to/close.md</code></td></tr>
+        <tr><td>ハイフン区切り識別子（<code>-</code> 隣接）</td><td><code>task-close-workflow</code></td></tr>
+        <tr><td>バッククォート内</td><td><code>`close()`</code></td></tr>
+        <tr><td>ダブルクォート内</td><td><code>"close"</code></td></tr>
+        <tr><td><code>key=value</code> 形式</td><td><code>status=close</code>, <code>type=branch</code></td></tr>
+        <tr><td>チケット ID（<code>LETTERS-000</code>）</td><td><code>BRANCH-046</code>, <code>CLOSE-012</code></td></tr>
+      </table>
+      <div class="note">
+        意図しないスキップが起きた場合は、「自分で設定」ポップアップで手動変換できます。
+      </div>
+    </section>
+
+    <!-- カテゴリ -->
+    <section id="cat">
+      <h2>カテゴリ</h2>
+      <table>
+        <tr><th>cat</th><th>名称</th><th>変換対象</th><th>用途</th></tr>
+        <tr><td>1</td><td>説明語</td><td>✓</td><td>一般的な技術英語（close→完了 等）</td></tr>
+        <tr><td>2</td><td>固定値・対象外</td><td>—</td><td>ALL_CAPS 定数、明示的に変換しない語</td></tr>
+        <tr><td>5</td><td>固有名詞・製品名</td><td>✓</td><td>ツール名・ライブラリ名</td></tr>
+        <tr><td>6</td><td>プロジェクト固有</td><td>✓</td><td>プロジェクト独自の用語</td></tr>
+        <tr><td>7</td><td>境界が曖昧</td><td>✓</td><td>文脈によって変換が必要な語</td></tr>
+      </table>
+      <p>元の語を入力すると、以下のルールでカテゴリが自動推定されます。</p>
+      <table>
+        <tr><th>パターン</th><th>推定カテゴリ</th></tr>
+        <tr><td><code>ALL_CAPS</code>、<code>UPPER_CASE</code>、<code>LETTERS-000</code>、<code>key=value</code>、パス、拡張子付き名</td><td>2（固定値・対象外）</td></tr>
+        <tr><td>大文字小文字が混在する語（<code>camelCase</code>、<code>SQLite</code> 等）</td><td>5（固有名詞）</td></tr>
+        <tr><td>小文字中心の空白区切りフレーズ（<code>current state</code> 等）</td><td>1（説明語）</td></tr>
+        <tr><td>小文字中心だがハイフン/アンダースコアを含む語、単語だけでは用途が定まりにくい語</td><td>7（境界が曖昧）</td></tr>
+      </table>
+      <div class="note">
+        この自動推定は最初の入口です。推定結果をそのまま一気に全部採用せず、識別子か、固有名か、説明語か、プロジェクト固有語か、境界が曖昧な語かを見直してから登録してください。特に <code>project 固有</code> は自動では付けません。
+      </div>
+      <p>採用は高需要の語から段階的に進めます。</p>
+      <table>
+        <tr><th>優先順</th><th>先に採用する語</th></tr>
+        <tr><td>1</td><td>頻出で困り度が高い語</td></tr>
+        <tr><td>2</td><td>VEIL 運用そのものに効く基幹語</td></tr>
+        <tr><td>3</td><td>プロジェクト固有語</td></tr>
+        <tr><td>4</td><td>低頻度語と境界が曖昧な語</td></tr>
+      </table>
+      <div class="note">
+        4 は急いで採用せず、保留として次回以降に回してかまいません。固有名か一般語か迷う場合、既存ルールと別訳が衝突する場合、まだ困り度が低い場合も保留に回します。
+      </div>
+    </section>
+
+    <!-- ショートカット -->
+    <section id="shortcuts">
+      <h2>キーボードショートカット</h2>
+      <table>
+        <tr><th>キー</th><th>動作</th></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>変換実行</td></tr>
+        <tr><td><kbd>Cmd</kbd>+<kbd>Enter</kbd>（Mac）</td><td>変換実行</td></tr>
+      </table>
+    </section>
+
+    <!-- 自動起動 -->
+    <section id="startup">
+      <h2>Windows 自動起動</h2>
+      <p>Windows ログイン時に VEIL サーバーを自動起動するタスクを登録できます。</p>
+      <pre>python install-startup.py           # 登録
+python install-startup.py --remove  # 解除
+python install-startup.py --status  # 確認</pre>
+      <p>登録後、次回 Windows ログイン時から自動で起動します。コンソールウィンドウは表示されません。</p>
+    </section>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+# VEIL Rule Level Runtime Task Design
+
+## 1. Parent Theme
+
+- workstream: VEIL rule level runtime
+- parent packet:
+  - `workspace/20260607_veil_rule_level_runtime_requirements.md`
+  - `workspace/20260607_veil_rule_level_runtime_basic_design.md`
+  - `workspace/20260607_veil_rule_level_runtime_implementation_plan.md`
+
+## 2. Task Designs
+
+### Task ID: T-A
+
+- 親テーマ:
+  - VEIL rule level runtime
+- 親チェックポイント:
+  - rule level parser in lint
+- 目的:
+  - `veil-lint.py` が section heading から level を読めるようにする
+- このタスクが必要な理由:
+  - rule 3 層を runtime へ落とす入口だから
+- 着手条件:
+  - parent packet 読了
+- 入力:
+  - current `veil-lint.py`
+- 読んでよい場所:
+  - `veil-lint.py`
+  - parent packet
+- 書いてよい場所:
+  - `veil-lint.py`
+- 触ってはいけない場所:
+  - `veil-sync.py`
+  - `~/.veil/rules/`
+- やること:
+  - heading parser を追加する
+  - level 付き rule list を返す
+  - conflict に level 差分も含める
+- 期待する出力:
+  - level-aware rule loader
+- 合格条件:
+  - heading なし rule が `必須`
+  - heading あり rule が正しく level を持つ
+- 失敗条件:
+  - 既存 rule line を読めなくなる
+- 停止条件:
+  - parser 追加で backward compatibility を保てない
+- 差し戻し条件:
+  - basic design と違う physical format を採りたくなった場合
+- 人判断へ上げる条件:
+  - `必須 / 推奨 / 観察` 以外の heading alias を許すか迷う場合
+- 証拠:
+  - sample load result
+- 結果の記録先:
+  - code diff
+- 最終判定者:
+  - project operator
+
+### Task ID: T-B
+
+- 親テーマ:
+  - VEIL rule level runtime
+- 親チェックポイント:
+  - lint semantics update
+- 目的:
+  - `veil-lint.py` の status, text output, exit code を level-aware にする
+- このタスクが必要な理由:
+  - `推奨` を warning 止まりにし、`観察` を hard gate にしないため
+- 着手条件:
+  - T-A 完了
+- 入力:
+  - updated `veil-lint.py`
+- 読んでよい場所:
+  - `veil-lint.py`
+- 書いてよい場所:
+  - `veil-lint.py`
+- 触ってはいけない場所:
+  - `README.md`
+  - `docs/veil-design.md`
+- やること:
+  - `violations` と `warnings` を分ける
+  - text output を `CLEAN / WARN / NG / SKIP` 対応にする
+  - json status を `warning` まで持てるようにする
+  - exit code を required violation only non-zero にする
+- 期待する出力:
+  - level-aware lint runtime
+- 合格条件:
+  - required hit は exit 1
+  - warning only は exit 0
+  - observe only は clean
+- 失敗条件:
+  - warning only でも fail-close になる
+- 停止条件:
+  - json contract break が大きすぎる
+- 差し戻し条件:
+  - warning bucket 設計が docs と食い違う
+- 人判断へ上げる条件:
+  - warning only の top-level status 名を決め切れない場合
+- 証拠:
+  - smoke results
+- 結果の記録先:
+  - code diff
+- 最終判定者:
+  - project operator
+
+### Task ID: T-C
+
+- 親テーマ:
+  - VEIL rule level runtime
+- 親チェックポイント:
+  - normalize level awareness
+- 目的:
+  - `veil-normalize.py` が existing match の level を返せるようにする
+- このタスクが必要な理由:
+  - capture / normalize でも current rule の厳格度が見える必要がある
+- 着手条件:
+  - T-A 完了
+- 入力:
+  - current `veil-normalize.py`
+- 読んでよい場所:
+  - `veil-normalize.py`
+- 書いてよい場所:
+  - `veil-normalize.py`
+- 触ってはいけない場所:
+  - `veil-lint.py` semantics
+- やること:
+  - heading parser を追加する
+  - existing match に `level` を載せる
+  - text output に level を出す
+- 期待する出力:
+  - level-aware normalize output
+- 合格条件:
+  - existing rule level が text/json で見える
+- 失敗条件:
+  - existing-match payload が壊れる
+- 停止条件:
+  - parser 差分が lint と大きくずれる
+- 差し戻し条件:
+  - T-A parser と不整合になる
+- 人判断へ上げる条件:
+  - new candidate への level 提案まで広げたくなった場合
+- 証拠:
+  - sample normalize result
+- 結果の記録先:
+  - code diff
+- 最終判定者:
+  - project operator
+
+### Task ID: T-D
+
+- 親テーマ:
+  - VEIL rule level runtime
+- 親チェックポイント:
+  - docs follow-through
+- 目的:
+  - README と設計書を実装へ追従させる
+- このタスクが必要な理由:
+  - current docs は 3 層方針だけで physical format がないため
+- 着手条件:
+  - T-B, T-C 完了
+- 入力:
+  - updated runtime scripts
+- 読んでよい場所:
+  - `README.md`
+  - `docs/veil-design.md`
+  - updated scripts
+- 書いてよい場所:
+  - `README.md`
+  - `docs/veil-design.md`
+- 触ってはいけない場所:
+  - skills
+- やること:
+  - heading format 例を追加する
+  - warning / observe の実装 semantics を追記する
+- 期待する出力:
+  - implementation-consistent docs
+- 合格条件:
+  - docs example と parser 仕様が一致する
+- 失敗条件:
+  - docs が旧 flat format 前提のまま
+- 停止条件:
+  - 実装と docs の semantics が一致しない
+- 差し戻し条件:
+  - T-B/T-C で semantics 変更が再発した場合
+- 人判断へ上げる条件:
+  - backward compatibility の書き方が割れる場合
+- 証拠:
+  - `rtk rg` confirmation
+- 結果の記録先:
+  - doc diff
+- 最終判定者:
+  - project operator
+
+### Task ID: T-E
+
+- 親テーマ:
+  - VEIL rule level runtime
+- 親チェックポイント:
+  - verify
+- 目的:
+  - `py_compile` と sample rules で runtime semantics を確認する
+- このタスクが必要な理由:
+  - level semantics は code path の verify が必須だから
+- 着手条件:
+  - T-A から T-D 完了
+- 入力:
+  - updated scripts and docs
+- 読んでよい場所:
+  - `veil-lint.py`
+  - `veil-normalize.py`
+  - `workspace/`
+- 書いてよい場所:
+  - `workspace/`
+- 触ってはいけない場所:
+  - real `~/.veil/rules/`
+- やること:
+  - sample rules dir を workspace に作る
+  - lint required / warning / observe smoke
+  - normalize existing level smoke
+  - `py_compile`
+- 期待する出力:
+  - evidence-backed verify result
+- 合格条件:
+  - all smoke expectations match
+- 失敗条件:
+  - exit code or status が設計と違う
+- 停止条件:
+  - sample semantics が安定しない
+- 差し戻し条件:
+  - verify が T-A-T-D の前提を崩す
+- 人判断へ上げる条件:
+  - `観察` hit を clean と呼ぶか別 status にするか迷う場合
+- 証拠:
+  - command outputs summarized in final report
+- 結果の記録先:
+  - final report
+- 最終判定者:
+  - project operator

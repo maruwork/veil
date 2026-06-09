@@ -20,8 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export / Import ボタンをフッターからサイドバー語彙ラベル行のアイコンボタン（↓/↑）に移動
 - README を全面書き直し（veil-capture / veil-sync ループを核心として再構成）
 - veil-design.md を最新アーキテクチャに合わせて書き直し
+- `veil-sync.py` を rules-only 同期へ整理し、`app.py` との自動連動を廃止
 
 ### Removed
+- `veil-sync.py` から `app.py` / `/vocab/prompt` 依存を削除
+- `app.py` から `veil-sync.py --stdin` による自動同期を削除
+
 - 多言語対応（韓国語・中国語）を削除し en→ja 専用に簡素化
 - 言語セレクタ UI を削除
 - `lang_pair` DB カラムを削除（既存 DB は自動マイグレーション）
@@ -30,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `shared/docs/deepl_manual/` — DeepLリファレンス（未参照）
 - `shared/docs/manual/` — 多言語版マニュアル（未使用）
 - `shared/docs/vocab_layer_design_v2.md` — 旧設計書
+- `shared/runtime/install-startup.py` → `archive/retired-support/20260607/root/install-startup.py` — 旧 UI サーバー自動起動スクリプト。役割終了のため retired-support へ移動
 
 ---
 

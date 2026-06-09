@@ -1,0 +1,20 @@
+// 初期化
+
+document.addEventListener('click', e => {
+  closePopup();
+  if (!document.getElementById('quick-add').contains(e.target)) hideQuickAdd();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyLocale();
+  loadVocab();
+  document.getElementById('search-clear').style.display = 'none';
+  document.getElementById('orig').addEventListener('input', e => {
+    syncCurrentReviewWithOrigInput(e.target.value);
+    document.getElementById('cat').value = inferCat(e.target.value.trim());
+  });
+  document.getElementById('compare').addEventListener('mouseup', handleTextSelection);
+  document.getElementById('inp').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); convert(); }
+  });
+});
