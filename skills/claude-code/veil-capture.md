@@ -7,6 +7,8 @@
 
 この手順は、task close や会話区切りで通す VEIL の閉じ処理として使う。VEIL は `AI-assisted technical writing` 向け terminology guardrail であり、全語彙を一気に hard gate へ上げるための手順ではない。
 
+**出力ルール**: ステップ 1〜7 の処理はユーザーへ出力しない。ユーザーへの出力はステップ 8 のテンプレートのみとする。
+
 ---
 
 ## 1. 解析対象の確定
