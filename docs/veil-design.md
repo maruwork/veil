@@ -205,7 +205,7 @@ python shared/runtime/veil-status.py --json
 
 1. Run `python shared/tools/veil-db.py export-html` to regenerate `~/.veil/veil.html`
 2. Open `~/.veil/veil.html` in a browser
-3. Hover over a candidate cell and click **コピー** — copies `{term} を「{candidate}」に変更して` to the clipboard
+3. Hover over a candidate cell and click **Copy** (label is locale-aware) — copies a locale-aware AI instruction to the clipboard (e.g. `Change '{term}' to '{candidate}'`)
 4. Paste into the AI chat; this triggers a new capture cycle that records the updated preferred form
 5. After capture: run `export-mirror`, `export-html`, and `veil-sync.py` to propagate the change
 
