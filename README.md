@@ -8,13 +8,13 @@
 
 ## VEILとは
 
-VEIL は、AI-assisted technical writing のための terminology guardrail です。current canonical route は SQLite で、`~/.veil/rules/` は AI に読ませる markdown surface と transition mirror として扱います。実務で揺れた語を拾い、正規化し、AI に読ませ、最終出力が従っているかを返答前に検査します。
+VEIL は、AI-assisted technical writing のための terminology guardrail です。current canonical route は SQLite で、`~/.veil/rules/` は AI に読ませる markdown surface と遷移ミラーとして扱います。実務で揺れた語を拾い、正規化し、AI に読ませ、最終出力が従っているかを返答前に検査します。
 
 AI が勝手に決めた英語や造語が混入して理解できない、直しても次のセッションでまた戻る、技術文書や説明文の語彙がぶれる。
 
 AI 利用が日常化するほど、この問題は増えます。VEIL は static な style guide ではなく、`capture -> normalize -> sync -> lint` の運用ループで語彙統制を回します。依存ゼロ、ローカル完結です。
 
-**current canonical route は `~/.veil/veil.db`、`~/.veil/rules/` は AI-readable markdown surface と transition mirror です。`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではなく、参照明記先です。**
+**current canonical route は `~/.veil/veil.db`、`~/.veil/rules/` は AI-readable markdown surface と遷移ミラーです。`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではなく、参照明記先です。**
 
 ---
 
@@ -35,7 +35,7 @@ task close / 会話区切り
         ↓
   ~/.veil/veil.db に記録する  ← current canonical route
         ↓
-  ~/.veil/rules/{letter}.md を生成する  ← transition mirror / AI-readable surface
+  ~/.veil/rules/{letter}.md を生成する  ← 遷移ミラー / AI-readable surface
         ↓
   shared/runtime/veil-sync.py が参照明記先を更新する
         ↓
@@ -72,9 +72,9 @@ VEIL は、候補語を一気に全部登録する前提では運用しない。
 
 | コンポーネント | 役割 |
 |-------------|------|
-| `/veil-capture` スキル | task close / 会話区切りで問題語を抽出し、SQLite canonical へ記録し、mirror 生成と sync まで進める |
+| `/veil-capture` スキル | task close / 会話区切りで問題語を抽出し、SQLite canonical へ記録し、ミラー生成と sync まで進める |
 | `~/.veil/veil.db` | SQLite canonical route |
-| `~/.veil/rules/{letter}.md` | AI-readable markdown surface / transition mirror |
+| `~/.veil/rules/{letter}.md` | AI-readable markdown surface / 遷移ミラー |
 | `shared/runtime/veil-normalize.py` | capture 後の候補語を正規化し、既存一致 / 新規候補 の 2 グループで返す |
 | `shared/runtime/veil-sync.py` | 語彙ルールの参照明記を各 AI ツール設定ファイルへ反映する |
 | `shared/runtime/veil-lint.py` | 最終文章に登録済み原語が残っていないかを返答前に検査する |
@@ -102,7 +102,7 @@ VEIL は、候補語を一気に全部登録する前提では運用しない。
   - 固有名を残す基準
   - `lint` の厳格度
 
-現在の default profile は technical writing 向けとして扱う。
+現在の標準プロファイルは technical writing 向けとして扱う。
 
 ---
 
@@ -138,6 +138,12 @@ python shared/runtime/veil-sync.py --add /path/to/AGENTS.md
 `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` 拡張子のファイルは `# VEIL_START` / `# VEIL_END` マーカーを使用します。
 
 ### 2. スキルを配置する
+
+```bash
+bash install.sh
+```
+
+手動で配置する場合：
 
 **Claude Code**
 
@@ -185,9 +191,11 @@ Claude Code で task close や会話区切りごとに実行：
 現状、または候補を選択してください。
 ```
 
-- **候補1**：推奨採用語。選択後 canonical route に記録され、`~/.veil/rules/` mirror を生成して AI ツール設定ファイルへ同期される
-- **候補2**：必須表示の代替候補。同期はされない
-- **候補3**：任意の追加候補。同期はされない
+ユーザーが選択した候補が preferred として canonical route に記録され、`~/.veil/rules/` ミラーを生成して AI ツール設定ファイルへ同期される。候補2・候補3 も alternatives として DB に記録される。
+
+- **候補1**：推奨採用語
+- **候補2**：必須表示の代替候補
+- **候補3**：任意の追加候補
 
 採用時の優先順は次を基本にする。
 
@@ -294,7 +302,7 @@ python shared/runtime/veil-lint.py --text "current state を整理した"  # 文
 
 ### VEIL の状態を確認する
 
-canonical DB の rule 件数、mirror の最終更新時刻、sync targets の状態を確認する：
+canonical DB の rule 件数、ミラーの最終更新時刻、sync targets の状態を確認する：
 
 ```bash
 python shared/runtime/veil-status.py
@@ -318,11 +326,7 @@ python shared/tools/veil-profile-audit.py --json
 python shared/tools/veil-profile-audit.py --db workspace/veil_stage1_smoke.db
 ```
 
-Stage 2 では `audit`、`normalize`、`lint` が `--db` で SQLite source を読めます。
-
-Stage 2 次波では `shared/runtime/veil-normalize.py` も `--db` で SQLite source を読めます。existing-match の返し方は維持しつつ、`source_type` と `source` でどちらの source を見たかを JSON で判別できます。
-
-Stage 2 lint wave では `shared/runtime/veil-lint.py` も `--db` で SQLite source を読めます。rules-dir 互換は残したまま、`violation / warning / clean / skip` の返し方と exit code 契約を維持します。
+`audit`、`normalize`、`lint` はいずれも `--db` で SQLite source を読めます。`veil-normalize.py` は existing-match の返し方を維持しつつ、`source_type` と `source` でどちらの source を見たかを JSON で判別できます。`veil-lint.py` は rules-dir 互換を残したまま、`violation / warning / clean / skip` の返し方と exit code 契約を維持します。
 
 ### SQLite support route
 
@@ -338,7 +342,7 @@ python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db
 
 ### current default profile を書き出す
 
-current default profile を technical writing 用の domain profile pack として切り出したい時は、`shared/tools/veil-profile-export.py` を使う。
+現在の標準プロファイルを technical writing 用の domain profile pack として切り出したい時は、`shared/tools/veil-profile-export.py` を使う。
 
 ```bash
 python shared/tools/veil-profile-export.py --profile-name technical-writing-default
@@ -369,13 +373,15 @@ veil/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
+├── install.sh                            # スキルファイルのデプロイスクリプト
 ├── shared/runtime/veil-normalize.py     # 候補語の正規化・統合候補確認
 ├── shared/runtime/veil-sync.py          # ルール同期スクリプト（コアツール）
 ├── shared/runtime/veil-lint.py          # 返答前語彙検査（コアツール）
+├── shared/runtime/veil-status.py        # canonical / ミラー / sync targets の状態確認
 ├── shared/tools/veil-profile-audit.py   # profile 棚卸し補助
 ├── shared/tools/veil-profile-export.py  # profile 書き出し補助
 ├── shared/tools/veil-db.py              # SQLite canonical support CLI
-├── shared/tools/veil_rule_store.py      # SQLite schema / upsert / mirror export shared helper
+├── shared/tools/veil_rule_store.py      # SQLite schema / upsert / ミラー export shared helper
 ├── skills/                 # スキルテンプレート
 │   ├── claude-code/
 │   │   └── veil-capture.md
