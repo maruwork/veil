@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **veil-capture スキル（Claude Code）**: 会話からAI語彙を検出・翻訳し `~/.veil/rules/` に書き込む（テンプレート: `skills/claude-code/veil-capture.md`）
 - **veil-capture スキル（Codex）**: Codex 対応版（テンプレート: `skills/codex/veil-capture/SKILL.md`）
+- **install.sh**: スキルファイルを `~/.claude/commands/` と `~/.agents/skills/` へコピーするデプロイスクリプト
+- **~/.veil/veil.html**: 登録語彙の HTML 一覧（検索・コピー機能付き、候補2・候補3列にコピーボタン）
+- **SessionStart フック**: Claude Code（`~/.claude/settings.json`）と Codex（`~/.codex/hooks.json`）で veil-sync をセッション開始時に自動実行
+
+### Changed
+- **veil-capture**: 11 ステップのプロシージャ記述から「出力形式 / 採用語選定基準 / 選択後処理」3 セクション構造に書き直し（プロシージャ除去による出力抑制）
+- **~/.veil/config.json**: `sync_script` パスを正しい veil プロジェクトパスに修正
 - **base rules 統合**: `~/.veil/rules/{letter}.md` を昇順で読み込み、語彙ブロックと合わせて同期先に反映
 - **veil-sync.py**: `--add` 実行時に自身のパスを `~/.veil/config.json` に保存（スキルからの自動呼び出しに使用）
 - **アトミック書き込み**: `tempfile` + `shutil.move` によりファイル破損を防止

@@ -27,9 +27,10 @@ Status: Active
 ## Current Position
 
 - current position:
-  - `VEIL-UX-002 全タスク完了 + README.md level 参照除去完了`
+  - `2026-06-10 UX セッション完了 — veil-capture 書き直し・veil.html 新設・hooks 設定・install.sh 追加`
 - next action:
-  - VEIL-OP-001 実行（owner 承認後）
+  - veil-sync に veil.html 自動生成を実装（現在は静的ハードコード）
+  - install.sh にフック設定を追加（現在はスキルファイルのコピーのみ）
 - stop reason if any:
   - なし
 - writeback target:
@@ -53,32 +54,33 @@ Status: Active
 - next gate:
   - CP-1（T-01 完了後）
 
-## 環境状態スナップショット（2026-06-09）
+## 環境状態スナップショット（2026-06-10）
 
 ```
 ~/.veil/
-  rules/       ← mirror 19 ファイル存在（a.md 〜 w.md）
-  targets.json ← sync target 1 件登録済み
-  config.json  ← sync_script 記録済み
+  rules/       ← ミラー 10 ファイル（10 語登録済み）
+  targets.json ← 同期対象 1 件登録済み
+  config.json  ← sync_script 記録済み（veil プロジェクトパスに修正済み）
   behavior.md  ← 存在
-  veil.db      ← 存在しない（VEIL-OP-001 の対象）
+  veil.db      ← 存在（10 語登録済み）
+  veil.html    ← 存在（静的ハードコード、10 語表示）
 ```
 
-`veil-status.py --check` 現在出力：
+インストール済みスキル：
+- `~/.claude/commands/veil-capture.md` ← 3 セクション版
+- `~/.agents/skills/veil-capture/SKILL.md` ← 3 セクション版
 
-```
-[ERROR] ~/.veil/veil.db
-[OK]    ~/.veil/rules/
-[OK]    ~/.veil/targets.json
-[OK]    sync target
-[OK]    skill
-```
+SessionStart フック：
+- Claude Code: `~/.claude/settings.json` に設定済み
+- Codex: `~/.codex/hooks.json` に設定済み、`~/.codex/config.toml` の `codex_hooks = true`
 
 ## 既知残課題
 
-| ファイル | 内容 | 対応 |
-|---|---|---|
-| `shared/tools/veil-profile-export.py` | `LEVEL_REQUIRED / LEVEL_RECOMMENDED / LEVEL_OBSERVE / LEVEL_HEADING_RE` 残留 | 別 bundle で対応 |
+| 内容 | 対応 |
+|---|---|
+| `veil.html` が静的ハードコード（veil-sync が自動生成していない） | veil-sync に HTML 生成を実装する |
+| `install.sh` がフック設定を含まない（スキルコピーのみ） | フック設定ステップを追加する |
+| `shared/tools/veil-profile-export.py` の `LEVEL_*` 定数残留 | 別 bundle で対応 |
 
 ## Prior Bundles
 
