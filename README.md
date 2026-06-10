@@ -250,7 +250,38 @@ To analyze external text (e.g. Codex output):
 /veil-capture <paste target text here>
 ```
 
-### Inspect and edit rule files
+### Review registered terms
+
+Generate a browser-based vocabulary list to see all registered terms and their candidates:
+
+```bash
+python shared/tools/veil-db.py export-html   # write ~/.veil/veil.html
+```
+
+Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates (preferred form, candidate 2, candidate 3). Use the search box to filter. Re-run `export-html` any time the DB changes to keep the list current.
+
+### Modify a registered term
+
+To change the preferred form, use the HTML list:
+
+1. Open `~/.veil/veil.html` (run `export-html` first if needed)
+2. Find the term — hover over the target candidate and click **Copy**
+3. This copies a ready-to-paste instruction (`Change '{term}' to '{candidate}'`) to the clipboard
+4. Paste into the AI chat — this triggers a new capture cycle that records the updated preferred form
+5. After capture: run `export-mirror`, `export-html`, and `veil-sync.py` to propagate the change
+
+To update directly without AI:
+
+```bash
+python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
+python shared/tools/veil-db.py export-mirror   # regenerate markdown mirror
+python shared/tools/veil-db.py export-html     # regenerate HTML list
+python shared/runtime/veil-sync.py             # push to sync targets
+```
+
+### Inspect raw rule files
+
+The markdown mirror under `~/.veil/rules/` can also be read or edited directly:
 
 ```
 ~/.veil/rules/
@@ -258,8 +289,6 @@ To analyze external text (e.g. Codex output):
 ├── u.md    # rules for terms starting with u
 └── ...
 ```
-
-Each file can be edited directly.
 
 ```markdown
 # u
@@ -270,24 +299,7 @@ Each file can be edited directly.
 - update path → update path (keep)
 ```
 
-### Modify a registered term
-
-To change the preferred form of a registered term, use the HTML vocabulary list:
-
-```bash
-python shared/tools/veil-db.py export-html   # regenerate ~/.veil/veil.html
-```
-
-Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates. Hover over a candidate and click **コピー** — this copies a ready-to-paste AI instruction (`{term} を「{candidate}」に変更して`) to the clipboard. Paste it into the AI chat to trigger a new capture cycle with the preferred form change.
-
-To update directly without AI:
-
-```bash
-python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
-python shared/tools/veil-db.py export-mirror   # regenerate markdown mirror
-python shared/tools/veil-db.py export-html     # regenerate HTML list
-python shared/runtime/veil-sync.py             # push to sync targets
-```
+After editing a mirror file directly, run `import-rules` to reload it into the canonical DB, then `export-html` and `veil-sync.py` to propagate.
 
 ### Update sync targets manually
 
