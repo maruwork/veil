@@ -16,11 +16,11 @@ DEFAULT_HTML_PATH = os.path.join(CONFIG_DIR, "veil.html")
 
 _HTML_TEMPLATE = """\
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="__UI_LANG__">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VEIL — 語彙ルール</title>
+<title>__UI_TITLE__</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -103,19 +103,19 @@ _HTML_TEMPLATE = """\
 <body>
 <header>
   <h1>VEIL</h1>
-  <span id="count">__COUNT__ 語登録済み</span>
+  <span id="count">__UI_COUNT_INIT__</span>
 </header>
 <div class="search-bar">
-  <input type="text" id="search" placeholder="語句を検索..." oninput="filterRows()">
+  <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
 </div>
-<p style="font-size:13px;color:#666;margin-bottom:16px;">登録語句の表示を変更したい場合は、表内の候補のコピーをクリックしてAIに貼り付けてください。</p>
+<p style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
 <table>
   <thead>
     <tr>
-      <th style="width:220px">登録語句</th>
-      <th style="width:220px">候補1（採用形）</th>
-      <th style="width:220px">候補2</th>
-      <th>候補3</th>
+      <th style="width:220px">__UI_COL_TERM__</th>
+      <th style="width:220px">__UI_COL_PREFERRED__</th>
+      <th style="width:220px">__UI_COL_ALT2__</th>
+      <th>__UI_COL_ALT3__</th>
     </tr>
   </thead>
   <tbody id="tbody">
@@ -123,15 +123,21 @@ __ROWS__
   </tbody>
 </table>
 <script>
+  const _copyInstruction = "__UI_COPY_INSTRUCTION__";
+  const _copyBtn = "__UI_COPY_BTN__";
+  const _copyDone = "__UI_COPY_DONE__";
+  const _countRegistered = "__UI_COUNT_REGISTERED__";
+  const _countMatching = "__UI_COUNT_MATCHING__";
+
   function copy(btn) {
     const term = btn.dataset.term;
     const candidate = btn.dataset.alt;
-    const text = term + ' を「' + candidate + '」に変更して';
+    const text = _copyInstruction.replace('{term}', term).replace('{candidate}', candidate);
     navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = '✓';
+      btn.textContent = _copyDone;
       btn.classList.add('copied');
       setTimeout(() => {
-        btn.textContent = 'コピー';
+        btn.textContent = _copyBtn;
         btn.classList.remove('copied');
       }, 1500);
     });
@@ -150,12 +156,28 @@ __ROWS__
       }
     });
     document.getElementById('count').textContent =
-      visible + ' 語' + (q ? ' 一致' : '登録済み');
+      (q ? _countMatching : _countRegistered).replace('{n}', visible);
   }
 </script>
 </body>
 </html>
 """
+
+_HTML_UI_EN: dict[str, str] = {
+    "lang": "en",
+    "title": "VEIL — Vocabulary Rules",
+    "search_placeholder": "Search terms...",
+    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell and paste into the AI chat.",
+    "col_term": "Term",
+    "col_preferred": "Preferred (candidate 1)",
+    "col_alt2": "Candidate 2",
+    "col_alt3": "Candidate 3",
+    "copy_btn": "Copy",
+    "copy_done": "✓",
+    "count_registered": "{n} terms registered",
+    "count_matching": "{n} terms matching",
+    "copy_instruction": "Change '{term}' to '{candidate}'",
+}
 
 RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
 LEADING_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
@@ -646,18 +668,47 @@ def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], li
     return index, []
 
 
-def _render_alt_cell(term: str, alt: str | None) -> str:
+def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
     if not alt or not str(alt).strip():
         return ""
     return (
         f'<div class="cell">'
         f'<span class="alt">{_html.escape(str(alt))}</span>'
-        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" onclick="copy(this)">コピー</button>'
+        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" onclick="copy(this)">{_html.escape(copy_btn)}</button>'
         f'</div>'
     )
 
 
-def export_html_from_db(db_path: str, html_path: str) -> dict[str, object]:
+def _build_html_content(rows_html: str, count: int, ui: dict[str, str]) -> str:
+    import json as _json
+
+    def js(key: str, default: str) -> str:
+        return _json.dumps(ui.get(key, default), ensure_ascii=False)[1:-1]
+
+    def h(key: str, default: str) -> str:
+        return _html.escape(ui.get(key, default))
+
+    count_init = ui.get("count_registered", "{n} terms registered").replace("{n}", str(count))
+    content = _HTML_TEMPLATE
+    content = content.replace("__UI_LANG__", h("lang", "en"))
+    content = content.replace("__UI_TITLE__", h("title", "VEIL — Vocabulary Rules"))
+    content = content.replace("__UI_COUNT_INIT__", _html.escape(count_init))
+    content = content.replace("__UI_SEARCH_PLACEHOLDER__", h("search_placeholder", "Search terms..."))
+    content = content.replace("__UI_INSTRUCTION__", h("instruction", "To change the preferred form, click Copy and paste into the AI chat."))
+    content = content.replace("__UI_COL_TERM__", h("col_term", "Term"))
+    content = content.replace("__UI_COL_PREFERRED__", h("col_preferred", "Preferred (candidate 1)"))
+    content = content.replace("__UI_COL_ALT2__", h("col_alt2", "Candidate 2"))
+    content = content.replace("__UI_COL_ALT3__", h("col_alt3", "Candidate 3"))
+    content = content.replace("__UI_COPY_INSTRUCTION__", js("copy_instruction", "Change '{term}' to '{candidate}'"))
+    content = content.replace("__UI_COPY_BTN__", js("copy_btn", "Copy"))
+    content = content.replace("__UI_COPY_DONE__", js("copy_done", "✓"))
+    content = content.replace("__UI_COUNT_REGISTERED__", js("count_registered", "{n} terms registered"))
+    content = content.replace("__UI_COUNT_MATCHING__", js("count_matching", "{n} terms matching"))
+    content = content.replace("__ROWS__", rows_html)
+    return content
+
+
+def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None = None) -> dict[str, object]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {
@@ -666,6 +717,9 @@ def export_html_from_db(db_path: str, html_path: str) -> dict[str, object]:
             "db_path": db_path,
             "html_path": html_path,
         }
+
+    resolved_ui = ui if ui is not None else _HTML_UI_EN
+    copy_btn = resolved_ui.get("copy_btn", "Copy")
 
     active_rows = [r for r in payload["rows"] if r.get("status") == "active"]  # type: ignore[union-attr]
     rows_sorted = sorted(
@@ -686,13 +740,13 @@ def export_html_from_db(db_path: str, html_path: str) -> dict[str, object]:
             f"      <td><span class=\"section-label\">{_html.escape(section)}</span>"
             f"<span class=\"term\">{_html.escape(term)}</span></td>\n"
             f"      <td><span class=\"preferred\">{_html.escape(preferred)}</span></td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None)}</td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None)}</td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None, copy_btn)}</td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None, copy_btn)}</td>\n"
             f"    </tr>"
         )
 
     count = len(rows_sorted)
-    content = _HTML_TEMPLATE.replace("__COUNT__", str(count)).replace("__ROWS__", "\n".join(row_parts))
+    content = _build_html_content("\n".join(row_parts), count, resolved_ui)
 
     os.makedirs(os.path.dirname(os.path.abspath(html_path)), exist_ok=True)
     with open(html_path, "w", encoding="utf-8") as fh:

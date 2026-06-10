@@ -17,7 +17,7 @@ try:
         replace_rules_from_markdown,
         upsert_rule,
     )
-    from shared.tools.veil_locale import t
+    from shared.tools.veil_locale import detect_lang, t
 except ModuleNotFoundError:
     from veil_rule_store import (  # type: ignore[no-redef]
         DEFAULT_DB_PATH,
@@ -30,7 +30,7 @@ except ModuleNotFoundError:
         replace_rules_from_markdown,
         upsert_rule,
     )
-    from veil_locale import t  # type: ignore[no-redef]
+    from veil_locale import detect_lang, t  # type: ignore[no-redef]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -204,7 +204,23 @@ def main() -> int:
         return 0 if payload["status"] == "ok" else 1
 
     if args.command == "export-html":
-        payload = export_html_from_db(args.db, args.html_path)
+        lang = detect_lang()
+        ui = {
+            "lang": lang.replace("_", "-"),
+            "title": t("html.title"),
+            "search_placeholder": t("html.search_placeholder"),
+            "instruction": t("html.instruction"),
+            "col_term": t("html.col_term"),
+            "col_preferred": t("html.col_preferred"),
+            "col_alt2": t("html.col_alt2"),
+            "col_alt3": t("html.col_alt3"),
+            "copy_btn": t("html.copy_btn"),
+            "copy_done": t("html.copy_done"),
+            "count_registered": t("html.count_registered"),
+            "count_matching": t("html.count_matching"),
+            "copy_instruction": t("html.copy_instruction"),
+        }
+        payload = export_html_from_db(args.db, args.html_path, ui=ui)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:

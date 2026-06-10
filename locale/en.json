@@ -96,6 +96,20 @@
     "export_html_help": "Generate HTML vocabulary list.",
     "export_html_path_help": "Output path for HTML file. Default: ~/.veil/veil.html"
   },
+  "html": {
+    "title": "VEIL — Vocabulary Rules",
+    "search_placeholder": "Search terms...",
+    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell and paste into the AI chat.",
+    "col_term": "Term",
+    "col_preferred": "Preferred (candidate 1)",
+    "col_alt2": "Candidate 2",
+    "col_alt3": "Candidate 3",
+    "copy_btn": "Copy",
+    "copy_done": "✓",
+    "count_registered": "{n} terms registered",
+    "count_matching": "{n} terms matching",
+    "copy_instruction": "Change '{term}' to '{candidate}'"
+  },
   "audit": {
     "description": "Non-destructively audit VEIL rules profile.",
     "rules_dir_help": "Rules directory to audit. Default: ~/.veil/rules",
