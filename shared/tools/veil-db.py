@@ -60,12 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_parser.add_argument("--source-context", help="source context。")
     upsert_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
 
-    export_parser = subparsers.add_parser("export-mirror", help="SQLite canonical から markdown mirror を生成する。")
+    export_parser = subparsers.add_parser("export-mirror", help="SQLite canonical から markdown ミラーを生成する。")
     export_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
     export_parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="mirror export 先 rules directory。既定: ~/.veil/rules",
+        help="ミラー export 先 rules directory。既定: ~/.veil/rules",
     )
     export_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
     return parser

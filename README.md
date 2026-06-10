@@ -78,12 +78,12 @@ VEIL は、候補語を一気に全部登録する前提では運用しない。
 | `shared/runtime/veil-normalize.py` | capture 後の候補語を正規化し、既存一致 / 新規候補 の 2 グループで返す |
 | `shared/runtime/veil-sync.py` | 語彙ルールの参照明記を各 AI ツール設定ファイルへ反映する |
 | `shared/runtime/veil-lint.py` | 最終文章に登録済み原語が残っていないかを返答前に検査する |
-| `shared/runtime/veil-status.py` | canonical / mirror / sync targets / skill の状態確認とセットアップ診断を表示する |
+| `shared/runtime/veil-status.py` | canonical / ミラー / 同期対象 / skill の状態確認とセットアップ診断を表示する |
 | `shared/tools/veil-profile-audit.py` | current profile の rule 件数と legacy flat の有無を棚卸しする補助 |
 | `shared/tools/veil-profile-export.py` | current profile を domain profile pack として書き出す補助 |
 | `shared/tools/veil-db.py` | SQLite canonical の `init-db / import-rules / readback / upsert-rule / export-mirror` を扱う補助 |
 
-`shared/tools/veil-db.py` は SQLite canonical route を初期化・取込・読返しし、current phase では single rule の追加更新と markdown mirror の生成も担う support route です。
+`shared/tools/veil-db.py` は SQLite canonical route を初期化・取込・読返しし、current phase では single rule の追加更新と markdown ミラーの生成も担う support route です。
 
 ### core と profile
 
@@ -225,8 +225,8 @@ python shared/runtime/veil-normalize.py --text "current states\ncurrent_state\nC
 
 - 大文字小文字、ハイフン、アンダースコア、軽い単複の揺れ統合
 - 正規化後クラスタごとに variant と出現回数をまとめる
-- 既存 SQLite canonical / mirror との一致確認（`既存一致:` グループ）
-- 既存一致がない語の mirror 振分候補提示（`新規候補:` グループ）
+- 既存 SQLite canonical / ミラーとの一致確認（`既存一致:` グループ）
+- 既存一致がない語のミラー振分候補提示（`新規候補:` グループ）
 
 出力例：
 
@@ -302,7 +302,7 @@ python shared/runtime/veil-lint.py --text "current state を整理した"  # 文
 
 ### VEIL の状態を確認する
 
-canonical DB の rule 件数、ミラーの最終更新時刻、sync targets の状態を確認する：
+canonical DB の rule 件数、ミラーの最終更新時刻、同期対象の状態を確認する：
 
 ```bash
 python shared/runtime/veil-status.py
@@ -316,7 +316,7 @@ python shared/runtime/veil-status.py --check
 
 `[ERROR]` が出たら exit 1 になる。`[WARN]` のみなら exit 0 で続行できる。
 
-### current default profile を棚卸しする
+### 現在の標準プロファイルを棚卸しする
 
 `~/.veil/rules/` の rule 件数や、heading のない旧 flat rule がどれだけ残っているかは `shared/tools/veil-profile-audit.py` で見られます。
 
@@ -340,7 +340,7 @@ python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db -
 python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_mirror
 ```
 
-### current default profile を書き出す
+### 現在の標準プロファイルを書き出す
 
 現在の標準プロファイルを technical writing 用の domain profile pack として切り出したい時は、`shared/tools/veil-profile-export.py` を使う。
 
@@ -355,7 +355,7 @@ python shared/tools/veil-profile-export.py --profile-name technical-writing-defa
 - `*.md` rule files
 - `manifest.json`
 
-これは read-only export であり、canonical route と `~/.veil/rules/` mirror を直接変更しない。
+これは read-only export であり、canonical route と `~/.veil/rules/` ミラーを直接変更しない。
 `manifest.json` には `domain`, `intended_use`, `base_profile` も入り、branch 元の profile 契約を残せる。
 
 既存 pack から branch を起こす時は、base manifest を渡す。
@@ -377,7 +377,7 @@ veil/
 ├── shared/runtime/veil-normalize.py     # 候補語の正規化・統合候補確認
 ├── shared/runtime/veil-sync.py          # ルール同期スクリプト（コアツール）
 ├── shared/runtime/veil-lint.py          # 返答前語彙検査（コアツール）
-├── shared/runtime/veil-status.py        # canonical / ミラー / sync targets の状態確認
+├── shared/runtime/veil-status.py        # canonical / ミラー / 同期対象の状態確認
 ├── shared/tools/veil-profile-audit.py   # profile 棚卸し補助
 ├── shared/tools/veil-profile-export.py  # profile 書き出し補助
 ├── shared/tools/veil-db.py              # SQLite canonical support CLI

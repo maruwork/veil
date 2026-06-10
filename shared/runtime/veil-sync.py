@@ -55,7 +55,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description="VEIL語彙を各AIツールの設定ファイルに同期する。")
     parser.add_argument("--config-dir", default=CONFIG_DIR, help="VEIL config directory。既定: ~/.veil")
     parser.add_argument("--db", help="SQLite canonical DB path。既定: ~/.veil/veil.db")
-    parser.add_argument("--rules-dir", help="markdown mirror directory。既定: ~/.veil/rules")
+    parser.add_argument("--rules-dir", help="markdown ミラーディレクトリ。既定: ~/.veil/rules")
     parser.add_argument("--quiet", action="store_true", help="sync 時の通常出力を抑制する。")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--add", metavar="PATH", help="同期先ファイルを登録する。")
@@ -122,12 +122,12 @@ def refresh_markdown_mirror(paths, quiet=False):
         payload = export_markdown_mirror_from_db(paths["db_path"], paths["rules_dir"])
         if payload["status"] != "ok":
             if not quiet:
-                reason = payload.get("reason") or "mirror export に失敗しました。"
-                print(f"  エラー: markdown mirror を更新できません: {reason}")
+                reason = payload.get("reason") or "ミラー export に失敗しました。"
+                print(f"  エラー: markdown ミラーを更新できません: {reason}")
             return payload
         if not quiet:
             print(
-                f"  mirror 更新: {paths['rules_dir']} "
+                f"  ミラー更新: {paths['rules_dir']} "
                 f"(written={len(payload['written_files'])}, removed={len(payload['removed_files'])})"
             )
         return payload
@@ -203,7 +203,7 @@ def cmd_sync(paths, quiet=False):
     base = prepare_base_rules(paths, quiet=quiet)
     behavior = load_behavior(paths)
     if not base and not behavior:
-        print("同期するルールがありません。SQLite canonical または markdown mirror を確認してください。")
+        print("同期するルールがありません。SQLite canonical または markdown ミラーを確認してください。")
         return
     print(f"\n{len(targets)}件を同期:\n")
     do_sync(paths, base, quiet=quiet)

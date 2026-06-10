@@ -125,9 +125,9 @@ def collect_setup(db_path: str) -> dict:
     if targets is not None:
         for path in targets:
             if os.path.exists(path):
-                items.append({"label": f"sync target: {path}", "level": "OK"})
+                items.append({"label": f"同期対象: {path}", "level": "OK"})
             else:
-                items.append({"label": f"sync target not found: {path}", "level": "WARN"})
+                items.append({"label": f"同期対象 not found: {path}", "level": "WARN"})
 
     if os.path.exists(SKILL_CLAUDE):
         items.append({"label": f"skill: {_display_path(SKILL_CLAUDE)}", "level": "OK"})
@@ -152,15 +152,15 @@ def print_status(payload: dict) -> None:
 
     if payload["mirror_exists"]:
         updated = payload["mirror_last_updated"] or "unknown"
-        print(f"mirror:       {_display_path(payload['rules_dir'])}/  (last updated: {updated})")
+        print(f"ミラー:       {_display_path(payload['rules_dir'])}/  (last updated: {updated})")
     else:
-        print(f"mirror:       not found  ({_display_path(payload['rules_dir'])}/)")
+        print(f"ミラー:       not found  ({_display_path(payload['rules_dir'])}/)")
 
     if not payload["targets_configured"]:
-        print("sync targets: not configured")
+        print("同期対象:     未設定")
     else:
         targets = payload["targets"]
-        print(f"sync targets: {len(targets)} registered")
+        print(f"同期対象:     {len(targets)} 件登録済み")
         for t in targets:
             tag = "[OK]  " if t["ok"] else "[MISS]"
             print(f"  {tag} {t['path']}")

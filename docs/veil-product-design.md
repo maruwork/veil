@@ -73,8 +73,8 @@ VEIL の本線は `capture -> normalize -> sync -> lint` で完結する。
 `sync` は publish layer である。
 
 担当:
-- canonical から mirror を regenerate
-- mirror を AI settings 面へ反映
+- canonical からミラーを regenerate
+- ミラーを AI settings 面へ反映
 
 ### 4.4 lint
 
@@ -123,7 +123,7 @@ owner は次を override できる。
 
 1. owner が採用を決める
 2. SQLite canonical に書く
-3. markdown mirror を regenerate する
+3. markdown ミラーを regenerate する
 4. sync で AI 面へ反映する
 
 ---
@@ -147,7 +147,7 @@ VEIL の原則は `全部を自動採用しない` である。
 3. `normalize`
 4. owner review
 5. canonical write
-6. mirror regenerate
+6. ミラー再生成
 7. `sync`
 8. final answer draft
 9. `lint`
@@ -162,7 +162,7 @@ VEIL completed claim には、少なくとも次が必要である。
 
 1. candidate rule が authority surface に固定されている
 2. representative `capture -> normalize -> sync -> lint` flow の strong evidence がある
-3. canonical / mirror / sync / lint / normalize の route が docs と runtime で矛盾しない
+3. canonical / ミラー / sync / lint / normalize の route が docs と runtime で矛盾しない
 4. current blocker が none である
 
 ---
