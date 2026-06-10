@@ -92,7 +92,9 @@
     "preferred_alt_3_help": "候補3。",
     "status_help": "status。既定: active",
     "export_mirror_help": "SQLite canonical から markdown ミラーを生成する。",
-    "export_rules_dir_help": "ミラー export 先 rules directory。既定: ~/.veil/rules"
+    "export_rules_dir_help": "ミラー export 先 rules directory。既定: ~/.veil/rules",
+    "export_html_help": "HTML 語彙一覧を生成する。",
+    "export_html_path_help": "HTML ファイルの出力先。既定: ~/.veil/veil.html"
   },
   "audit": {
     "description": "VEIL rules profile を non-destructive に棚卸しする。",

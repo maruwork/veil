@@ -8,7 +8,9 @@ import sys
 try:
     from shared.tools.veil_rule_store import (
         DEFAULT_DB_PATH,
+        DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
         readback_rules,
@@ -19,7 +21,9 @@ try:
 except ModuleNotFoundError:
     from veil_rule_store import (  # type: ignore[no-redef]
         DEFAULT_DB_PATH,
+        DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
         readback_rules,
@@ -70,6 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
         help=t("db.export_rules_dir_help"),
     )
     export_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+
+    html_parser = subparsers.add_parser("export-html", help=t("db.export_html_help"))
+    html_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    html_parser.add_argument("--html-path", default=DEFAULT_HTML_PATH, help=t("db.export_html_path_help"))
+    html_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
     return parser
 
 
@@ -123,13 +132,20 @@ def print_export_text(payload: dict[str, object]) -> None:
     print(
         "EXPORT-MIRROR:"
         f" db={payload['db_path']}, rules_dir={payload['rules_dir']},"
-        f" rows={payload['row_count']}, written={len(payload['written_files'])},"
-        f" removed={len(payload['removed_files'])}"
+        f" rows={payload['row_count']}, written={len(payload['written_files'])},"  # type: ignore[arg-type]
+        f" removed={len(payload['removed_files'])}"  # type: ignore[arg-type]
     )
-    for filename in payload["written_files"]:
+    for filename in payload["written_files"]:  # type: ignore[union-attr]
         print(f"- wrote {filename}")
-    for filename in payload["removed_files"]:
+    for filename in payload["removed_files"]:  # type: ignore[union-attr]
         print(f"- removed {filename}")
+
+
+def print_export_html_text(payload: dict[str, object]) -> None:
+    if payload["status"] != "ok":
+        print(f"SKIP: {payload['reason']}")
+        return
+    print(f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']}")
 
 
 def main() -> int:
@@ -185,6 +201,14 @@ def main() -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
             print_export_text(payload)
+        return 0 if payload["status"] == "ok" else 1
+
+    if args.command == "export-html":
+        payload = export_html_from_db(args.db, args.html_path)
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print_export_html_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
     parser.print_help()

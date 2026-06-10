@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import html as _html
 import os
 import re
 import sqlite3
@@ -11,6 +12,150 @@ from pathlib import Path
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 DEFAULT_DB_PATH = os.path.join(CONFIG_DIR, "veil.db")
+DEFAULT_HTML_PATH = os.path.join(CONFIG_DIR, "veil.html")
+
+_HTML_TEMPLATE = """\
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VEIL — 語彙ルール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 32px 24px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 16px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: #000; }
+  header span { font-size: 12px; color: #666; }
+  .search-bar { margin-bottom: 24px; }
+  .search-bar input {
+    width: 100%;
+    max-width: 360px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: #aaa; }
+  .search-bar input::placeholder { color: #bbb; }
+  table { width: 100%; max-width: 900px; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #666;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+  tbody tr:hover { background: #f8f8f8; }
+  td { padding: 10px 12px; vertical-align: middle; }
+  .term { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; color: #2563eb; }
+  .section-label {
+    display: inline-block;
+    width: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .cell { display: flex; align-items: center; gap: 8px; }
+  .preferred { font-weight: 500; color: #1a1a1a; }
+  .alt { color: #555; font-size: 13px; }
+  .copy-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 11px;
+    line-height: 1;
+    transition: color 0.1s, background 0.1s;
+    opacity: 0;
+  }
+  tr:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { color: #555; background: #ebebeb; }
+  .copy-btn.copied { color: #6dbf7a; opacity: 1; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VEIL</h1>
+  <span id="count">__COUNT__ 語登録済み</span>
+</header>
+<div class="search-bar">
+  <input type="text" id="search" placeholder="語句を検索..." oninput="filterRows()">
+</div>
+<p style="font-size:13px;color:#666;margin-bottom:16px;">登録語句の表示を変更したい場合は、表内の候補のコピーをクリックしてAIに貼り付けてください。</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:220px">登録語句</th>
+      <th style="width:220px">候補1（採用形）</th>
+      <th style="width:220px">候補2</th>
+      <th>候補3</th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+__ROWS__
+  </tbody>
+</table>
+<script>
+  function copy(btn) {
+    const term = btn.dataset.term;
+    const candidate = btn.dataset.alt;
+    const text = term + ' を「' + candidate + '」に変更して';
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'コピー';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+  function filterRows() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const rows = document.querySelectorAll('#tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      if (!q || text.includes(q)) {
+        row.classList.remove('hidden');
+        visible++;
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+    document.getElementById('count').textContent =
+      visible + ' 語' + (q ? ' 一致' : '登録済み');
+  }
+</script>
+</body>
+</html>
+"""
 
 RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
 LEADING_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
@@ -499,6 +644,66 @@ def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], li
                 "source_file": source_file,
             }
     return index, []
+
+
+def _render_alt_cell(term: str, alt: str | None) -> str:
+    if not alt or not str(alt).strip():
+        return ""
+    return (
+        f'<div class="cell">'
+        f'<span class="alt">{_html.escape(str(alt))}</span>'
+        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" onclick="copy(this)">コピー</button>'
+        f'</div>'
+    )
+
+
+def export_html_from_db(db_path: str, html_path: str) -> dict[str, object]:
+    payload = readback_rules(db_path)
+    if payload["status"] != "ok":
+        return {
+            "status": payload["status"],
+            "reason": payload.get("reason"),
+            "db_path": db_path,
+            "html_path": html_path,
+        }
+
+    active_rows = [r for r in payload["rows"] if r.get("status") == "active"]  # type: ignore[union-attr]
+    rows_sorted = sorted(
+        active_rows,
+        key=lambda r: (str(r["term_normalized"]), str(r["term_original"]).lower()),
+    )
+
+    row_parts: list[str] = []
+    for row in rows_sorted:
+        term = str(row["term_original"])
+        preferred = str(row["preferred"])
+        alt2 = row.get("preferred_alt_2")
+        alt3 = row.get("preferred_alt_3")
+        first_char = term[0] if term else "?"
+        section = first_char.upper() if first_char.isalpha() else "?"
+        row_parts.append(
+            f"    <tr>\n"
+            f"      <td><span class=\"section-label\">{_html.escape(section)}</span>"
+            f"<span class=\"term\">{_html.escape(term)}</span></td>\n"
+            f"      <td><span class=\"preferred\">{_html.escape(preferred)}</span></td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None)}</td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None)}</td>\n"
+            f"    </tr>"
+        )
+
+    count = len(rows_sorted)
+    content = _HTML_TEMPLATE.replace("__COUNT__", str(count)).replace("__ROWS__", "\n".join(row_parts))
+
+    os.makedirs(os.path.dirname(os.path.abspath(html_path)), exist_ok=True)
+    with open(html_path, "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "html_path": html_path,
+        "row_count": count,
+    }
 
 
 def load_rules_for_lint_from_db(db_path: str) -> list[dict[str, str]]:

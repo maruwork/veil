@@ -196,7 +196,18 @@ python shared/runtime/veil-status.py --json
 4. `shared/tools/veil-profile-export.py`
    - Export current default profile as a section-aware domain profile pack
 5. `shared/tools/veil-db.py`
-   - Handle SQLite canonical `init-db / import-rules / readback / upsert-rule / export-mirror`
+   - Handle SQLite canonical `init-db / import-rules / readback / upsert-rule / export-mirror / export-html`
+   - `export-html` writes `~/.veil/veil.html`: a searchable browser list of all registered terms with copy buttons
+
+**Modifying a registered term via HTML**
+
+`export-html` is the recommended route for reviewing and changing preferred forms without touching raw files:
+
+1. Run `python shared/tools/veil-db.py export-html` to regenerate `~/.veil/veil.html`
+2. Open `~/.veil/veil.html` in a browser
+3. Hover over a candidate cell and click **コピー** — copies `{term} を「{candidate}」に変更して` to the clipboard
+4. Paste into the AI chat; this triggers a new capture cycle that records the updated preferred form
+5. After capture: run `export-mirror`, `export-html`, and `veil-sync.py` to propagate the change
 
 **Commands**
 
@@ -210,6 +221,7 @@ python shared/tools/veil-db.py import-rules --db workspace/veil_stage1_smoke.db 
 python shared/tools/veil-db.py readback --db workspace/veil_stage1_smoke.db --json
 python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db --term "current state" --preferred "present state"
 python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_mirror
+python shared/tools/veil-db.py export-html
 ```
 
 ### 3-7. Package import structure

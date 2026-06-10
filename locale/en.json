@@ -92,7 +92,9 @@
     "preferred_alt_3_help": "Candidate 3.",
     "status_help": "Status. Default: active",
     "export_mirror_help": "Generate markdown mirror from SQLite canonical.",
-    "export_rules_dir_help": "Mirror export target rules directory. Default: ~/.veil/rules"
+    "export_rules_dir_help": "Mirror export target rules directory. Default: ~/.veil/rules",
+    "export_html_help": "Generate HTML vocabulary list.",
+    "export_html_path_help": "Output path for HTML file. Default: ~/.veil/veil.html"
   },
   "audit": {
     "description": "Non-destructively audit VEIL rules profile.",
