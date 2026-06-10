@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-veil-status: VEIL の状態確認とセットアップ診断を表示する。
+veil-status: Show VEIL status and setup diagnostics.
 
 Usage:
   python shared/runtime/veil-status.py
@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from shared.tools.veil_rule_store import readback_rules
+from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_DB_PATH = os.path.join(CONFIG_DIR, "veil.db")
@@ -33,10 +34,10 @@ SKILL_CODEX = os.path.expanduser("~/.codex/skills/veil-capture/SKILL.md")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="VEIL の状態確認とセットアップ診断を表示する。")
-    parser.add_argument("--check", action="store_true", help="セットアップ診断を実行する。")
-    parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path を上書きする。")
-    parser.add_argument("--json", dest="json_output", action="store_true", help="JSON 形式で出力する。")
+    parser = argparse.ArgumentParser(description=t("status.description"))
+    parser.add_argument("--check", action="store_true", help=t("status.check_help"))
+    parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("status.db_help"))
+    parser.add_argument("--json", dest="json_output", action="store_true", help=t("status.json_help"))
     return parser.parse_args()
 
 
@@ -125,9 +126,9 @@ def collect_setup(db_path: str) -> dict:
     if targets is not None:
         for path in targets:
             if os.path.exists(path):
-                items.append({"label": f"同期対象: {path}", "level": "OK"})
+                items.append({"label": t("status.sync_target_ok", path=path), "level": "OK"})
             else:
-                items.append({"label": f"同期対象 not found: {path}", "level": "WARN"})
+                items.append({"label": t("status.sync_target_miss", path=path), "level": "WARN"})
 
     if os.path.exists(SKILL_CLAUDE):
         items.append({"label": f"skill: {_display_path(SKILL_CLAUDE)}", "level": "OK"})
@@ -145,25 +146,25 @@ def collect_setup(db_path: str) -> dict:
 
 def print_status(payload: dict) -> None:
     if payload["db_exists"]:
-        print(f"canonical:    {_display_path(payload['db_path'])}")
-        print(f"  rule count: {payload['rule_count']}")
+        print(t("status.canonical_found", path=_display_path(payload["db_path"])))
+        print(t("status.canonical_rule_count", count=payload["rule_count"]))
     else:
-        print(f"canonical:    not found  ({_display_path(payload['db_path'])})")
+        print(t("status.canonical_not_found", path=_display_path(payload["db_path"])))
 
     if payload["mirror_exists"]:
         updated = payload["mirror_last_updated"] or "unknown"
-        print(f"ミラー:       {_display_path(payload['rules_dir'])}/  (last updated: {updated})")
+        print(t("status.mirror_found", path=_display_path(payload["rules_dir"]), updated=updated))
     else:
-        print(f"ミラー:       not found  ({_display_path(payload['rules_dir'])}/)")
+        print(t("status.mirror_not_found", path=_display_path(payload["rules_dir"])))
 
     if not payload["targets_configured"]:
-        print("同期対象:     未設定")
+        print(t("status.targets_not_configured"))
     else:
         targets = payload["targets"]
-        print(f"同期対象:     {len(targets)} 件登録済み")
-        for t in targets:
-            tag = "[OK]  " if t["ok"] else "[MISS]"
-            print(f"  {tag} {t['path']}")
+        print(t("status.targets_registered", count=len(targets)))
+        for target in targets:
+            tag = "[OK]  " if target["ok"] else "[MISS]"
+            print(f"  {tag} {target['path']}")
 
 
 def print_setup(payload: dict) -> None:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-veil-profile-export: VEIL current profile を read-only で export する。
+veil-profile-export: Non-destructively export VEIL current profile.
 
 Usage:
   python shared/tools/veil-profile-export.py --profile-name technical-writing-default
@@ -18,9 +18,22 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+try:
+    from shared.tools.veil_locale import t
+except ModuleNotFoundError:
+    from veil_locale import t  # type: ignore[no-redef]
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
+
+# These constants match section headings in rules files (## 必須, ## 推奨, ## 観察).
+# They are part of the file format specification and must not be localized.
 LEVEL_REQUIRED = "必須"
 LEVEL_RECOMMENDED = "推奨"
 LEVEL_OBSERVE = "観察"
@@ -29,43 +42,43 @@ LEVEL_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s*(?P<level>必須|推奨|観察)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="VEIL profile を non-destructive に export する。")
+    parser = argparse.ArgumentParser(description=t("export.description"))
     parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="export 元の rules directory。既定: ~/.veil/rules",
+        help=t("export.rules_dir_help"),
     )
     parser.add_argument(
         "--base-manifest",
         default=None,
-        help="派生元 profile pack の manifest.json。指定時はその directory を source として使う。",
+        help=t("export.base_manifest_help"),
     )
     parser.add_argument(
         "--profile-name",
         default="technical-writing-default",
-        help="export 先 profile 名。既定: technical-writing-default",
+        help=t("export.profile_name_help"),
     )
     parser.add_argument(
         "--domain",
         default="technical-writing",
-        help="profile の対象 domain。既定: technical-writing",
+        help=t("export.domain_help"),
     )
     parser.add_argument(
         "--intended-use",
         default="AI-assisted technical writing terminology guardrail",
-        help="profile の intended use。既定: AI-assisted technical writing terminology guardrail",
+        help=t("export.intended_use_help"),
     )
     parser.add_argument(
         "--base-profile",
         default="none",
-        help="派生元 profile 名。既定: none",
+        help=t("export.base_profile_help"),
     )
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="export 先 directory。既定: workspace/profile-exports/<profile-name>",
+        help=t("export.output_dir_help"),
     )
-    parser.add_argument("--json", action="store_true", help="JSON 形式で結果を出力する。")
+    parser.add_argument("--json", action="store_true", help=t("export.json_help"))
     return parser.parse_args()
 
 
@@ -152,7 +165,7 @@ def export_profile(
     if not os.path.isdir(rules_dir):
         return {
             "status": "error",
-            "reason": "rules directory が見つかりません。",
+            "reason": t("export.rules_dir_not_found"),
             "rules_dir": rules_dir,
             "output_dir": output_dir,
             "profile_name": profile_name,
