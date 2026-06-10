@@ -82,9 +82,9 @@ Enforce tightly only at the key points, not everywhere:
 | `shared/runtime/veil-status.py` | Show canonical / mirror / sync target / skill status and setup diagnostics |
 | `shared/tools/veil-profile-audit.py` | Audit rule count and legacy flat rule presence in current profile |
 | `shared/tools/veil-profile-export.py` | Export current profile as a domain profile pack |
-| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror` |
+| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror / export-html` |
 
-`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, and in the current phase also handles single-rule upsert and markdown mirror generation.
+`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert, generates the markdown mirror, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
 
 ### Core and profile
 
@@ -268,6 +268,25 @@ Each file can be edited directly.
 - untracked → untracked (keep)
 - unstable wording → inconsistent phrasing
 - update path → update path (keep)
+```
+
+### Modify a registered term
+
+To change the preferred form of a registered term, use the HTML vocabulary list:
+
+```bash
+python shared/tools/veil-db.py export-html   # regenerate ~/.veil/veil.html
+```
+
+Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates. Hover over a candidate and click **コピー** — this copies a ready-to-paste AI instruction (`{term} を「{candidate}」に変更して`) to the clipboard. Paste it into the AI chat to trigger a new capture cycle with the preferred form change.
+
+To update directly without AI:
+
+```bash
+python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
+python shared/tools/veil-db.py export-mirror   # regenerate markdown mirror
+python shared/tools/veil-db.py export-html     # regenerate HTML list
+python shared/runtime/veil-sync.py             # push to sync targets
 ```
 
 ### Update sync targets manually

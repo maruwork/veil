@@ -221,7 +221,7 @@ def export_profile(
 
 def print_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"ERROR: {payload['reason']} ({payload['rules_dir']})")
+        print(f"ERROR: {t(str(payload['reason']))} ({payload['rules_dir']})")
         return
     summary = payload["summary"]
     print(

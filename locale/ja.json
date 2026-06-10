@@ -92,7 +92,31 @@
     "preferred_alt_3_help": "候補3。",
     "status_help": "status。既定: active",
     "export_mirror_help": "SQLite canonical から markdown ミラーを生成する。",
-    "export_rules_dir_help": "ミラー export 先 rules directory。既定: ~/.veil/rules"
+    "export_rules_dir_help": "ミラー export 先 rules directory。既定: ~/.veil/rules",
+    "export_html_help": "HTML 語彙一覧を生成する。",
+    "export_html_path_help": "HTML ファイルの出力先。既定: ~/.veil/veil.html"
+  },
+  "store": {
+    "no_rules_dir": "rules directory が見つかりません。",
+    "no_db_file": "db file が見つかりません。",
+    "empty_term": "term_original または preferred が空です。",
+    "load_failed": "読み込み失敗: {exc}",
+    "rule_parse_ignored": "rule 行として解釈できないため無視した",
+    "empty_original_or_preferred": "original または preferred が空のため無視した"
+  },
+  "html": {
+    "title": "VEIL — 語彙ルール",
+    "search_placeholder": "語句を検索...",
+    "instruction": "登録語句の表示を変更したい場合は、表内の候補のコピーをクリックしてAIに貼り付けてください。",
+    "col_term": "登録語句",
+    "col_preferred": "候補1（採用形）",
+    "col_alt2": "候補2",
+    "col_alt3": "候補3",
+    "copy_btn": "コピー",
+    "copy_done": "✓",
+    "count_registered": "{n} 語登録済み",
+    "count_matching": "{n} 語 一致",
+    "copy_instruction": "{term} を「{candidate}」に変更して"
   },
   "audit": {
     "description": "VEIL rules profile を non-destructive に棚卸しする。",

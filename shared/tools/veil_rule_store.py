@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import html as _html
 import os
 import re
 import sqlite3
@@ -11,6 +12,172 @@ from pathlib import Path
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 DEFAULT_DB_PATH = os.path.join(CONFIG_DIR, "veil.db")
+DEFAULT_HTML_PATH = os.path.join(CONFIG_DIR, "veil.html")
+
+_HTML_TEMPLATE = """\
+<!DOCTYPE html>
+<html lang="__UI_LANG__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__UI_TITLE__</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 32px 24px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 16px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: #000; }
+  header span { font-size: 12px; color: #666; }
+  .search-bar { margin-bottom: 24px; }
+  .search-bar input {
+    width: 100%;
+    max-width: 360px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: #aaa; }
+  .search-bar input::placeholder { color: #bbb; }
+  table { width: 100%; max-width: 900px; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #666;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+  tbody tr:hover { background: #f8f8f8; }
+  td { padding: 10px 12px; vertical-align: middle; }
+  .term { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; color: #2563eb; }
+  .section-label {
+    display: inline-block;
+    width: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .cell { display: flex; align-items: center; gap: 8px; }
+  .preferred { font-weight: 500; color: #1a1a1a; }
+  .alt { color: #555; font-size: 13px; }
+  .copy-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 11px;
+    line-height: 1;
+    transition: color 0.1s, background 0.1s;
+    opacity: 0;
+  }
+  tr:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { color: #555; background: #ebebeb; }
+  .copy-btn.copied { color: #6dbf7a; opacity: 1; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VEIL</h1>
+  <span id="count">__UI_COUNT_INIT__</span>
+</header>
+<div class="search-bar">
+  <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
+</div>
+<p style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:220px">__UI_COL_TERM__</th>
+      <th style="width:220px">__UI_COL_PREFERRED__</th>
+      <th style="width:220px">__UI_COL_ALT2__</th>
+      <th>__UI_COL_ALT3__</th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+__ROWS__
+  </tbody>
+</table>
+<script>
+  const _copyInstruction = "__UI_COPY_INSTRUCTION__";
+  const _copyBtn = "__UI_COPY_BTN__";
+  const _copyDone = "__UI_COPY_DONE__";
+  const _countRegistered = "__UI_COUNT_REGISTERED__";
+  const _countMatching = "__UI_COUNT_MATCHING__";
+
+  function copy(btn) {
+    const term = btn.dataset.term;
+    const candidate = btn.dataset.alt;
+    const text = _copyInstruction.replace('{term}', term).replace('{candidate}', candidate);
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = _copyDone;
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = _copyBtn;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+  function filterRows() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const rows = document.querySelectorAll('#tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      if (!q || text.includes(q)) {
+        row.classList.remove('hidden');
+        visible++;
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+    document.getElementById('count').textContent =
+      (q ? _countMatching : _countRegistered).replace('{n}', visible);
+  }
+</script>
+</body>
+</html>
+"""
+
+_HTML_UI_EN: dict[str, str] = {
+    "lang": "en",
+    "title": "VEIL — Vocabulary Rules",
+    "search_placeholder": "Search terms...",
+    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell and paste into the AI chat.",
+    "col_term": "Term",
+    "col_preferred": "Preferred (candidate 1)",
+    "col_alt2": "Candidate 2",
+    "col_alt3": "Candidate 3",
+    "copy_btn": "Copy",
+    "copy_done": "✓",
+    "count_registered": "{n} terms registered",
+    "count_matching": "{n} terms matching",
+    "copy_instruction": "Change '{term}' to '{candidate}'",
+}
 
 RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
 LEADING_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
@@ -81,7 +248,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
-            "reason": "rules directory が見つかりません。",
+            "reason": "store.no_rules_dir",
             "rules_dir": rules_dir,
             "files_seen": 0,
             "rules": [],
@@ -104,7 +271,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
             with open(path, encoding="utf-8") as handle:
                 lines = handle.readlines()
         except OSError as exc:
-            warnings.append({"file": fname, "line": 0, "warning": f"読み込み失敗: {exc}"})
+            warnings.append({"file": fname, "line": 0, "warning_key": "store.load_failed", "warning_args": {"exc": str(exc)}})
             continue
 
         for line_no, line in enumerate(lines, start=1):
@@ -116,7 +283,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
                         {
                             "file": fname,
                             "line": line_no,
-                            "warning": "rule 行として解釈できないため無視した",
+                            "warning_key": "store.rule_parse_ignored",
                             "content": stripped,
                         }
                     )
@@ -129,7 +296,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
                     {
                         "file": fname,
                         "line": line_no,
-                        "warning": "original または preferred が空のため無視した",
+                        "warning_key": "store.empty_original_or_preferred",
                     }
                 )
                 continue
@@ -272,7 +439,7 @@ def upsert_rule(
     if not original or not preferred_1:
         return {
             "status": "skip",
-            "reason": "term_original または preferred が空です。",
+            "reason": "store.empty_term",
             "db_path": db_path,
         }
 
@@ -383,7 +550,7 @@ def readback_rules(db_path: str) -> dict[str, object]:
     if not os.path.exists(db_path):
         return {
             "status": "skip",
-            "reason": "db file が見つかりません。",
+            "reason": "store.no_db_file",
             "db_path": db_path,
             "summary": {"total": 0},
             "rows": [],
@@ -499,6 +666,98 @@ def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], li
                 "source_file": source_file,
             }
     return index, []
+
+
+def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
+    if not alt or not str(alt).strip():
+        return ""
+    return (
+        f'<div class="cell">'
+        f'<span class="alt">{_html.escape(str(alt))}</span>'
+        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" onclick="copy(this)">{_html.escape(copy_btn)}</button>'
+        f'</div>'
+    )
+
+
+def _build_html_content(rows_html: str, count: int, ui: dict[str, str]) -> str:
+    import json as _json
+
+    def js(key: str, default: str) -> str:
+        return _json.dumps(ui.get(key, default), ensure_ascii=False)[1:-1]
+
+    def h(key: str, default: str) -> str:
+        return _html.escape(ui.get(key, default))
+
+    count_init = ui.get("count_registered", "{n} terms registered").replace("{n}", str(count))
+    content = _HTML_TEMPLATE
+    content = content.replace("__UI_LANG__", h("lang", "en"))
+    content = content.replace("__UI_TITLE__", h("title", "VEIL — Vocabulary Rules"))
+    content = content.replace("__UI_COUNT_INIT__", _html.escape(count_init))
+    content = content.replace("__UI_SEARCH_PLACEHOLDER__", h("search_placeholder", "Search terms..."))
+    content = content.replace("__UI_INSTRUCTION__", h("instruction", "To change the preferred form, click Copy and paste into the AI chat."))
+    content = content.replace("__UI_COL_TERM__", h("col_term", "Term"))
+    content = content.replace("__UI_COL_PREFERRED__", h("col_preferred", "Preferred (candidate 1)"))
+    content = content.replace("__UI_COL_ALT2__", h("col_alt2", "Candidate 2"))
+    content = content.replace("__UI_COL_ALT3__", h("col_alt3", "Candidate 3"))
+    content = content.replace("__UI_COPY_INSTRUCTION__", js("copy_instruction", "Change '{term}' to '{candidate}'"))
+    content = content.replace("__UI_COPY_BTN__", js("copy_btn", "Copy"))
+    content = content.replace("__UI_COPY_DONE__", js("copy_done", "✓"))
+    content = content.replace("__UI_COUNT_REGISTERED__", js("count_registered", "{n} terms registered"))
+    content = content.replace("__UI_COUNT_MATCHING__", js("count_matching", "{n} terms matching"))
+    content = content.replace("__ROWS__", rows_html)
+    return content
+
+
+def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None = None) -> dict[str, object]:
+    payload = readback_rules(db_path)
+    if payload["status"] != "ok":
+        return {
+            "status": payload["status"],
+            "reason": payload.get("reason"),
+            "db_path": db_path,
+            "html_path": html_path,
+        }
+
+    resolved_ui = ui if ui is not None else _HTML_UI_EN
+    copy_btn = resolved_ui.get("copy_btn", "Copy")
+
+    active_rows = [r for r in payload["rows"] if r.get("status") == "active"]  # type: ignore[union-attr]
+    rows_sorted = sorted(
+        active_rows,
+        key=lambda r: (str(r["term_normalized"]), str(r["term_original"]).lower()),
+    )
+
+    row_parts: list[str] = []
+    for row in rows_sorted:
+        term = str(row["term_original"])
+        preferred = str(row["preferred"])
+        alt2 = row.get("preferred_alt_2")
+        alt3 = row.get("preferred_alt_3")
+        first_char = term[0] if term else "?"
+        section = first_char.upper() if first_char.isalpha() else "?"
+        row_parts.append(
+            f"    <tr>\n"
+            f"      <td><span class=\"section-label\">{_html.escape(section)}</span>"
+            f"<span class=\"term\">{_html.escape(term)}</span></td>\n"
+            f"      <td><span class=\"preferred\">{_html.escape(preferred)}</span></td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None, copy_btn)}</td>\n"
+            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None, copy_btn)}</td>\n"
+            f"    </tr>"
+        )
+
+    count = len(rows_sorted)
+    content = _build_html_content("\n".join(row_parts), count, resolved_ui)
+
+    os.makedirs(os.path.dirname(os.path.abspath(html_path)), exist_ok=True)
+    with open(html_path, "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "html_path": html_path,
+        "row_count": count,
+    }
 
 
 def load_rules_for_lint_from_db(db_path: str) -> list[dict[str, str]]:

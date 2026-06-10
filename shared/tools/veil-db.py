@@ -8,25 +8,29 @@ import sys
 try:
     from shared.tools.veil_rule_store import (
         DEFAULT_DB_PATH,
+        DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
         readback_rules,
         replace_rules_from_markdown,
         upsert_rule,
     )
-    from shared.tools.veil_locale import t
+    from shared.tools.veil_locale import detect_lang, t
 except ModuleNotFoundError:
     from veil_rule_store import (  # type: ignore[no-redef]
         DEFAULT_DB_PATH,
+        DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
         readback_rules,
         replace_rules_from_markdown,
         upsert_rule,
     )
-    from veil_locale import t  # type: ignore[no-redef]
+    from veil_locale import detect_lang, t  # type: ignore[no-redef]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,12 +74,17 @@ def build_parser() -> argparse.ArgumentParser:
         help=t("db.export_rules_dir_help"),
     )
     export_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+
+    html_parser = subparsers.add_parser("export-html", help=t("db.export_html_help"))
+    html_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    html_parser.add_argument("--html-path", default=DEFAULT_HTML_PATH, help=t("db.export_html_path_help"))
+    html_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
     return parser
 
 
 def print_import_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     print(
         "IMPORTED:"
@@ -95,12 +104,16 @@ def print_import_text(payload: dict[str, object]) -> None:
         )
     for warning in payload["warnings"]:
         location = f"{warning.get('file', '?')}:{warning.get('line', 0)}"
-        print(f"- warning {location}: {warning['warning']}")
+        if "warning_key" in warning:
+            msg = t(warning["warning_key"], **warning.get("warning_args", {}))
+        else:
+            msg = str(warning.get("warning", ""))
+        print(f"- warning {location}: {msg}")
 
 
 def print_readback_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     summary = payload["summary"]
     print(f"READBACK: db={payload['db_path']}, total={summary['total']}")
@@ -110,7 +123,7 @@ def print_readback_text(payload: dict[str, object]) -> None:
 
 def print_upsert_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     row = payload["row"]
     print(f"UPSERT: {payload['action']} db={payload['db_path']} {row['term_original']} -> {row['preferred']}")
@@ -118,18 +131,25 @@ def print_upsert_text(payload: dict[str, object]) -> None:
 
 def print_export_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     print(
         "EXPORT-MIRROR:"
         f" db={payload['db_path']}, rules_dir={payload['rules_dir']},"
-        f" rows={payload['row_count']}, written={len(payload['written_files'])},"
-        f" removed={len(payload['removed_files'])}"
+        f" rows={payload['row_count']}, written={len(payload['written_files'])},"  # type: ignore[arg-type]
+        f" removed={len(payload['removed_files'])}"  # type: ignore[arg-type]
     )
-    for filename in payload["written_files"]:
+    for filename in payload["written_files"]:  # type: ignore[union-attr]
         print(f"- wrote {filename}")
-    for filename in payload["removed_files"]:
+    for filename in payload["removed_files"]:  # type: ignore[union-attr]
         print(f"- removed {filename}")
+
+
+def print_export_html_text(payload: dict[str, object]) -> None:
+    if payload["status"] != "ok":
+        print(f"SKIP: {t(str(payload['reason']))}")
+        return
+    print(f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']}")
 
 
 def main() -> int:
@@ -185,6 +205,30 @@ def main() -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
             print_export_text(payload)
+        return 0 if payload["status"] == "ok" else 1
+
+    if args.command == "export-html":
+        lang = detect_lang()
+        ui = {
+            "lang": lang.replace("_", "-"),
+            "title": t("html.title"),
+            "search_placeholder": t("html.search_placeholder"),
+            "instruction": t("html.instruction"),
+            "col_term": t("html.col_term"),
+            "col_preferred": t("html.col_preferred"),
+            "col_alt2": t("html.col_alt2"),
+            "col_alt3": t("html.col_alt3"),
+            "copy_btn": t("html.copy_btn"),
+            "copy_done": t("html.copy_done"),
+            "count_registered": t("html.count_registered"),
+            "count_matching": t("html.count_matching"),
+            "copy_instruction": t("html.copy_instruction"),
+        }
+        payload = export_html_from_db(args.db, args.html_path, ui=ui)
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print_export_html_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
     parser.print_help()

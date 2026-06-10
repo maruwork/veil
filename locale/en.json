@@ -92,7 +92,31 @@
     "preferred_alt_3_help": "Candidate 3.",
     "status_help": "Status. Default: active",
     "export_mirror_help": "Generate markdown mirror from SQLite canonical.",
-    "export_rules_dir_help": "Mirror export target rules directory. Default: ~/.veil/rules"
+    "export_rules_dir_help": "Mirror export target rules directory. Default: ~/.veil/rules",
+    "export_html_help": "Generate HTML vocabulary list.",
+    "export_html_path_help": "Output path for HTML file. Default: ~/.veil/veil.html"
+  },
+  "store": {
+    "no_rules_dir": "Rules directory not found.",
+    "no_db_file": "DB file not found.",
+    "empty_term": "term_original or preferred is empty.",
+    "load_failed": "Failed to read: {exc}",
+    "rule_parse_ignored": "Rule line could not be parsed — skipped.",
+    "empty_original_or_preferred": "original or preferred is empty — skipped."
+  },
+  "html": {
+    "title": "VEIL — Vocabulary Rules",
+    "search_placeholder": "Search terms...",
+    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell and paste into the AI chat.",
+    "col_term": "Term",
+    "col_preferred": "Preferred (candidate 1)",
+    "col_alt2": "Candidate 2",
+    "col_alt3": "Candidate 3",
+    "copy_btn": "Copy",
+    "copy_done": "✓",
+    "count_registered": "{n} terms registered",
+    "count_matching": "{n} terms matching",
+    "copy_instruction": "Change '{term}' to '{candidate}'"
   },
   "audit": {
     "description": "Non-destructively audit VEIL rules profile.",
