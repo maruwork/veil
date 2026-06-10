@@ -23,31 +23,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `veil-sync.py`: renamed loop variable `t` → `target` to avoid shadowing the imported `t()` function
 - `README.md` and `docs/veil-design.md` rewritten in English
 - `LEVEL_REQUIRED`, `LEVEL_RECOMMENDED`, `LEVEL_OBSERVE` constants in `veil-profile-export.py` kept as Japanese — they match section headings in rules files (`## 必須` etc.) and are part of the file format, not output strings
-- **veil-capture 構造刷新**: 11ステップ手順リストを廃止し「出力仕様・採用基準・選択後処理」の3セクション構造に変更。中間処理の出力を構造的に抑制
-- **保留概念撤廃**: 採用/スキップの2択に統一。全ドキュメント・スキルファイルから VEIL 固有の保留参照を除去
+- **veil-capture restructured**: replaced 11-step procedure list with a 3-section structure (output spec / adoption criteria / post-selection processing); intermediate output structurally suppressed
+- **pending concept removed**: unified to adopt/skip binary; all VEIL-specific pending references removed from docs and skill files
 
 ---
 
 ## [1.0.0] - 2026-06-09
 
 ### Added
-- **veil-capture スキル（Claude Code）**: 会話からAI語彙を検出・翻訳し `~/.veil/veil.db` canonical に記録し mirror と同期する（`skills/claude-code/veil-capture.md`）
-- **veil-capture スキル（Codex）**: Codex 対応版（`skills/codex/veil-capture/SKILL.md`）
-- **veil-status.py**: canonical / mirror / sync targets / skill の状態確認とセットアップ診断
-- **SQLite canonical route**: `~/.veil/veil.db` を canonical として確立。mirror は transition surface として維持
-- **base rules 統合**: `~/.veil/rules/{letter}.md` を昇順で読み込み、語彙ブロックと合わせて同期先に反映
-- **veil-sync.py**: `--add` 実行時に自身のパスを `~/.veil/config.json` に保存
-- **veil.html**: `~/.veil/veil.html` に登録語句一覧を表示する HTML を生成。語句ごとにコピーボタンを設置し AI への変更指示をクリップボードへコピーできる
-- **install.sh**: スキルファイルを Claude Code / Codex の配置先へコピーするインストールスクリプト
+- **veil-capture skill (Claude Code)**: detects AI vocabulary from conversation, records to `~/.veil/veil.db` canonical, regenerates mirror, and syncs (`skills/claude-code/veil-capture.md`)
+- **veil-capture skill (Codex)**: Codex-compatible version (`skills/codex/veil-capture/SKILL.md`)
+- **veil-status.py**: status and setup diagnostics for canonical / mirror / sync targets / skill files
+- **SQLite canonical route**: established `~/.veil/veil.db` as canonical; mirror maintained as transition surface
+- **base rules integration**: reads `~/.veil/rules/{letter}.md` in alphabetical order and reflects vocabulary block to sync targets
+- **veil-sync.py**: saves its own path to `~/.veil/config.json` on `--add`
+- **veil.html**: generates `~/.veil/veil.html` — a searchable browser list of registered terms with per-term copy buttons for AI change instructions
+- **install.sh**: installer script that copies skill files to Claude Code / Codex destinations
 
 ### Changed
-- README を全面書き直し（veil-capture / veil-sync ループを核心として再構成）
-- veil-design.md を最新アーキテクチャに合わせて書き直し
-- `veil-sync.py` を rules-only 同期へ整理し `app.py` との自動連動を廃止
+- README fully rewritten (restructured around the veil-capture / veil-sync loop)
+- `docs/veil-design.md` rewritten to match the current architecture
+- `veil-sync.py` simplified to rules-only sync; automatic coupling with `app.py` removed
 
 ### Removed
-- 多言語対応（韓国語・中国語）を削除し en→ja 専用に簡素化
-- 旧 HTTP サーバー UI を `archive/retired-support/` へ移動
+- Multi-language support (Korean, Chinese) removed; simplified to en/ja only
+- Legacy HTTP server UI moved to `archive/retired-support/`
 
 ---
 
