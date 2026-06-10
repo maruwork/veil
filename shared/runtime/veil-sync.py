@@ -122,7 +122,8 @@ def refresh_markdown_mirror(paths, quiet=False):
         payload = export_markdown_mirror_from_db(paths["db_path"], paths["rules_dir"])
         if payload["status"] != "ok":
             if not quiet:
-                reason = payload.get("reason") or t("sync.mirror_export_failed")
+                reason_raw = payload.get("reason")
+                reason = t(str(reason_raw)) if reason_raw else t("sync.mirror_export_failed")
                 print(t("sync.mirror_error", reason=reason))
             return payload
         if not quiet:
