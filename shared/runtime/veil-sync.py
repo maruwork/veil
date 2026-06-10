@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-veil-sync: VEIL語彙を各AIツールの設定ファイルに同期する
+veil-sync: Sync VEIL vocabulary rules to AI tool configuration files.
 
-使い方:
-  python shared/runtime/veil-sync.py                             # 全ターゲットを同期
-  python shared/runtime/veil-sync.py --add <path>                # 同期先ファイルを登録
-  python shared/runtime/veil-sync.py --list                      # 登録済み一覧
-  python shared/runtime/veil-sync.py --remove <path>             # 登録を解除
+Usage:
+  python shared/runtime/veil-sync.py                             # sync all targets
+  python shared/runtime/veil-sync.py --add <path>                # register sync target
+  python shared/runtime/veil-sync.py --list                      # list registered targets
+  python shared/runtime/veil-sync.py --remove <path>             # unregister target
   python shared/runtime/veil-sync.py --db <path> --rules-dir <path>
 
-対応ファイル例:
+Supported files:
   CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules,
   .github/copilot-instructions.md, .aider.conf.yml
 """
@@ -28,10 +28,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from shared.tools.veil_rule_store import DEFAULT_DB_PATH, DEFAULT_RULES_DIR, export_markdown_mirror_from_db
+from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 
-# ファイル種別ごとのマーカー
 MARKERS = {
     "yaml": ("# VEIL_START", "# VEIL_END"),
     "default": ("<!-- VEIL_START -->", "<!-- VEIL_END -->"),
@@ -52,15 +52,15 @@ def build_paths(config_dir: str, db_path: str | None, rules_dir: str | None) -> 
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="VEIL語彙を各AIツールの設定ファイルに同期する。")
-    parser.add_argument("--config-dir", default=CONFIG_DIR, help="VEIL config directory。既定: ~/.veil")
-    parser.add_argument("--db", help="SQLite canonical DB path。既定: ~/.veil/veil.db")
-    parser.add_argument("--rules-dir", help="markdown mirror directory。既定: ~/.veil/rules")
-    parser.add_argument("--quiet", action="store_true", help="sync 時の通常出力を抑制する。")
+    parser = argparse.ArgumentParser(description=t("sync.description"))
+    parser.add_argument("--config-dir", default=CONFIG_DIR, help=t("sync.config_dir_help"))
+    parser.add_argument("--db", help=t("sync.db_help"))
+    parser.add_argument("--rules-dir", help=t("sync.rules_dir_help"))
+    parser.add_argument("--quiet", action="store_true", help=t("sync.quiet_help"))
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--add", metavar="PATH", help="同期先ファイルを登録する。")
-    group.add_argument("--list", action="store_true", help="登録済み一覧を表示する。")
-    group.add_argument("--remove", metavar="PATH", help="同期先ファイルの登録を解除する。")
+    group.add_argument("--add", metavar="PATH", help=t("sync.add_help"))
+    group.add_argument("--list", action="store_true", help=t("sync.list_help"))
+    group.add_argument("--remove", metavar="PATH", help=t("sync.remove_help"))
     return parser
 
 
@@ -76,10 +76,10 @@ def load_targets(paths):
         with open(paths["targets_file"], encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError) as exc:
-        print(f"警告: targets.json を読めませんでした: {exc}", file=sys.stderr)
+        print(t("sync.targets_read_error", exc=exc), file=sys.stderr)
         return []
     if not isinstance(data, list) or not all(isinstance(item, str) for item in data):
-        print("警告: targets.json の形式が不正です。文字列パス配列を期待します。", file=sys.stderr)
+        print(t("sync.targets_format_error"), file=sys.stderr)
         return []
     return data
 
@@ -122,18 +122,20 @@ def refresh_markdown_mirror(paths, quiet=False):
         payload = export_markdown_mirror_from_db(paths["db_path"], paths["rules_dir"])
         if payload["status"] != "ok":
             if not quiet:
-                reason = payload.get("reason") or "mirror export に失敗しました。"
-                print(f"  エラー: markdown mirror を更新できません: {reason}")
+                reason = payload.get("reason") or t("sync.mirror_export_failed")
+                print(t("sync.mirror_error", reason=reason))
             return payload
         if not quiet:
-            print(
-                f"  mirror 更新: {paths['rules_dir']} "
-                f"(written={len(payload['written_files'])}, removed={len(payload['removed_files'])})"
-            )
+            print(t(
+                "sync.mirror_update",
+                path=paths["rules_dir"],
+                written=len(payload["written_files"]),
+                removed=len(payload["removed_files"]),
+            ))
         return payload
     return {
         "status": "skip",
-        "reason": "db file が見つからないため rules-dir fallback を使う",
+        "reason": "db file not found; falling back to rules-dir",
         "db_path": paths["db_path"],
         "rules_dir": paths["rules_dir"],
     }
@@ -151,7 +153,7 @@ def do_sync(paths, base="", quiet=False):
     combined = ""
     if base:
         sep = "\n\n" if combined else ""
-        combined = combined + sep + "表記統一ルール：\n" + base
+        combined = combined + sep + t("sync.rules_section_header") + base
     behavior = load_behavior(paths)
     if behavior:
         sep = "\n\n" if combined else ""
@@ -161,7 +163,7 @@ def do_sync(paths, base="", quiet=False):
     for path in targets:
         if not os.path.exists(path):
             if not quiet:
-                print(f"  スキップ: {path} (ファイルが見つかりません)")
+                print(t("sync.skip", path=path))
             continue
         marker_start, marker_end = get_markers(path)
         block = f"{marker_start}\n{combined}\n{marker_end}"
@@ -170,7 +172,7 @@ def do_sync(paths, base="", quiet=False):
                 content = f.read()
         except OSError as e:
             if not quiet:
-                print(f"  エラー: {path} ({e})")
+                print(t("sync.error", path=path, reason=e))
             continue
         pattern = re.escape(marker_start) + r".*?" + re.escape(marker_end)
         if re.search(pattern, content, flags=re.DOTALL):
@@ -179,7 +181,7 @@ def do_sync(paths, base="", quiet=False):
             new_content = content.rstrip("\n") + "\n\n" + block + "\n"
         if new_content == content:
             if not quiet:
-                print(f"  変更なし: {path}")
+                print(t("sync.no_change", path=path))
             continue
         try:
             dir_ = os.path.dirname(path) or '.'
@@ -189,25 +191,25 @@ def do_sync(paths, base="", quiet=False):
             shutil.move(tmp_path, path)
         except OSError as e:
             if not quiet:
-                print(f"  書き込みエラー: {path} ({e})")
+                print(t("sync.write_error", path=path, reason=e))
             continue
         if not quiet:
-            print(f"  更新: {path}")
+            print(t("sync.updated", path=path))
 
 
 def cmd_sync(paths, quiet=False):
     targets = load_targets(paths)
     if not targets:
-        print("同期先が未登録です。先に登録してください:\n  python shared/runtime/veil-sync.py --add <path>")
+        print(t("sync.no_targets"))
         return
     base = prepare_base_rules(paths, quiet=quiet)
     behavior = load_behavior(paths)
     if not base and not behavior:
-        print("同期するルールがありません。SQLite canonical または markdown mirror を確認してください。")
+        print(t("sync.no_rules"))
         return
-    print(f"\n{len(targets)}件を同期:\n")
+    print(t("sync.sync_start", count=len(targets)))
     do_sync(paths, base, quiet=quiet)
-    print("\n完了")
+    print(t("sync.sync_done"))
 
 
 def save_config(paths):
@@ -229,18 +231,17 @@ def save_config(paths):
 def cmd_add(paths, path, quiet=False):
     path = os.path.abspath(path)
     if not os.path.exists(path):
-        print(f"エラー: ファイルが存在しません: {path}")
+        print(t("sync.file_not_found", path=path))
         return
     targets = load_targets(paths)
     if path in targets:
-        print(f"既に登録済み: {path}")
+        print(t("sync.already_registered", path=path))
         return
     targets.append(path)
     save_targets(paths, targets)
     save_config(paths)
-    print(f"登録: {path}")
+    print(t("sync.registered", path=path))
 
-    # 登録と同時に即時同期
     base = prepare_base_rules(paths, quiet=quiet)
     do_sync(paths, base, quiet=quiet)
 
@@ -248,23 +249,23 @@ def cmd_add(paths, path, quiet=False):
 def cmd_list(paths):
     targets = load_targets(paths)
     if not targets:
-        print("登録された同期先はありません。")
+        print(t("sync.no_targets_list"))
         return
-    print("登録済み同期先:")
-    for t in targets:
-        status = "✓" if os.path.exists(t) else "✗ (見つからない)"
-        print(f"  [{status}] {t}")
+    print(t("sync.targets_header"))
+    for target in targets:
+        status = "✓" if os.path.exists(target) else t("sync.target_miss")
+        print(f"  [{status}] {target}")
 
 
 def cmd_remove(paths, path):
     path = os.path.abspath(path)
     targets = load_targets(paths)
     if path not in targets:
-        print(f"未登録: {path}")
+        print(t("sync.not_registered", path=path))
         return
     targets.remove(path)
     save_targets(paths, targets)
-    print(f"解除: {path}")
+    print(t("sync.unregistered", path=path))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-veil-profile-audit: VEIL rules directory の rule 数を棚卸しする。
+veil-profile-audit: Non-destructively audit VEIL rules directory rule count.
 
 Usage:
   python shared/tools/veil-profile-audit.py
@@ -23,25 +23,27 @@ if str(_ROOT) not in sys.path:
 
 try:
     from shared.tools.veil_rule_store import RULE_LINE_RE, readback_rules
+    from shared.tools.veil_locale import t
 except ModuleNotFoundError:
-    from veil_rule_store import RULE_LINE_RE, readback_rules
+    from veil_rule_store import RULE_LINE_RE, readback_rules  # type: ignore[no-redef]
+    from veil_locale import t  # type: ignore[no-redef]
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="VEIL rules profile を non-destructive に棚卸しする。")
+    parser = argparse.ArgumentParser(description=t("audit.description"))
     parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="棚卸し対象の rules directory。既定: ~/.veil/rules",
+        help=t("audit.rules_dir_help"),
     )
     parser.add_argument(
         "--db",
-        help="SQLite source を使う時の DB path。指定時は rules-dir よりこちらを優先する。",
+        help=t("audit.db_help"),
     )
-    parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    parser.add_argument("--json", action="store_true", help=t("audit.json_help"))
     return parser.parse_args()
 
 
@@ -49,7 +51,7 @@ def audit_rules_dir(rules_dir: str) -> dict[str, object]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
-            "reason": "rules directory が見つかりません。",
+            "reason": t("audit.rules_dir_not_found"),
             "rules_dir": rules_dir,
             "summary": {"files": 0, "total_rules": 0},
             "files": [],
@@ -111,7 +113,7 @@ def audit_db(db_path: str) -> dict[str, object]:
 def print_text_report(payload: dict[str, object]) -> None:
     if payload["status"] == "skip":
         target = payload.get("db_path") or payload.get("rules_dir")
-        print(f"SKIP: {target} に利用可能な source がありません")
+        print(t("audit.no_source", target=target))
         return
 
     summary = payload["summary"]

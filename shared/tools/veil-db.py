@@ -15,8 +15,9 @@ try:
         replace_rules_from_markdown,
         upsert_rule,
     )
+    from shared.tools.veil_locale import t
 except ModuleNotFoundError:
-    from veil_rule_store import (
+    from veil_rule_store import (  # type: ignore[no-redef]
         DEFAULT_DB_PATH,
         DEFAULT_RULES_DIR,
         export_markdown_mirror_from_db,
@@ -25,49 +26,50 @@ except ModuleNotFoundError:
         replace_rules_from_markdown,
         upsert_rule,
     )
+    from veil_locale import t  # type: ignore[no-redef]
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="VEIL SQLite Stage 1 support CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    init_parser = subparsers.add_parser("init-db", help="SQLite schema を初期化する。")
-    init_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
-    init_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    init_parser = subparsers.add_parser("init-db", help=t("db.init_db_help"))
+    init_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    init_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    import_parser = subparsers.add_parser("import-rules", help="Markdown rules を SQLite へ取り込む。")
-    import_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
+    import_parser = subparsers.add_parser("import-rules", help=t("db.import_rules_help"))
+    import_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
     import_parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="import 元 rules directory。既定: ~/.veil/rules",
+        help=t("db.import_rules_dir_help"),
     )
-    import_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    import_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    readback_parser = subparsers.add_parser("readback", help="SQLite rows を読み返す。")
-    readback_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
-    readback_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    readback_parser = subparsers.add_parser("readback", help=t("db.readback_help"))
+    readback_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    readback_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    upsert_parser = subparsers.add_parser("upsert-rule", help="1 rule を SQLite canonical へ追加更新する。")
-    upsert_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
-    upsert_parser.add_argument("--term", required=True, help="original term。")
-    upsert_parser.add_argument("--preferred", required=True, help="preferred term。")
-    upsert_parser.add_argument("--preferred-alt-2", help="候補2。")
-    upsert_parser.add_argument("--preferred-alt-3", help="候補3。")
-    upsert_parser.add_argument("--status", default="active", help="status。既定: active")
-    upsert_parser.add_argument("--category-hint", help="category hint。")
-    upsert_parser.add_argument("--note", help="note。")
-    upsert_parser.add_argument("--source-context", help="source context。")
-    upsert_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    upsert_parser = subparsers.add_parser("upsert-rule", help=t("db.upsert_rule_help"))
+    upsert_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    upsert_parser.add_argument("--term", required=True, help="original term.")
+    upsert_parser.add_argument("--preferred", required=True, help="preferred term.")
+    upsert_parser.add_argument("--preferred-alt-2", help=t("db.preferred_alt_2_help"))
+    upsert_parser.add_argument("--preferred-alt-3", help=t("db.preferred_alt_3_help"))
+    upsert_parser.add_argument("--status", default="active", help=t("db.status_help"))
+    upsert_parser.add_argument("--category-hint", help="category hint.")
+    upsert_parser.add_argument("--note", help="note.")
+    upsert_parser.add_argument("--source-context", help="source context.")
+    upsert_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    export_parser = subparsers.add_parser("export-mirror", help="SQLite canonical から markdown mirror を生成する。")
-    export_parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path。既定: ~/.veil/veil.db")
+    export_parser = subparsers.add_parser("export-mirror", help=t("db.export_mirror_help"))
+    export_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
     export_parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="mirror export 先 rules directory。既定: ~/.veil/rules",
+        help=t("db.export_rules_dir_help"),
     )
-    export_parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    export_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
     return parser
 
 

@@ -1,57 +1,57 @@
 # veil-capture
 
-## 出力形式
+## Output format
 
-以下のテンプレートのみを出力する。
+Output only the following template.
 
 ```
-- {term}（現状） → {候補1}（候補1）| {候補2}（候補2）
+- {term} (current) → {candidate1} (candidate 1) | {candidate2} (candidate 2)
 
-現状、または候補を選択してください。
+Select current or a candidate.
 ```
 
-- 採用語ごとに1行出力する
-- 候補3がある場合は `| {候補3}（候補3）` を末尾に追加する
-- 採用語が0件の場合は `採用語なし` の1行のみ出力して終了する
+- One line per adopted term
+- If candidate 3 exists, append `| {candidate3} (candidate 3)` at the end
+- If there are no terms to adopt, output only `Nothing to adopt.` and stop
 
 ---
 
-## 採用語の選定基準
+## Term selection criteria
 
-**解析対象**
-- 引数がある場合はその文字列のみ
-- 引数がない場合は現在の会話全体（AI・ユーザー双方）
+**Scope**
+- If an argument is provided, analyze only that string
+- If no argument is provided, analyze the full current conversation (both AI and user turns)
 
-**採用する語**
-- 解析対象に2回以上出現する語・複合語
-- 状態語・判断語・構造語・運用ラベルを優先する
-- 複合語を単語より優先する（意味が崩れない最短のまとまりで取る）
-- 大文字小文字・単複・ハイフン/アンダースコアは統一して重複判定する
-- 高頻出・高影響語から先に採用し、残りはスキップする
+**Terms to adopt**
+- Terms or compound phrases that appear 2 or more times in the scope
+- Prefer state terms, judgment terms, structural terms, and operational labels over bare verbs
+- Prefer compound phrases over single words (take the shortest meaningful unit)
+- Normalize case, singular/plural, and hyphen/underscore variation before deduplication
+- Adopt high-frequency, high-impact terms first; skip the rest
 
-**除外する語**
-- 固有名詞・製品名・サービス名・ツール名・組織名・正式機能名
-- バッククォート囲み・ダブルクォート囲みの語
-- key=value 形式・識別子・仕様名・コマンド名・パス
-- `~/.veil/veil.db` または `~/.veil/rules/*.md` に既登録の語（大文字小文字区別なし）
-- close / closed / update 等の一般動詞単体
-- 訳語が決まらない語
+**Terms to exclude**
+- Proper nouns: product names, service names, tool names, organization names, official feature names
+- Terms inside backticks or double quotes
+- `key=value` patterns, identifiers, spec names, command names, paths
+- Terms already registered in `~/.veil/veil.db` or `~/.veil/rules/*.md` (case-insensitive)
+- Bare general verbs such as close / closed / update
+- Terms where a preferred form cannot be decided
 
-**表記候補**
-- 業界標準技術語はカタカナを候補1にする（例: canonical → カノニカル、mirror → ミラー）
-- 日本語訳が定着している語は日本語を候補1にする（例: false positive → 誤検知）
-- 英語維持は識別子・正式名・仕様名・コマンド名のみ
-- 候補2は必須。候補3は任意（なければ省く）
-- 1概念1表現
+**Preferred form guidance**
+- Keep established technical English terms as-is when they are already standard (e.g., canonical → canonical (keep), sync → sync (keep))
+- Prefer the more precise or concise English term when alternatives exist (e.g., false positive → false positive (keep), validator → validator (keep) | checker)
+- Avoid coined compounds when a cleaner English term exists
+- Candidate 2 is required; candidate 3 is optional (omit if none)
+- One concept, one preferred form
 
 ---
 
-## ユーザー選択後の処理
+## Post-selection processing
 
-ユーザーの選択を受け取ったら、以下を順に実行する。実行結果はユーザーへ出力しない。
+After receiving the user's selection, execute the following steps in order. Do not output execution results to the user.
 
-1. 選択された preferred を `python shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db` で記録する（候補2・候補3も渡す）。`veil.db` が存在しない場合は `~/.veil/rules/` へ直書きする
-2. `python shared/tools/veil-db.py export-mirror` で mirror を再生成する
-3. `~/.veil/config.json` の `sync_script` を確認し、存在すれば `shared/runtime/veil-sync.py` を実行する
+1. Record the selected preferred form using `python shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db` (include candidates 2 and 3 if present). If `veil.db` does not exist, write directly to `~/.veil/rules/`.
+2. Regenerate the mirror using `python shared/tools/veil-db.py export-mirror`.
+3. Check `sync_script` in `~/.veil/config.json`; if present, run `shared/runtime/veil-sync.py`.
 
-いずれかのステップが失敗した場合のみ、失敗理由を1行で報告して停止する。
+Report failure in one line and stop only if a step fails.

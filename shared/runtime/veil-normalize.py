@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-veil-normalize: 候補語を正規化し、VEIL ルールとの統合候補を示す。
+veil-normalize: Normalize candidate terms and show integration candidates against VEIL rules.
 
 Usage:
   python shared/runtime/veil-normalize.py <file>
@@ -29,25 +29,26 @@ from shared.tools.veil_rule_store import (
     load_rule_index_from_db,
     normalize_term,
 )
+from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="候補語を正規化し、VEIL ルールとの統合候補を示す。")
-    parser.add_argument("path", nargs="?", help="候補語一覧ファイル。")
-    parser.add_argument("--stdin", action="store_true", help="標準入力から候補語一覧を読む。")
-    parser.add_argument("--text", help="改行区切り文字列として候補語一覧を渡す。")
-    parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    parser = argparse.ArgumentParser(description=t("normalize.description"))
+    parser.add_argument("path", nargs="?", help=t("normalize.path_help"))
+    parser.add_argument("--stdin", action="store_true", help=t("normalize.stdin_help"))
+    parser.add_argument("--text", help=t("normalize.text_help"))
+    parser.add_argument("--json", action="store_true", help=t("normalize.json_help"))
     parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="参照に使う rules directory を上書きする。既定: ~/.veil/rules",
+        help=t("normalize.rules_dir_help"),
     )
     parser.add_argument(
         "--db",
-        help="SQLite source を使う時の DB path。指定時は rules-dir よりこちらを優先する。",
+        help=t("normalize.db_help"),
     )
     return parser.parse_args()
 
@@ -198,11 +199,14 @@ def print_conflicts(conflicts: list[dict[str, object]]) -> None:
             for entry in conflict["ignored"]
         )
         print(
-            "警告: 正規化済みキー競合 "
-            f"[{conflict['normalized']}] 採用 "
-            f"{selected['original']} -> {selected['preferred']} "
-            f"({selected['source_file']}), "
-            f"ignored {ignored}",
+            t(
+                "normalize.conflict_warning",
+                normalized=conflict["normalized"],
+                original=selected["original"],
+                preferred=selected["preferred"],
+                source_file=selected["source_file"],
+                ignored=ignored,
+            ),
             file=sys.stderr,
         )
 
@@ -216,20 +220,20 @@ def compact_source_label(source_label: str) -> str:
 
 
 def print_text_result(results: list[dict[str, object]], source_label: str) -> None:
-    print(f"参照ルール: {compact_source_label(source_label)}")
+    print(t("normalize.source_label", label=compact_source_label(source_label)))
     if not results:
-        print("候補語はありません。")
+        print(t("normalize.no_candidates"))
         return
     existing_items = [item for item in results if item["status"] == "existing-match"]
     new_items = [item for item in results if item["status"] == "new-candidate"]
     if existing_items:
         print()
-        print("既存一致:")
+        print(t("normalize.existing_header"))
         for item in existing_items:
             print(f"- {item['representative']} → {item['preferred']}")
     if new_items:
         print()
-        print("新規候補:")
+        print(t("normalize.new_header"))
         for item in new_items:
             suffix = f" x{item['occurrence_count']}" if item["occurrence_count"] > 1 else ""
             print(f"- {item['representative']}{suffix} → {item['target_file']}")
@@ -240,10 +244,10 @@ def main() -> int:
     try:
         text = read_input(args)
     except ValueError:
-        print("使い方エラー: <file>、--stdin、--text のいずれかを指定してください。", file=sys.stderr)
+        print(t("normalize.usage_error"), file=sys.stderr)
         return 2
     except OSError as exc:
-        print(f"読み込みエラー: {exc}", file=sys.stderr)
+        print(t("normalize.read_error", exc=exc), file=sys.stderr)
         return 2
 
     candidates = parse_candidate_lines(text)

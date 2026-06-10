@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-veil-lint: VEIL 語彙ルールに照らして利用者向け文章を検査する。
+veil-lint: Check text against VEIL vocabulary rules.
 
 Usage:
   python shared/runtime/veil-lint.py <file>
@@ -33,6 +33,7 @@ from shared.tools.veil_rule_store import (
     load_rules_for_lint_from_db,
     simple_singularize_token,
 )
+from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
@@ -42,19 +43,19 @@ INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="VEIL 語彙ルールに照らして文章を検査する。")
-    parser.add_argument("path", nargs="?", help="検査対象のテキストファイル。")
-    parser.add_argument("--stdin", action="store_true", help="標準入力から文章を読む。")
-    parser.add_argument("--text", help="指定した文字列を直接検査する。")
-    parser.add_argument("--json", action="store_true", help="JSON 形式で出力する。")
+    parser = argparse.ArgumentParser(description=t("lint.description"))
+    parser.add_argument("path", nargs="?", help=t("lint.path_help"))
+    parser.add_argument("--stdin", action="store_true", help=t("lint.stdin_help"))
+    parser.add_argument("--text", help=t("lint.text_help"))
+    parser.add_argument("--json", action="store_true", help=t("lint.json_help"))
     parser.add_argument(
         "--rules-dir",
         default=DEFAULT_RULES_DIR,
-        help="検査に使う rules directory を上書きする。既定: ~/.veil/rules",
+        help=t("lint.rules_dir_help"),
     )
     parser.add_argument(
         "--db",
-        help="SQLite source を使う時の DB path。指定時は rules-dir よりこちらを優先する。",
+        help=t("lint.db_help"),
     )
     return parser.parse_args()
 
@@ -249,18 +250,18 @@ def summarize_hits(results: list[dict[str, object]]) -> tuple[int, int]:
 def print_bucket(items: list[dict[str, object]]) -> None:
     for item in items:
         lines = ", ".join(str(hit["line"]) for hit in item["hits"])
-        print(f"- {item['original']} -> {item['preferred']} ({item['count']} 件, 行 {lines})")
+        print(f"- {item['original']} -> {item['preferred']} {t('lint.hit_count', count=item['count'], lines=lines)}")
         first_hit = item["hits"][0]["excerpt"]
         if first_hit:
             print(f"  {first_hit}")
         preview = item["hits"][0].get("suggested_line_preview") or ""
         if preview and preview != first_hit:
-            print(f"  置換例: {preview}")
+            print(t("lint.suggested", preview=preview))
 
 
 def print_text_result(violations: list[dict[str, object]], source_type: str, source_label: str) -> None:
     if not violations:
-        print("CLEAN: 登録済み原語は文章中に見つかりませんでした。")
+        print(t("lint.clean"))
         return
     rule_count, hit_count = summarize_hits(violations)
     print(f"NG: {rule_count} rule(s), {hit_count} hit(s) from {source_type}:{source_label}")
@@ -275,10 +276,14 @@ def print_conflicts(conflicts: list[dict[str, object]]) -> None:
             for entry in conflict["ignored"]
         )
         print(
-            "警告: 正規化済みキー競合 "
-            f"[{conflict['normalized']}] 採用 "
-            f"{selected['original']} -> {selected['preferred']} ({selected['source_file']}), "
-            f"ignored {ignored}",
+            t(
+                "lint.conflict_warning",
+                normalized=conflict["normalized"],
+                original=selected["original"],
+                preferred=selected["preferred"],
+                source_file=selected["source_file"],
+                ignored=ignored,
+            ),
             file=sys.stderr,
         )
 
@@ -288,10 +293,10 @@ def main() -> int:
     try:
         text = read_input(args)
     except ValueError:
-        print("使い方エラー: <file>、--stdin、--text のいずれかを指定してください。", file=sys.stderr)
+        print(t("lint.usage_error"), file=sys.stderr)
         return 2
     except OSError as exc:
-        print(f"読み込みエラー: {exc}", file=sys.stderr)
+        print(t("lint.read_error", exc=exc), file=sys.stderr)
         return 2
 
     source_type, source_label, rules, conflicts = load_rules_for_source(args.rules_dir, args.db)
@@ -300,7 +305,7 @@ def main() -> int:
     if not rules:
         payload = {
             "status": "skip",
-            "reason": "VEIL ルールが見つかりません。",
+            "reason": t("lint.no_rules_reason"),
             "source_type": source_type,
             "source": source_label,
             "rules_dir": args.rules_dir,
@@ -310,7 +315,7 @@ def main() -> int:
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
-            print(f"SKIP: {source_type}:{source_label} に VEIL ルールがありません")
+            print(t("lint.no_rules", source_type=source_type, source_label=source_label))
         return 0
 
     violations = lint_text(text, rules)

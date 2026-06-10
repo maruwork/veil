@@ -5,17 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Note**: Entries from this point forward are written in English.
+> Entries below [0.5.0] document the earlier web-UI architecture and remain in Japanese.
+
 ---
 
 ## [Unreleased]
 
+### Added
+- `locale/en.json` and `locale/ja.json` — locale string files covering all 7 Python runtime/tool files
+- `shared/tools/veil_locale.py` — `detect_lang()` (env var → `~/.veil/config.json` → OS locale → `en` fallback) and `t(key, **kwargs)` for locale-aware terminal output
+- Language override via `VEIL_LANG` environment variable or `lang` key in `~/.veil/config.json`
+
 ### Changed
+- All Japanese terminal output strings in `veil-sync.py`, `veil-status.py`, `veil-lint.py`, `veil-normalize.py`, `veil-db.py`, `veil-profile-audit.py`, `veil-profile-export.py` replaced with `t()` calls
+- Output language now follows OS locale automatically (Japanese users get Japanese, English users get English, no configuration required)
+- `veil-sync.py`: renamed loop variable `t` → `target` to avoid shadowing the imported `t()` function
+- `README.md` and `docs/veil-design.md` rewritten in English
+- `LEVEL_REQUIRED`, `LEVEL_RECOMMENDED`, `LEVEL_OBSERVE` constants in `veil-profile-export.py` kept as Japanese — they match section headings in rules files (`## 必須` etc.) and are part of the file format, not output strings
 - **veil-capture 構造刷新**: 11ステップ手順リストを廃止し「出力仕様・採用基準・選択後処理」の3セクション構造に変更。中間処理の出力を構造的に抑制
 - **保留概念撤廃**: 採用/スキップの2択に統一。全ドキュメント・スキルファイルから VEIL 固有の保留参照を除去
-
-### Added
-- **veil.html**: `~/.veil/veil.html` に登録語句一覧を表示する HTML を生成。語句ごとにコピーボタンを設置し AI への変更指示をクリップボードへコピーできる
-- **install.sh**: スキルファイルを Claude Code / Codex の配置先へコピーするインストールスクリプト
 
 ---
 
@@ -28,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SQLite canonical route**: `~/.veil/veil.db` を canonical として確立。mirror は transition surface として維持
 - **base rules 統合**: `~/.veil/rules/{letter}.md` を昇順で読み込み、語彙ブロックと合わせて同期先に反映
 - **veil-sync.py**: `--add` 実行時に自身のパスを `~/.veil/config.json` に保存
+- **veil.html**: `~/.veil/veil.html` に登録語句一覧を表示する HTML を生成。語句ごとにコピーボタンを設置し AI への変更指示をクリップボードへコピーできる
+- **install.sh**: スキルファイルを Claude Code / Codex の配置先へコピーするインストールスクリプト
 
 ### Changed
 - README を全面書き直し（veil-capture / veil-sync ループを核心として再構成）

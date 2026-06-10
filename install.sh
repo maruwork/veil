@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # VEIL install script
 # Usage: bash install.sh
-
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
