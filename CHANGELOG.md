@@ -5,9 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Note**: Entries from this point forward are written in English.
+> Entries below [0.5.0] document the earlier web-UI architecture and remain in Japanese.
+
 ---
 
 ## [Unreleased]
+
+### Added
+- `locale/en.json` and `locale/ja.json` — locale string files covering all 7 Python runtime/tool files
+- `shared/tools/veil_locale.py` — `detect_lang()` (env var → `~/.veil/config.json` → OS locale → `en` fallback) and `t(key, **kwargs)` for locale-aware terminal output
+- Language override via `VEIL_LANG` environment variable or `lang` key in `~/.veil/config.json`
+
+### Changed
+- All Japanese terminal output strings in `veil-sync.py`, `veil-status.py`, `veil-lint.py`, `veil-normalize.py`, `veil-db.py`, `veil-profile-audit.py`, `veil-profile-export.py` replaced with `t()` calls
+- Output language now follows OS locale automatically (Japanese users get Japanese, English users get English, no configuration required)
+- `veil-sync.py`: renamed loop variable `t` → `target` to avoid shadowing the imported `t()` function
+- `README.md` and `docs/veil-design.md` rewritten in English
+- `LEVEL_REQUIRED`, `LEVEL_RECOMMENDED`, `LEVEL_OBSERVE` constants in `veil-profile-export.py` kept as Japanese — they match section headings in rules files (`## 必須` etc.) and are part of the file format, not output strings
+
+### Removed
+- Developer-only files removed from repository: `AGENTS.md`, `CLAUDE.md`, `.claudeignore`, `docs/veil-product-design.md`
+- Internal project management directories excluded from repository: `common/`, `index/`, `archive/`
+
+---
+
+## [Unreleased — previous architecture]
 
 ### Added
 - **veil-capture スキル（Claude Code）**: 会話からAI語彙を検出・翻訳し `~/.veil/rules/` に書き込む（テンプレート: `skills/claude-code/veil-capture.md`）

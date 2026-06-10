@@ -6,128 +6,130 @@
 
 ---
 
-## VEILとは
+## What is VEIL
 
-VEIL は、AI-assisted technical writing のための terminology guardrail です。current canonical route は SQLite で、`~/.veil/rules/` は AI に読ませる markdown surface と遷移ミラーとして扱います。実務で揺れた語を拾い、正規化し、AI に読ませ、最終出力が従っているかを返答前に検査します。
+VEIL is a terminology guardrail for AI-assisted technical writing. It captures vocabulary that drifts in AI output, normalizes it, pushes the rules to AI tool configuration files, and checks that final responses actually follow them.
 
-AI が勝手に決めた英語や造語が混入して理解できない、直しても次のセッションでまた戻る、技術文書や説明文の語彙がぶれる。
+The problem it solves: AI tools invent English terms, coin abbreviations, or use inconsistent phrasing. You correct it, but the next session starts fresh. Technical documents and explanations keep drifting.
 
-AI 利用が日常化するほど、この問題は増えます。VEIL は static な style guide ではなく、`capture -> normalize -> sync -> lint` の運用ループで語彙統制を回します。依存ゼロ、ローカル完結です。
+The more AI is in your workflow, the worse this gets. VEIL is not a static style guide — it runs a `capture → normalize → sync → lint` loop to enforce vocabulary consistency. Zero dependencies, fully local.
 
-**current canonical route は `~/.veil/veil.db`、`~/.veil/rules/` は AI-readable markdown surface と遷移ミラーです。`CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` は保存先ではなく、参照明記先です。**
+**The canonical source of truth is `~/.veil/veil.db`. `~/.veil/rules/` is the AI-readable markdown surface and mirror. `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` are sync targets, not storage.**
 
 ---
 
-## 仕組み
+## How it works
 
 ```
-task close / 会話区切り
+task close / conversation boundary
         ↓
-  /veil-capture（スキル）
+  /veil-capture (skill)
         ↓
-  AI が問題語を抽出
+  AI extracts problem terms
         ↓
-  一般動詞単体を抑え、状態語・判断語・構造語・運用ラベルを優先する
+  prefer state terms, judgment terms, structural terms, operational labels
+  over bare verbs
         ↓
-  shared/runtime/veil-normalize.py で揺れ統合と既存ルール照合を行う
+  shared/runtime/veil-normalize.py — collapse variants, cross-check existing rules
         ↓
-  高需要語・高影響語だけを採用する
+  adopt only high-demand, high-impact terms
         ↓
-  ~/.veil/veil.db に記録する  ← current canonical route
+  record to ~/.veil/veil.db  ← canonical source of truth
         ↓
-  ~/.veil/rules/{letter}.md を生成する  ← 遷移ミラー / AI-readable surface
+  generate ~/.veil/rules/{letter}.md  ← mirror / AI-readable surface
         ↓
-  shared/runtime/veil-sync.py が参照明記先を更新する
+  shared/runtime/veil-sync.py pushes rules to AI tool config files
         ↓
-  CLAUDE.md / AGENTS.md / .cursorrules 等に参照を明記する
+  CLAUDE.md / AGENTS.md / .cursorrules etc. receive the rules
         ↓
-  shared/runtime/veil-lint.py で最終返答前の文章を検査する
+  shared/runtime/veil-lint.py checks the final response before sending
         ↓
-次回セッションから AI が統一された語彙で出力する
+next session: AI outputs with consistent vocabulary
 ```
 
 ---
 
-## 採用の進め方
+## Term adoption strategy
 
-VEIL は、候補語を一気に全部登録する前提では運用しない。需要が高いものから少しずつ正本へ入れる。
+VEIL is not designed to register everything at once. Add high-demand terms first, a few at a time.
 
-基本ルールは次の通り。
+Basic rules:
 
-- 先に判別する。識別子、固有名、説明語、プロジェクト固有語、境界が曖昧な語を混ぜたまま訳語決定へ進まない
-- 高需要語から採用する。頻出で困る語、VEIL運用そのものに効く基幹語を先に固める
-- 迷う語はスキップする。固有名か一般語か迷う語、別訳が衝突する語、まだ困り度が低い語は急いで正本化しない
-- 一度に増やしすぎない。少数の採用語を `sync` と `lint` まで通し、効きが見えてから次の束を足す
+- **Classify first.** Do not mix identifiers, proper nouns, descriptive terms, and project-specific terms and rush to a translation decision.
+- **Adopt high-demand terms first.** Lock in frequently troublesome terms and terms that are core to VEIL operation itself.
+- **Skip uncertain terms.** If a term is unclear whether it is a proper noun or common term, if translations conflict, or if the pain level is still low — do not rush to canonicalize.
+- **Do not add too many at once.** Run a small set of adopted terms through `sync` and `lint`, confirm they are working, then add the next batch.
 
-厳しく縛る場所は全部ではなく要所だけにする。
+Enforce tightly only at the key points, not everywhere:
 
-- フローは強く縛る。task close / 会話区切りで `capture` を通し、最終返答前に `lint` を通す
-- 高影響語は強く縛る。禁止語、VEIL 基幹語、高需要で揺れると困る語を優先する
-- 低頻度語や曖昧語は急いで縛らない。スキップする
-- 自然文全体を全面統制しない。自然な言い換え、機械処理語、文脈依存語まで hard gate にしない
+- **Enforce the flow tightly.** Run `capture` at every task close / conversation boundary, and `lint` before every final response.
+- **Enforce high-impact terms tightly.** Prioritize prohibited terms, VEIL core terms, and high-demand terms where drift causes real problems.
+- **Do not rush low-frequency or ambiguous terms.** Skip them.
+- **Do not enforce the full natural text.** Do not put natural paraphrases, machine-processed terms, and context-dependent terms behind hard gates.
 
 ---
 
-## コンポーネント
+## Components
 
-| コンポーネント | 役割 |
-|-------------|------|
-| `/veil-capture` スキル | task close / 会話区切りで問題語を抽出し、SQLite canonical へ記録し、ミラー生成と sync まで進める |
-| `~/.veil/veil.db` | SQLite canonical route |
-| `~/.veil/rules/{letter}.md` | AI-readable markdown surface / 遷移ミラー |
-| `shared/runtime/veil-normalize.py` | capture 後の候補語を正規化し、既存一致 / 新規候補 の 2 グループで返す |
-| `shared/runtime/veil-sync.py` | 語彙ルールの参照明記を各 AI ツール設定ファイルへ反映する |
-| `shared/runtime/veil-lint.py` | 最終文章に登録済み原語が残っていないかを返答前に検査する |
-| `shared/runtime/veil-status.py` | canonical / ミラー / 同期対象 / skill の状態確認とセットアップ診断を表示する |
-| `shared/tools/veil-profile-audit.py` | current profile の rule 件数と legacy flat の有無を棚卸しする補助 |
-| `shared/tools/veil-profile-export.py` | current profile を domain profile pack として書き出す補助 |
-| `shared/tools/veil-db.py` | SQLite canonical の `init-db / import-rules / readback / upsert-rule / export-mirror` を扱う補助 |
+| Component | Role |
+|-----------|------|
+| `/veil-capture` skill | At task close / conversation boundary: extract problem terms, record to SQLite canonical, generate mirror, run sync |
+| `~/.veil/veil.db` | SQLite canonical source of truth |
+| `~/.veil/rules/{letter}.md` | AI-readable markdown surface / mirror |
+| `shared/runtime/veil-normalize.py` | Normalize candidate terms after capture; return existing matches and new candidates |
+| `shared/runtime/veil-sync.py` | Push vocabulary rules to AI tool configuration files |
+| `shared/runtime/veil-lint.py` | Check final text for registered source terms before sending |
+| `shared/runtime/veil-status.py` | Show canonical / mirror / sync target / skill status and setup diagnostics |
+| `shared/tools/veil-profile-audit.py` | Audit rule count and legacy flat rule presence in current profile |
+| `shared/tools/veil-profile-export.py` | Export current profile as a domain profile pack |
+| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror` |
 
-`shared/tools/veil-db.py` は SQLite canonical route を初期化・取込・読返しし、current phase では single rule の追加更新と markdown ミラーの生成も担う support route です。
+`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, and in the current phase also handles single-rule upsert and markdown mirror generation.
 
-### core と profile
+### Core and profile
 
-- VEIL core
+- **VEIL core**
   - `capture`
   - `normalize`
   - `sync`
   - `lint`
   - `status`
-  - 判別順の骨格
-- domain profile
-  - `~/.veil/rules/`
-  - 禁止語集合
-  - 高需要語集合
-  - 定義語の扱い
-  - 固有名を残す基準
-  - `lint` の厳格度
+  - classification order skeleton
 
-現在の標準プロファイルは technical writing 向けとして扱う。
+- **Domain profile**
+  - `~/.veil/rules/`
+  - prohibited term set
+  - high-demand term set
+  - how to handle defined terms
+  - criteria for keeping proper nouns
+  - `lint` enforcement level
+
+The current default profile is for technical writing.
 
 ---
 
-## セットアップ
+## Setup
 
-Python 3.8 以上が必要です。
+Requires Python 3.8 or later.
 
 ```bash
 git clone https://github.com/fumimaruwork/veil.git
 cd veil
 ```
 
-### 1. 参照明記先ファイルを登録する
+### 1. Register sync target files
 
-**この手順でスキルが参照する `~/.veil/config.json` が作成されます。スキルを使う前に必ず実行してください。**
+**This step creates `~/.veil/config.json`, which the skill reads. Run it before using the skill.**
 
 ```bash
 python shared/runtime/veil-sync.py --add /path/to/CLAUDE.md
 python shared/runtime/veil-sync.py --add /path/to/AGENTS.md
 ```
 
-登録と同時に即時反映されます。対応ツールの例：
+The rules are applied immediately on registration. Supported tools:
 
-| ツール | 設定ファイル | マーカー形式 |
-|--------|------------|------------|
+| Tool | Config file | Marker format |
+|------|-------------|---------------|
 | Claude Code | `CLAUDE.md` | `<!-- VEIL_START -->` |
 | Codex | `AGENTS.md` | `<!-- VEIL_START -->` |
 | Cursor | `.cursorrules` | `<!-- VEIL_START -->` |
@@ -135,15 +137,15 @@ python shared/runtime/veil-sync.py --add /path/to/AGENTS.md
 | Gemini CLI | `GEMINI.md` | `<!-- VEIL_START -->` |
 | Aider | `.aider.conf.yml` | `# VEIL_START` |
 
-`.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` 拡張子のファイルは `# VEIL_START` / `# VEIL_END` マーカーを使用します。
+Files with `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` extensions use `# VEIL_START` / `# VEIL_END` markers.
 
-### 2. スキルを配置する
+### 2. Install the skill
 
 ```bash
 bash install.sh
 ```
 
-手動で配置する場合：
+To install manually:
 
 **Claude Code**
 
@@ -171,154 +173,151 @@ Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\vei
 
 ---
 
-## 使い方
+## Usage
 
-### AIの語彙を捕捉する（メインワークフロー）
+### Capture AI vocabulary (main workflow)
 
-Claude Code で task close や会話区切りごとに実行：
+Run at every task close or conversation boundary in Claude Code:
 
 ```
 /veil-capture
 ```
 
-出力例：
+Example output:
 
 ```
-- common asset（現状） → 共通資産（候補1）| コモンアセット（候補2）
-- current state（現状） → 今の状態（候補1）| 現行状態（候補2）
-- validator（現状） → バリデータ（候補1）| 検査器（候補2）
+- common asset → shared asset | common resource
+- current state → present state | current state (keep)
+- validator → validator (keep) | checker
 
-現状、または候補を選択してください。
+Select current or a candidate.
 ```
 
-ユーザーが選択した候補が preferred として canonical route に記録され、`~/.veil/rules/` ミラーを生成して AI ツール設定ファイルへ同期される。候補2・候補3 も alternatives として DB に記録される。
+The selected candidate is recorded as `preferred` in the canonical route. `~/.veil/rules/` is regenerated and rules are synced to AI tool config files. Candidates 2 and 3 are stored as alternatives in the DB.
 
-- **候補1**：推奨採用語
-- **候補2**：必須表示の代替候補
-- **候補3**：任意の追加候補
+- **Candidate 1**: recommended adopted term
+- **Candidate 2**: required alternative displayed alongside
+- **Candidate 3**: optional additional candidate
 
-採用時の優先順は次を基本にする。
+Adoption priority order:
 
-1. 頻出で困り度が高い語
-2. VEIL運用そのものに効く基幹語
-3. プロジェクト固有語
-4. 低頻度語と境界が曖昧な語
+1. High-frequency terms causing active problems
+2. Terms core to VEIL operation itself
+3. Project-specific terms
+4. Low-frequency and boundary-ambiguous terms
 
-4 は急いで登録せず、スキップして次回以降に判定してよい。
+Category 4 does not need to be registered urgently — skip and revisit later.
 
-判別は少なくとも次の 5 方向に分ける。
+Classification goes in at least these 5 directions:
 
-1. 固有名として残す
-2. 一般語として訳す
-3. 定義語として固定する
-4. 禁止語として落とす
-5. まだ切れなければスキップする
+1. Keep as a proper noun
+2. Translate as a common term
+3. Fix as a defined term
+4. Drop as a prohibited term
+5. Skip if classification is not yet clear
 
-候補語の揺れがある場合は、書き込み前に正規化用補助スクリプトを使う：
+When candidate terms have variants, use the normalization helper before writing:
 
 ```bash
 python shared/runtime/veil-normalize.py --stdin
 python shared/runtime/veil-normalize.py --text "current states\ncurrent_state\nCurrent-State"
 ```
 
-この補助スクリプトは以下を行う。
+This helper:
 
-- 大文字小文字、ハイフン、アンダースコア、軽い単複の揺れ統合
-- 正規化後クラスタごとに variant と出現回数をまとめる
-- 既存 SQLite canonical / ミラーとの一致確認（`既存一致:` グループ）
-- 既存一致がない語のミラー振分候補提示（`新規候補:` グループ）
+- Collapses case, hyphen, underscore, and light singular/plural variants
+- Groups each normalized cluster with its variants and occurrence count
+- Cross-checks against existing SQLite canonical / mirror (`Existing matches:` group)
+- Suggests mirror target file for terms with no existing match (`New candidates:` group)
 
-出力例：
+Example output:
 
 ```
-参照ルール: rules
+Reference rules: rules
 
-既存一致:
-- current state → 今の状態
+Existing matches:
+- current state → present state
 
-新規候補:
+New candidates:
 - implementation plan x3 → i.md
 ```
 
-`既存一致:` グループは照合済みとして扱い、preferred を確認する。`新規候補:` グループは `x{N}` の N が大きい語から採用検討に回す。最終判断は owner 側で行う。
+The `Existing matches:` group is treated as already cross-checked — confirm the preferred term. In the `New candidates:` group, review terms with higher `x{N}` counts first. Final adoption decisions rest with the owner.
 
-VEIL 本体の製品設計は [docs/veil-product-design.md](docs/veil-product-design.md) を authority とします。設計原則は `高影響語だけ厳格に扱い、それ以外は自動採用しない` です。
-
-外部テキスト（Codex の出力など）を解析する場合：
+To analyze external text (e.g. Codex output):
 
 ```
-/veil-capture <対象テキストをここに貼り付け>
+/veil-capture <paste target text here>
 ```
 
-### ルールファイルの確認・編集
+### Inspect and edit rule files
 
 ```
 ~/.veil/rules/
-├── m.md    # m で始まる語のルール
-├── u.md    # u で始まる語のルール
+├── m.md    # rules for terms starting with m
+├── u.md    # rules for terms starting with u
 └── ...
 ```
 
-各ファイルは直接編集できます。
+Each file can be edited directly.
 
 ```markdown
 # u
 
-- uncommitted → 未コミット
-- untracked → 未追跡
-- unstable wording → 不安定な表現
-- update path → 更新経路
+- uncommitted → uncommitted (keep)
+- untracked → untracked (keep)
+- unstable wording → inconsistent phrasing
+- update path → update path (keep)
 ```
 
-### 参照明記先を手動で更新する
+### Update sync targets manually
 
 ```bash
-python shared/runtime/veil-sync.py              # 全参照明記先を更新
-python shared/runtime/veil-sync.py --list       # 登録済み一覧
-python shared/runtime/veil-sync.py --add <path> # 参照明記先を追加
-python shared/runtime/veil-sync.py --remove <path> # 参照明記先を解除
+python shared/runtime/veil-sync.py              # update all sync targets
+python shared/runtime/veil-sync.py --list       # list registered targets
+python shared/runtime/veil-sync.py --add <path> # register a sync target
+python shared/runtime/veil-sync.py --remove <path> # unregister a sync target
 ```
 
-### 返答前に語彙を検査する
+### Check vocabulary before sending
 
-記録・同期した語彙を AI が実際の文章で使っているかは、`shared/runtime/veil-lint.py` で返答前に必ず検査する。
+Check that recorded vocabulary is actually present in the text using `shared/runtime/veil-lint.py` before every final response.
 
 ```bash
-python shared/runtime/veil-lint.py <file>   # 返答文ファイルを検査
-python shared/runtime/veil-lint.py --stdin  # stdin から検査
-python shared/runtime/veil-lint.py --text "current state を整理した"  # 文字列を直接検査
+python shared/runtime/veil-lint.py <file>   # check a response file
+python shared/runtime/veil-lint.py --stdin  # check from stdin
+python shared/runtime/veil-lint.py --text "I organized the current state"  # check a string directly
 ```
 
-- clean: 登録済み原語が文章に残っていない
-- warning: 登録済み原語が文章に残っている（注意）。寄せ先を確認する
-- violation: 登録済み原語が文章に残っている。preferred 語へ直して再検査する
-- skip: `~/.veil/rules/` に rule がなければ異常終了しない
+- `CLEAN`: no registered source terms found in the text
+- violation: registered source terms remain in the text — check the preferred term and fix
+- `SKIP`: no rules in `~/.veil/rules/` — does not exit with error
 
-`warning` と `violation` では、`shared/runtime/veil-lint.py` が `直し方` と `置換例` も返す。まずその guidance に従って直し、必要なら行文全体を整える。
+On a violation, `shared/runtime/veil-lint.py` returns the suggested fix and a line preview. Follow that guidance first; then revise the full sentence if needed.
 
-`veil-capture` は抽出・記録・同期、`shared/runtime/veil-lint.py` は返答前検査という役割に分けて運用する。
+`veil-capture` handles extraction, recording, and sync. `shared/runtime/veil-lint.py` handles pre-response checking. Keep these roles separate.
 
-`lint` は prose 全体を全面統制するためではなく、登録済み高影響語と禁止語を守らせる gate として使う。
+`lint` is not for enforcing the entire prose — it is a gate for registered high-impact terms and prohibited terms.
 
-### VEIL の状態を確認する
+### Check VEIL status
 
-canonical DB の rule 件数、ミラーの最終更新時刻、同期対象の状態を確認する：
+Check canonical DB rule count, mirror last-updated timestamp, and sync target state:
 
 ```bash
 python shared/runtime/veil-status.py
 ```
 
-セットアップに問題がある場合は診断モードを使う：
+Run setup diagnostics when something seems wrong:
 
 ```bash
 python shared/runtime/veil-status.py --check
 ```
 
-`[ERROR]` が出たら exit 1 になる。`[WARN]` のみなら exit 0 で続行できる。
+`[ERROR]` exits with code 1. `[WARN]` only exits with code 0 and is safe to continue.
 
-### 現在の標準プロファイルを棚卸しする
+### Audit the current profile
 
-`~/.veil/rules/` の rule 件数や、heading のない旧 flat rule がどれだけ残っているかは `shared/tools/veil-profile-audit.py` で見られます。
+Check rule count and any remaining legacy flat rules in `~/.veil/rules/` using `shared/tools/veil-profile-audit.py`:
 
 ```bash
 python shared/tools/veil-profile-audit.py
@@ -326,23 +325,23 @@ python shared/tools/veil-profile-audit.py --json
 python shared/tools/veil-profile-audit.py --db workspace/veil_stage1_smoke.db
 ```
 
-`audit`、`normalize`、`lint` はいずれも `--db` で SQLite source を読めます。`veil-normalize.py` は existing-match の返し方を維持しつつ、`source_type` と `source` でどちらの source を見たかを JSON で判別できます。`veil-lint.py` は rules-dir 互換を残したまま、`violation / warning / clean / skip` の返し方と exit code 契約を維持します。
+`audit`, `normalize`, and `lint` all accept `--db` to read from a SQLite source. `veil-normalize.py` maintains the existing-match return format and allows distinguishing the source via `source_type` and `source` in JSON output. `veil-lint.py` keeps `rules-dir` compatibility and maintains the `violation / clean / skip` return contract and exit codes.
 
 ### SQLite support route
 
-SQLite canonical support route は `shared/tools/veil-db.py` です。workspace fixture を使う smoke では次のように確認できます。
+The SQLite canonical support CLI is `shared/tools/veil-db.py`. To verify with a workspace fixture:
 
 ```bash
 python shared/tools/veil-db.py init-db --db workspace/veil_stage1_smoke.db
 python shared/tools/veil-db.py import-rules --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_rules_fixture
 python shared/tools/veil-db.py readback --db workspace/veil_stage1_smoke.db --json
-python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db --term "current state" --preferred "今の状態"
+python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db --term "current state" --preferred "present state"
 python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_mirror
 ```
 
-### 現在の標準プロファイルを書き出す
+### Export the current profile
 
-現在の標準プロファイルを technical writing 用の domain profile pack として切り出したい時は、`shared/tools/veil-profile-export.py` を使う。
+To cut the current default profile as a domain profile pack:
 
 ```bash
 python shared/tools/veil-profile-export.py --profile-name technical-writing-default
@@ -350,15 +349,14 @@ python shared/tools/veil-profile-export.py --profile-name finance-guardrail --do
 python shared/tools/veil-profile-export.py --profile-name technical-writing-default --output-dir workspace/profile-exports/custom-pack
 ```
 
-既定では `workspace/profile-exports/<profile-name>/` に次を出力する。
+By default, output goes to `workspace/profile-exports/<profile-name>/`:
 
 - `*.md` rule files
 - `manifest.json`
 
-これは read-only export であり、canonical route と `~/.veil/rules/` ミラーを直接変更しない。
-`manifest.json` には `domain`, `intended_use`, `base_profile` も入り、branch 元の profile 契約を残せる。
+This is a read-only export — it does not modify the canonical route or `~/.veil/rules/` mirror. `manifest.json` includes `domain`, `intended_use`, and `base_profile` to preserve the branching contract.
 
-既存 pack から branch を起こす時は、base manifest を渡す。
+To branch from an existing pack:
 
 ```bash
 python shared/tools/veil-profile-export.py --base-manifest workspace/profile-exports/technical-writing-default/manifest.json --profile-name medical-guardrail --domain medical
@@ -366,34 +364,38 @@ python shared/tools/veil-profile-export.py --base-manifest workspace/profile-exp
 
 ---
 
-## ファイル構成
+## File structure
 
 ```
 veil/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── install.sh                            # スキルファイルのデプロイスクリプト
-├── shared/runtime/veil-normalize.py     # 候補語の正規化・統合候補確認
-├── shared/runtime/veil-sync.py          # ルール同期スクリプト（コアツール）
-├── shared/runtime/veil-lint.py          # 返答前語彙検査（コアツール）
-├── shared/runtime/veil-status.py        # canonical / ミラー / 同期対象の状態確認
-├── shared/tools/veil-profile-audit.py   # profile 棚卸し補助
-├── shared/tools/veil-profile-export.py  # profile 書き出し補助
+├── install.sh                            # skill file deploy script
+├── locale/                              # locale strings
+│   ├── en.json
+│   └── ja.json
+├── shared/runtime/veil-normalize.py     # candidate term normalization and cross-check
+├── shared/runtime/veil-sync.py          # rule sync script (core tool)
+├── shared/runtime/veil-lint.py          # pre-response vocabulary check (core tool)
+├── shared/runtime/veil-status.py        # canonical / mirror / sync target status
+├── shared/tools/veil-profile-audit.py   # profile audit helper
+├── shared/tools/veil-profile-export.py  # profile export helper
 ├── shared/tools/veil-db.py              # SQLite canonical support CLI
-├── shared/tools/veil_rule_store.py      # SQLite schema / upsert / ミラー export shared helper
-├── skills/                 # スキルテンプレート
+├── shared/tools/veil_locale.py          # locale detection and t() lookup
+├── shared/tools/veil_rule_store.py      # SQLite schema / upsert / mirror export shared helper
+├── skills/                 # skill templates
 │   ├── claude-code/
 │   │   └── veil-capture.md
 │   └── codex/
 │       └── veil-capture/
 │           └── SKILL.md
 └── docs/
-    └── veil-design.md      # 設計書
+    └── veil-design.md      # design reference
 ```
 
 ---
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)
