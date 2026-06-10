@@ -96,6 +96,14 @@
     "export_html_help": "HTML 語彙一覧を生成する。",
     "export_html_path_help": "HTML ファイルの出力先。既定: ~/.veil/veil.html"
   },
+  "store": {
+    "no_rules_dir": "rules directory が見つかりません。",
+    "no_db_file": "db file が見つかりません。",
+    "empty_term": "term_original または preferred が空です。",
+    "load_failed": "読み込み失敗: {exc}",
+    "rule_parse_ignored": "rule 行として解釈できないため無視した",
+    "empty_original_or_preferred": "original または preferred が空のため無視した"
+  },
   "html": {
     "title": "VEIL — 語彙ルール",
     "search_placeholder": "語句を検索...",

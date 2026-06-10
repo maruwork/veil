@@ -96,6 +96,14 @@
     "export_html_help": "Generate HTML vocabulary list.",
     "export_html_path_help": "Output path for HTML file. Default: ~/.veil/veil.html"
   },
+  "store": {
+    "no_rules_dir": "Rules directory not found.",
+    "no_db_file": "DB file not found.",
+    "empty_term": "term_original or preferred is empty.",
+    "load_failed": "Failed to read: {exc}",
+    "rule_parse_ignored": "Rule line could not be parsed — skipped.",
+    "empty_original_or_preferred": "original or preferred is empty — skipped."
+  },
   "html": {
     "title": "VEIL — Vocabulary Rules",
     "search_placeholder": "Search terms...",

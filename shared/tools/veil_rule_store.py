@@ -248,7 +248,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
-            "reason": "rules directory が見つかりません。",
+            "reason": "store.no_rules_dir",
             "rules_dir": rules_dir,
             "files_seen": 0,
             "rules": [],
@@ -271,7 +271,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
             with open(path, encoding="utf-8") as handle:
                 lines = handle.readlines()
         except OSError as exc:
-            warnings.append({"file": fname, "line": 0, "warning": f"読み込み失敗: {exc}"})
+            warnings.append({"file": fname, "line": 0, "warning_key": "store.load_failed", "warning_args": {"exc": str(exc)}})
             continue
 
         for line_no, line in enumerate(lines, start=1):
@@ -283,7 +283,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
                         {
                             "file": fname,
                             "line": line_no,
-                            "warning": "rule 行として解釈できないため無視した",
+                            "warning_key": "store.rule_parse_ignored",
                             "content": stripped,
                         }
                     )
@@ -296,7 +296,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
                     {
                         "file": fname,
                         "line": line_no,
-                        "warning": "original または preferred が空のため無視した",
+                        "warning_key": "store.empty_original_or_preferred",
                     }
                 )
                 continue
@@ -439,7 +439,7 @@ def upsert_rule(
     if not original or not preferred_1:
         return {
             "status": "skip",
-            "reason": "term_original または preferred が空です。",
+            "reason": "store.empty_term",
             "db_path": db_path,
         }
 
@@ -550,7 +550,7 @@ def readback_rules(db_path: str) -> dict[str, object]:
     if not os.path.exists(db_path):
         return {
             "status": "skip",
-            "reason": "db file が見つかりません。",
+            "reason": "store.no_db_file",
             "db_path": db_path,
             "summary": {"total": 0},
             "rows": [],

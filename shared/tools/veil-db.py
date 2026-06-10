@@ -84,7 +84,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def print_import_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     print(
         "IMPORTED:"
@@ -104,12 +104,16 @@ def print_import_text(payload: dict[str, object]) -> None:
         )
     for warning in payload["warnings"]:
         location = f"{warning.get('file', '?')}:{warning.get('line', 0)}"
-        print(f"- warning {location}: {warning['warning']}")
+        if "warning_key" in warning:
+            msg = t(warning["warning_key"], **warning.get("warning_args", {}))
+        else:
+            msg = str(warning.get("warning", ""))
+        print(f"- warning {location}: {msg}")
 
 
 def print_readback_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     summary = payload["summary"]
     print(f"READBACK: db={payload['db_path']}, total={summary['total']}")
@@ -119,7 +123,7 @@ def print_readback_text(payload: dict[str, object]) -> None:
 
 def print_upsert_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     row = payload["row"]
     print(f"UPSERT: {payload['action']} db={payload['db_path']} {row['term_original']} -> {row['preferred']}")
@@ -127,7 +131,7 @@ def print_upsert_text(payload: dict[str, object]) -> None:
 
 def print_export_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     print(
         "EXPORT-MIRROR:"
@@ -143,7 +147,7 @@ def print_export_text(payload: dict[str, object]) -> None:
 
 def print_export_html_text(payload: dict[str, object]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {payload['reason']}")
+        print(f"SKIP: {t(str(payload['reason']))}")
         return
     print(f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']}")
 
