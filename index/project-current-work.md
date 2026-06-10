@@ -13,23 +13,30 @@ Status: Active
 - active bundle type:
   - —
 - success subject:
-  - `~/.veil/veil.db が初期化され、veil-status.py --check が全 OK になる`
+  - —
 - completion condition:
-  - `VEIL-OP-001 T-01 / T-02 完了`
+  - —
 - in scope:
-  - `~/.veil/veil.db` の初期化と mirror 取り込み（T-01）
-  - readback + --check 検証（T-02）
+  - —
 - out of scope:
-  - mirror ファイルへの変更
-  - veil-sync.py 実行
-  - shared/tools/veil-profile-export.py の level 定数除去（別 bundle）
+  - —
 
 ## Current Position
 
 - current position:
-  - `VEIL-UX-002 全タスク完了 + README.md level 参照除去完了`
+  - `2026-06-10 アドホック作業完了`
 - next action:
-  - VEIL-OP-001 実行（owner 承認後）
+  - 未定（owner 判断待ち）
+
+## 直近セッション完了事項（2026-06-10）
+
+- **保留概念撤廃**: AGENTS.md / README.md / docs / skills 全ファイルから VEIL 固有の保留参照を除去
+- **veil-capture 全面改訂**: 11ステップ手順リストを「出力仕様 + 採用基準 + 選択後処理」の3セクション構造に変更。AIの中間出力を構造的に抑制
+- **veil.html 新設**: `~/.veil/veil.html` に登録語句一覧・コピー機能付き HTML を生成。veil-sync の出力の一つとして今後自動生成予定
+- **スキル更新・デプロイ**: `~/.claude/commands/veil-capture.md` / `~/.agents/skills/veil-capture/SKILL.md` を最新版に更新
+- **install.sh 新設**: スキルファイルを各ツール配置先へコピーするインストールスクリプトを追加
+
+## 既知残課題
 - stop reason if any:
   - なし
 - writeback target:
