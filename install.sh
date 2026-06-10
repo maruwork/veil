@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Install VEIL skill files to their respective AI tool directories.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
