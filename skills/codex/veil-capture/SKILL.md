@@ -13,6 +13,7 @@ description: Detect terms from AI conversation; present candidates with Japanese
 - {term}（現状） → {候補1}（候補1）| {候補2}（候補2）
 
 現状、または候補を選択してください。
+[veil.html](~/.veil/veil.html)
 ```
 
 - 採用語ごとに1行出力する
@@ -57,6 +58,7 @@ description: Detect terms from AI conversation; present candidates with Japanese
 
 1. 選択された preferred を `python shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db` で記録する（候補2・候補3も渡す）。`veil.db` が存在しない場合は `~/.veil/rules/` へ直書きする
 2. `python shared/tools/veil-db.py export-mirror` でミラーを再生成する
-3. `~/.veil/config.json` の `sync_script` を確認し、存在すれば `shared/runtime/veil-sync.py` を実行する
+3. `python shared/tools/veil-db.py export-html` で HTML を再生成する
+4. `~/.veil/config.json` の `sync_script` を確認し、存在すれば `shared/runtime/veil-sync.py` を実行する
 
 いずれかのステップが失敗した場合のみ、失敗理由を1行で報告して停止する。
