@@ -51,7 +51,7 @@ def audit_rules_dir(rules_dir: str) -> dict[str, object]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
-            "reason": t("audit.rules_dir_not_found"),
+            "reason": "audit.rules_dir_not_found",
             "rules_dir": rules_dir,
             "summary": {"files": 0, "total_rules": 0},
             "files": [],
