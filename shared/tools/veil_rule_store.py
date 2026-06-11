@@ -211,7 +211,7 @@ def first_preferred(rhs: str) -> str:
 
 def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | None]:
     parts = []
-    for raw in re.split(r"[、,]", rhs):
+    for raw in re.split(r"[、,|]", rhs):
         cleaned = re.sub(r"[（(]候補\d+[)）]", "", raw).strip()
         if cleaned:
             parts.append(cleaned)
@@ -342,6 +342,7 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
         "rules_dir": rules_dir,
         "files_seen": files_seen,
         "rules": rules,
+        "selected_rules": list(selected_by_normalized.values()),
         "conflicts": conflicts,
         "warnings": warnings,
     }
@@ -375,7 +376,7 @@ def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, objec
     imported_at = now_utc_iso()
     with open_db(db_path) as conn:
         conn.execute("DELETE FROM rules")
-        for entry in parsed["rules"]:
+        for entry in parsed["selected_rules"]:
             conn.execute(
                 """
                 INSERT INTO rules (
@@ -410,7 +411,7 @@ def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, objec
 
     payload = dict(parsed)
     payload["db_path"] = db_path
-    payload["imported_count"] = len(parsed["rules"])
+    payload["imported_count"] = len(parsed["selected_rules"])
     return payload
 
 
