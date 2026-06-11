@@ -24,7 +24,10 @@ def detect_lang() -> str:
             pass
     try:
         import locale as _locale
-        loc = _locale.getdefaultlocale()[0] or ""
+        loc = _locale.getlocale()[0] or ""
+        if not loc:
+            lang_env = os.environ.get("LANG") or os.environ.get("LC_ALL") or os.environ.get("LANGUAGE") or ""
+            loc = lang_env.split(".")[0] if lang_env else ""
     except Exception:
         loc = ""
     if loc.startswith("ja"):
