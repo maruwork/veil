@@ -223,6 +223,7 @@ def save_config(paths):
         except Exception:
             pass
     cfg["sync_script"] = os.path.abspath(__file__)
+    cfg["veil_root"] = str(Path(__file__).resolve().parents[2])
     with open(paths["config_file"], "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 

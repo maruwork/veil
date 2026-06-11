@@ -128,7 +128,7 @@ cd $env:USERPROFILE\tools\veil
 
 ### 1. Install the skill
 
-Copies skill files to the tool directories and writes the `sync_script` path to `~/.veil/config.json`.
+Copies skill files to the tool directories and writes `sync_script` and `veil_root` to `~/.veil/config.json`.
 
 ```bash
 bash install.sh

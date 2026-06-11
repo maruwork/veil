@@ -22,7 +22,7 @@ Detailed specification for the runtime and support components. Entry point: [REA
 | Vocabulary rule canonical | `~/.veil/veil.db` | canonical source of truth |
 | Vocabulary rule markdown mirror | `~/.veil/rules/` | AI-readable markdown surface / mirror |
 | Sync target list | `~/.veil/targets.json` | list of sync target file paths |
-| Sync script path | `~/.veil/config.json` | written automatically on `--add` |
+| Tool config | `~/.veil/config.json` | written by `install.sh` and `--add`; keys: `sync_script`, `veil_root` |
 
 `~/.veil/` is fixed to the user home directory. In the current phase, canonical is SQLite and markdown rules are carried as the mirror.
 
