@@ -112,14 +112,57 @@ The current default profile is for technical writing.
 
 Requires Python 3.8 or later.
 
+Clone to a fixed location on your machine. VEIL is a global tool, not a per-project dependency.
+
 ```bash
-git clone https://github.com/fumimaruwork/veil.git
-cd veil
+# macOS / Linux
+git clone https://github.com/fumimaruwork/veil.git ~/tools/veil
+cd ~/tools/veil
 ```
 
-### 1. Register sync target files
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/fumimaruwork/veil.git $env:USERPROFILE	oolseil
+cd $env:USERPROFILE	oolseil
+```
 
-**This step creates `~/.veil/config.json`, which the skill reads. Run it before using the skill.**
+### 1. Install the skill
+
+Copies skill files to the tool directories and writes the `sync_script` path to `~/.veil/config.json`.
+
+```bash
+bash install.sh
+```
+
+To install manually:
+
+**Claude Code**
+
+```bash
+# macOS / Linux
+cp skills/claude-code/veil-capture.md ~/.claude/commands/veil-capture.md
+```
+
+```powershell
+# Windows (PowerShell)
+Copy-Item skills\claude-codeeil-capture.md $env:USERPROFILE\.claude\commandseil-capture.md
+```
+
+**Codex**
+
+```bash
+# macOS / Linux
+cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
+```
+
+```powershell
+# Windows (PowerShell)
+Copy-Item -Recurse skills\codexeil-capture $env:USERPROFILE\.agents\skillseil-capture
+```
+
+### 2. Register sync target files
+
+Register the AI tool config files that VEIL should push vocabulary rules into.
 
 ```bash
 python shared/runtime/veil-sync.py --add /path/to/CLAUDE.md
@@ -138,39 +181,6 @@ The rules are applied immediately on registration. Supported tools:
 | Aider | `.aider.conf.yml` | `# VEIL_START` |
 
 Files with `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` extensions use `# VEIL_START` / `# VEIL_END` markers.
-
-### 2. Install the skill
-
-```bash
-bash install.sh
-```
-
-To install manually:
-
-**Claude Code**
-
-```bash
-# macOS / Linux
-cp skills/claude-code/veil-capture.md ~/.claude/commands/veil-capture.md
-```
-
-```powershell
-# Windows (PowerShell)
-Copy-Item skills\claude-code\veil-capture.md $env:USERPROFILE\.claude\commands\veil-capture.md
-```
-
-**Codex**
-
-```bash
-# macOS / Linux
-cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
-```
-
-```powershell
-# Windows (PowerShell)
-Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\veil-capture
-```
-
 ---
 
 ## Usage
