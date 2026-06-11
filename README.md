@@ -122,8 +122,8 @@ cd ~/tools/veil
 
 ```powershell
 # Windows (PowerShell)
-git clone https://github.com/fumimaruwork/veil.git $env:USERPROFILE	oolseil
-cd $env:USERPROFILE	oolseil
+git clone https://github.com/fumimaruwork/veil.git $env:USERPROFILE\tools\veil
+cd $env:USERPROFILE\tools\veil
 ```
 
 ### 1. Install the skill
@@ -145,7 +145,7 @@ cp skills/claude-code/veil-capture.md ~/.claude/commands/veil-capture.md
 
 ```powershell
 # Windows (PowerShell)
-Copy-Item skills\claude-codeeil-capture.md $env:USERPROFILE\.claude\commandseil-capture.md
+Copy-Item skills\claude-code\veil-capture.md $env:USERPROFILE\.claude\commands\veil-capture.md
 ```
 
 **Codex**
@@ -157,7 +157,7 @@ cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
 
 ```powershell
 # Windows (PowerShell)
-Copy-Item -Recurse skills\codexeil-capture $env:USERPROFILE\.agents\skillseil-capture
+Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\veil-capture
 ```
 
 ### 2. Register sync target files
