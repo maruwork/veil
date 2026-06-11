@@ -165,7 +165,7 @@ def export_profile(
     if not os.path.isdir(rules_dir):
         return {
             "status": "error",
-            "reason": t("export.rules_dir_not_found"),
+            "reason": "export.rules_dir_not_found",
             "rules_dir": rules_dir,
             "output_dir": output_dir,
             "profile_name": profile_name,
@@ -244,6 +244,9 @@ def main() -> int:
     intended_use = args.intended_use
     base_profile = args.base_profile
     if args.base_manifest:
+        if not os.path.exists(args.base_manifest):
+            print(f"Error: manifest file not found: {args.base_manifest}", file=sys.stderr)
+            return 1
         manifest = load_base_manifest(args.base_manifest)
         rules_dir = os.path.dirname(os.path.abspath(args.base_manifest))
         if base_profile == "none":
