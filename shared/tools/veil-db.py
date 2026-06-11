@@ -187,11 +187,12 @@ def main() -> int:
         alt3_val = args.preferred_alt_3
         if "|" in preferred_val:
             parts = [p.strip() for p in preferred_val.split("|") if p.strip()]
-            preferred_val = parts[0]
-            if alt2_val is None and len(parts) > 1:
-                alt2_val = parts[1]
-            if alt3_val is None and len(parts) > 2:
-                alt3_val = parts[2]
+            if parts:
+                preferred_val = parts[0]
+                if alt2_val is None and len(parts) > 1:
+                    alt2_val = parts[1]
+                if alt3_val is None and len(parts) > 2:
+                    alt3_val = parts[2]
         payload = upsert_rule(
             args.db,
             term_original=args.term,
