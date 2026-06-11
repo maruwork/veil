@@ -182,12 +182,22 @@ def main() -> int:
         return 0 if payload["status"] == "ok" else 1
 
     if args.command == "upsert-rule":
+        preferred_val = args.preferred
+        alt2_val = args.preferred_alt_2
+        alt3_val = args.preferred_alt_3
+        if "|" in preferred_val:
+            parts = [p.strip() for p in preferred_val.split("|") if p.strip()]
+            preferred_val = parts[0]
+            if alt2_val is None and len(parts) > 1:
+                alt2_val = parts[1]
+            if alt3_val is None and len(parts) > 2:
+                alt3_val = parts[2]
         payload = upsert_rule(
             args.db,
             term_original=args.term,
-            preferred=args.preferred,
-            preferred_alt_2=args.preferred_alt_2,
-            preferred_alt_3=args.preferred_alt_3,
+            preferred=preferred_val,
+            preferred_alt_2=alt2_val,
+            preferred_alt_3=alt3_val,
             status=args.status,
             category_hint=args.category_hint,
             note=args.note,
