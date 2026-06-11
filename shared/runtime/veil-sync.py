@@ -149,12 +149,12 @@ def prepare_base_rules(paths, quiet=False):
     return load_base_rules(paths["rules_dir"])
 
 
-def do_sync(paths, base="", quiet=False):
-    targets = load_targets(paths)
+def do_sync(paths, base="", quiet=False, targets=None):
+    if targets is None:
+        targets = load_targets(paths)
     combined = ""
     if base:
-        sep = "\n\n" if combined else ""
-        combined = combined + sep + t("sync.rules_section_header") + base
+        combined = t("sync.rules_section_header") + base
     behavior = load_behavior(paths)
     if behavior:
         sep = "\n\n" if combined else ""
@@ -209,7 +209,7 @@ def cmd_sync(paths, quiet=False):
         print(t("sync.no_rules"))
         return
     print(t("sync.sync_start", count=len(targets)))
-    do_sync(paths, base, quiet=quiet)
+    do_sync(paths, base, quiet=quiet, targets=targets)
     print(t("sync.sync_done"))
 
 
