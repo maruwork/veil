@@ -13,6 +13,7 @@ Supported files:
   CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules,
   .github/copilot-instructions.md, .aider.conf.yml
 """
+from __future__ import annotations
 
 import argparse
 import sys
