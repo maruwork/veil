@@ -57,7 +57,14 @@ After receiving the user's selection, execute the following steps in order. Do n
 
 Read `~/.veil/config.json` to get `veil_root` (the absolute path to the veil repo). Use it for all commands below.
 
-1. Record the selected preferred form using `python {veil_root}/shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db` (include candidates 2 and 3 if present). If `veil.db` does not exist, write directly to `~/.veil/rules/`.
+1. Record the selected preferred form:
+   ```
+   python {veil_root}/shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db \
+     --term "{term}" --preferred "{candidate1}" \
+     [--preferred-alt-2 "{candidate2}"] [--preferred-alt-3 "{candidate3}"]
+   ```
+   Pass each candidate as a separate flag. Do NOT pass `|`-separated strings as `--preferred`.
+   If `~/.veil/veil.db` does not exist, first run `python {veil_root}/shared/tools/veil-db.py init-db --db ~/.veil/veil.db`.
 2. Regenerate the mirror using `python {veil_root}/shared/tools/veil-db.py export-mirror`.
 3. Regenerate the HTML using `python {veil_root}/shared/tools/veil-db.py export-html`.
 4. Check `sync_script` in `~/.veil/config.json`; if present, run it with `python {sync_script}`.
