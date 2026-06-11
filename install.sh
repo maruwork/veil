@@ -24,7 +24,12 @@ mkdir -p "$CODEX_SKILLS_DIR"
 cp "$REPO_DIR/skills/codex/veil-capture/SKILL.md" "$CODEX_SKILLS_DIR/SKILL.md"
 echo "[OK] Codex        $CODEX_SKILLS_DIR/SKILL.md"
 
-# Write sync_script path to ~/.veil/config.json
+# Detect language (VEIL_LANG > LANG > LC_ALL > LANGUAGE, fallback en)
+_lang_raw="${VEIL_LANG:-${LANG:-${LC_ALL:-${LANGUAGE:-}}}}"
+_lang_code="$(echo "${_lang_raw%%[_.-]*}" | tr '[:upper:]' '[:lower:]')"
+DETECTED_LANG="${_lang_code:-en}"
+
+# Write sync_script, veil_root, lang to ~/.veil/config.json
 mkdir -p "$VEIL_DIR"
 if [ -f "$CONFIG_FILE" ]; then
   EXISTING=$(cat "$CONFIG_FILE")
@@ -36,10 +41,12 @@ import json, sys
 cfg = json.loads(sys.argv[1])
 cfg['sync_script'] = sys.argv[2]
 cfg['veil_root'] = sys.argv[3]
+cfg['lang'] = sys.argv[4]
 print(json.dumps(cfg, indent=2))
-" "$EXISTING" "$SYNC_SCRIPT" "$REPO_DIR" > "$CONFIG_FILE"
+" "$EXISTING" "$SYNC_SCRIPT" "$REPO_DIR" "$DETECTED_LANG" > "$CONFIG_FILE"
 echo "[OK] config.json  sync_script=$SYNC_SCRIPT"
 echo "[OK] config.json  veil_root=$REPO_DIR"
+echo "[OK] config.json  lang=$DETECTED_LANG"
 
 echo ""
 echo "done."
