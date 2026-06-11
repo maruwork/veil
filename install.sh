@@ -35,9 +35,11 @@ python3 -c "
 import json, sys
 cfg = json.loads(sys.argv[1])
 cfg['sync_script'] = sys.argv[2]
+cfg['veil_root'] = sys.argv[3]
 print(json.dumps(cfg, indent=2))
-" "$EXISTING" "$SYNC_SCRIPT" > "$CONFIG_FILE"
+" "$EXISTING" "$SYNC_SCRIPT" "$REPO_DIR" > "$CONFIG_FILE"
 echo "[OK] config.json  sync_script=$SYNC_SCRIPT"
+echo "[OK] config.json  veil_root=$REPO_DIR"
 
 echo ""
 echo "done."

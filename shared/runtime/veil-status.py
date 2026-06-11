@@ -30,7 +30,7 @@ DEFAULT_DB_PATH = os.path.join(CONFIG_DIR, "veil.db")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 TARGETS_FILE = os.path.join(CONFIG_DIR, "targets.json")
 SKILL_CLAUDE = os.path.expanduser("~/.claude/commands/veil-capture.md")
-SKILL_CODEX = os.path.expanduser("~/.codex/skills/veil-capture/SKILL.md")
+SKILL_CODEX = os.path.expanduser("~/.agents/skills/veil-capture/SKILL.md")
 
 
 def parse_args() -> argparse.Namespace:
