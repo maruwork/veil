@@ -12,7 +12,8 @@ _fallback: dict = {}
 
 def detect_lang() -> str:
     if os.environ.get("VEIL_LANG"):
-        return os.environ["VEIL_LANG"]
+        lang = os.environ["VEIL_LANG"].split("_")[0].split("-")[0].lower()
+        return lang
     config_path = os.path.expanduser("~/.veil/config.json")
     if os.path.exists(config_path):
         try:
