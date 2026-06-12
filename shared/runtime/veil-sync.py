@@ -51,6 +51,9 @@ AI_CONFIG_NAMES = [
 
 def find_sibling_ai_configs(registered_path: str) -> list[str]:
     dir_ = os.path.dirname(registered_path)
+    # .github/copilot-instructions.md is registered → step up to project root
+    if os.path.basename(dir_) == ".github":
+        dir_ = os.path.dirname(dir_)
     found = []
     for name in AI_CONFIG_NAMES:
         candidate = os.path.abspath(os.path.join(dir_, name))
