@@ -98,7 +98,7 @@ def load_targets(paths):
     if not os.path.exists(paths["targets_file"]):
         return []
     try:
-        with open(paths["targets_file"], encoding="utf-8") as f:
+        with open(paths["targets_file"], encoding="utf-8-sig") as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError) as exc:
         print(t("sync.targets_read_error", exc=exc), file=sys.stderr)
@@ -226,16 +226,20 @@ def do_sync(paths, base="", quiet=False, targets=None):
 def cmd_sync(paths, quiet=False):
     targets = load_targets(paths)
     if not targets:
-        print(t("sync.no_targets"))
+        if not quiet:
+            print(t("sync.no_targets"))
         return
     base = prepare_base_rules(paths, quiet=quiet)
     behavior = load_behavior(paths)
     if not base and not behavior:
-        print(t("sync.no_rules"))
+        if not quiet:
+            print(t("sync.no_rules"))
         return
-    print(t("sync.sync_start", count=len(targets)))
+    if not quiet:
+        print(t("sync.sync_start", count=len(targets)))
     do_sync(paths, base, quiet=quiet, targets=targets)
-    print(t("sync.sync_done"))
+    if not quiet:
+        print(t("sync.sync_done"))
 
 
 def save_config(paths):
