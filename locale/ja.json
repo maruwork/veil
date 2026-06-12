@@ -30,6 +30,7 @@
     "target_miss": "✗ (見つからない)",
     "not_registered": "未登録: {path}",
     "unregistered": "解除: {path}",
+    "auto_registered": "自動登録: {path}",
     "rules_section_header": "表記統一ルール：\n"
   },
   "status": {
