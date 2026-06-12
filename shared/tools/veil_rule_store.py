@@ -8,6 +8,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
@@ -244,7 +245,7 @@ def normalize_term(term: str) -> str:
     return " ".join(tokens)
 
 
-def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
+def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
@@ -256,10 +257,10 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, object]:
             "warnings": [],
         }
 
-    rules: list[dict[str, object]] = []
-    warnings: list[dict[str, object]] = []
-    selected_by_normalized: dict[str, dict[str, object]] = {}
-    conflicts_by_key: dict[str, list[dict[str, object]]] = defaultdict(list)
+    rules: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
+    selected_by_normalized: dict[str, dict[str, Any]] = {}
+    conflicts_by_key: dict[str, list[dict[str, Any]]] = defaultdict(list)
     files_seen = 0
 
     for fname in sorted(os.listdir(rules_dir)):
@@ -367,7 +368,7 @@ def init_db(db_path: str) -> None:
         conn.commit()
 
 
-def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, object]:
+def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, Any]:
     parsed = load_rules_from_markdown_dir(rules_dir)
     if parsed["status"] != "ok":
         return parsed
@@ -434,7 +435,7 @@ def upsert_rule(
     category_hint: str | None = None,
     note: str | None = None,
     source_context: str | None = None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     original = term_original.strip()
     preferred_1 = preferred.strip()
     if not original or not preferred_1:
@@ -547,7 +548,7 @@ def upsert_rule(
     }
 
 
-def readback_rules(db_path: str) -> dict[str, object]:
+def readback_rules(db_path: str) -> dict[str, Any]:
     if not os.path.exists(db_path):
         return {
             "status": "skip",
@@ -590,8 +591,8 @@ def readback_rules(db_path: str) -> dict[str, object]:
     }
 
 
-def render_markdown_mirror_from_rows(rows: list[dict[str, object]]) -> dict[str, str]:
-    grouped: dict[str, list[dict[str, object]]] = defaultdict(list)
+def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, str]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("status") != "active":
             continue
@@ -613,7 +614,7 @@ def render_markdown_mirror_from_rows(rows: list[dict[str, object]]) -> dict[str,
     return rendered
 
 
-def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, object]:
+def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, Any]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {
@@ -650,7 +651,7 @@ def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, ob
     }
 
 
-def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], list[dict[str, object]]]:
+def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], list[dict[str, Any]]]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {}, []
@@ -716,7 +717,7 @@ def _build_html_content(rows_html: str, count: int, ui: dict[str, str]) -> str:
     return content
 
 
-def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None = None) -> dict[str, object]:
+def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None = None) -> dict[str, Any]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {
