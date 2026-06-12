@@ -26,8 +26,10 @@ echo "[OK] Codex        $CODEX_SKILLS_DIR/SKILL.md"
 
 # Detect language (VEIL_LANG > LANG > LC_ALL > LANGUAGE, fallback en)
 _lang_raw="${VEIL_LANG:-${LANG:-${LC_ALL:-${LANGUAGE:-}}}}"
-_lang_code="$(echo "${_lang_raw%%[_.-]*}" | tr '[:upper:]' '[:lower:]')"
-DETECTED_LANG="${_lang_code:-en}"
+_lang_code="${_lang_raw%%:*}"           # LANGUAGE=ja:en:de -> ja
+_lang_code="${_lang_code%%[_.-]*}"     # ja_JP.UTF-8 -> ja
+_lang_code="$(echo "$_lang_code" | tr '[:upper:]' '[:lower:]')"
+[[ "$_lang_code" =~ ^[a-z]{2,3}$ ]] && DETECTED_LANG="$_lang_code" || DETECTED_LANG="en"
 
 # Write sync_script, veil_root, lang to ~/.veil/config.json
 mkdir -p "$VEIL_DIR"
