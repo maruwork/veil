@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,11 @@ except ModuleNotFoundError:
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
+LEVEL_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s*(?P<level>必須|推奨|観察)\s*$")
+LEVEL_REQUIRED = "必須"
+LEVEL_RECOMMENDED = "推奨"
+LEVEL_OBSERVE = "観察"
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=t("audit.description"))
@@ -47,18 +53,35 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _empty_counts() -> dict[str, int]:
+    return {
+        "total_rules": 0,
+        "required_count": 0,
+        "recommended_count": 0,
+        "observe_count": 0,
+        "legacy_flat_count": 0,
+    }
+
+
 def audit_rules_dir(rules_dir: str) -> dict[str, object]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
             "reason": "audit.rules_dir_not_found",
             "rules_dir": rules_dir,
-            "summary": {"files": 0, "total_rules": 0},
+            "summary": {
+                "files": 0,
+                "total_rules": 0,
+                "required_count": 0,
+                "recommended_count": 0,
+                "observe_count": 0,
+                "legacy_flat_count": 0,
+            },
             "files": [],
         }
 
     file_reports: list[dict[str, object]] = []
-    total_rules = 0
+    totals = _empty_counts()
     files_seen = 0
 
     for fname in sorted(os.listdir(rules_dir)):
@@ -71,19 +94,42 @@ def audit_rules_dir(rules_dir: str) -> dict[str, object]:
         except OSError:
             continue
 
-        count = sum(1 for line in lines if RULE_LINE_RE.match(line))
-        if count == 0:
+        counts = _empty_counts()
+        seen_heading = False
+        current_level = LEVEL_REQUIRED
+
+        for line in lines:
+            heading = LEVEL_HEADING_RE.match(line)
+            if heading:
+                seen_heading = True
+                current_level = heading.group("level")
+                continue
+            if not RULE_LINE_RE.match(line):
+                continue
+            counts["total_rules"] += 1
+            if not seen_heading:
+                counts["legacy_flat_count"] += 1
+                counts["required_count"] += 1
+            elif current_level == LEVEL_REQUIRED:
+                counts["required_count"] += 1
+            elif current_level == LEVEL_RECOMMENDED:
+                counts["recommended_count"] += 1
+            elif current_level == LEVEL_OBSERVE:
+                counts["observe_count"] += 1
+
+        if counts["total_rules"] == 0:
             continue
 
         files_seen += 1
-        total_rules += count
-        file_reports.append({"file": fname, "total_rules": count})
+        for key in totals:
+            totals[key] += counts[key]
+        file_reports.append({"file": fname, **counts})
 
     return {
         "status": "ok",
         "source_type": "rules-dir",
         "rules_dir": rules_dir,
-        "summary": {"files": files_seen, "total_rules": total_rules},
+        "summary": {"files": files_seen, **totals},
         "files": file_reports,
     }
 
@@ -123,6 +169,13 @@ def print_text_report(payload: dict[str, object]) -> None:
         f" source={payload.get('source_type')}, path={source},"
         f" files={summary['files']}, total={summary['total_rules']}"
     )
+    if payload.get("source_type") == "rules-dir":
+        print(
+            f"  required={summary.get('required_count', 0)},"
+            f" recommended={summary.get('recommended_count', 0)},"
+            f" observe={summary.get('observe_count', 0)},"
+            f" legacy_flat={summary.get('legacy_flat_count', 0)}"
+        )
     for item in payload["files"]:
         print(f"- {item['file']}: total={item['total_rules']}")
 
