@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any
 
 try:
     from shared.tools.veil_rule_store import (
@@ -82,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def print_import_text(payload: dict[str, object]) -> None:
+def print_import_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"SKIP: {t(str(payload['reason']))}")
         return
@@ -111,7 +112,7 @@ def print_import_text(payload: dict[str, object]) -> None:
         print(f"- warning {location}: {msg}")
 
 
-def print_readback_text(payload: dict[str, object]) -> None:
+def print_readback_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"SKIP: {t(str(payload['reason']))}")
         return
@@ -121,7 +122,7 @@ def print_readback_text(payload: dict[str, object]) -> None:
         print(f"- {row['term_original']} -> {row['preferred']} ({row['source_context']})")
 
 
-def print_upsert_text(payload: dict[str, object]) -> None:
+def print_upsert_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"SKIP: {t(str(payload['reason']))}")
         return
@@ -129,7 +130,7 @@ def print_upsert_text(payload: dict[str, object]) -> None:
     print(f"UPSERT: {payload['action']} db={payload['db_path']} {row['term_original']} -> {row['preferred']}")
 
 
-def print_export_text(payload: dict[str, object]) -> None:
+def print_export_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"SKIP: {t(str(payload['reason']))}")
         return
@@ -145,7 +146,7 @@ def print_export_text(payload: dict[str, object]) -> None:
         print(f"- removed {filename}")
 
 
-def print_export_html_text(payload: dict[str, object]) -> None:
+def print_export_html_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"SKIP: {t(str(payload['reason']))}")
         return
