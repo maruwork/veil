@@ -18,6 +18,7 @@ import argparse
 import bisect
 import json
 import os
+from typing import Any
 import re
 import sys
 from collections import defaultdict
@@ -64,7 +65,7 @@ def canonical_original(term: str) -> str:
     return re.sub(r"[\s\-_]+", " ", term.strip().lower())
 
 
-def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, object]]]:
+def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
     if not os.path.isdir(rules_dir):
         return [], []
 
@@ -122,7 +123,7 @@ def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, obj
     return rules, conflicts
 
 
-def load_rules_for_source(rules_dir: str, db_path: str | None) -> tuple[str, str, list[dict[str, str]], list[dict[str, object]]]:
+def load_rules_for_source(rules_dir: str, db_path: str | None) -> tuple[str, str, list[dict[str, str]], list[dict[str, Any]]]:
     if db_path:
         rules = load_rules_for_lint_from_db(db_path)
         return "db", db_path, rules, []
@@ -196,10 +197,10 @@ def build_line_preview(excerpt: str, match_text: str, preferred: str) -> str:
     return excerpt.replace(match_text, preferred, 1)
 
 
-def lint_text(text: str, rules: list[dict[str, str]]) -> list[dict[str, object]]:
+def lint_text(text: str, rules: list[dict[str, str]]) -> list[dict[str, Any]]:
     masked = mask_protected_segments(text)
     starts = line_starts(text)
-    violations: list[dict[str, object]] = []
+    violations: list[dict[str, Any]] = []
 
     for rule in rules:
         pattern = build_original_pattern(rule["original"])
@@ -243,11 +244,11 @@ def read_input(args: argparse.Namespace) -> str:
     raise ValueError("No input text provided.")
 
 
-def summarize_hits(results: list[dict[str, object]]) -> tuple[int, int]:
+def summarize_hits(results: list[dict[str, Any]]) -> tuple[int, int]:
     return len(results), sum(item["count"] for item in results)
 
 
-def print_bucket(items: list[dict[str, object]]) -> None:
+def print_bucket(items: list[dict[str, Any]]) -> None:
     for item in items:
         lines = ", ".join(str(hit["line"]) for hit in item["hits"])
         print(f"- {item['original']} -> {item['preferred']} {t('lint.hit_count', count=item['count'], lines=lines)}")
@@ -259,7 +260,7 @@ def print_bucket(items: list[dict[str, object]]) -> None:
             print(t("lint.suggested", preview=preview))
 
 
-def print_text_result(violations: list[dict[str, object]], source_type: str, source_label: str) -> None:
+def print_text_result(violations: list[dict[str, Any]], source_type: str, source_label: str) -> None:
     if not violations:
         print(t("lint.clean"))
         return
@@ -268,7 +269,7 @@ def print_text_result(violations: list[dict[str, object]], source_type: str, sou
     print_bucket(violations)
 
 
-def print_conflicts(conflicts: list[dict[str, object]]) -> None:
+def print_conflicts(conflicts: list[dict[str, Any]]) -> None:
     for conflict in conflicts:
         selected = conflict["selected"]
         ignored = ", ".join(
