@@ -17,6 +17,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
@@ -63,7 +64,7 @@ def _empty_counts() -> dict[str, int]:
     }
 
 
-def audit_rules_dir(rules_dir: str) -> dict[str, object]:
+def audit_rules_dir(rules_dir: str) -> dict[str, Any]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "skip",
@@ -80,7 +81,7 @@ def audit_rules_dir(rules_dir: str) -> dict[str, object]:
             "files": [],
         }
 
-    file_reports: list[dict[str, object]] = []
+    file_reports: list[dict[str, Any]] = []
     totals = _empty_counts()
     files_seen = 0
 
@@ -134,7 +135,7 @@ def audit_rules_dir(rules_dir: str) -> dict[str, object]:
     }
 
 
-def audit_db(db_path: str) -> dict[str, object]:
+def audit_db(db_path: str) -> dict[str, Any]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {
@@ -156,7 +157,7 @@ def audit_db(db_path: str) -> dict[str, object]:
     }
 
 
-def print_text_report(payload: dict[str, object]) -> None:
+def print_text_report(payload: dict[str, Any]) -> None:
     if payload["status"] == "skip":
         target = payload.get("db_path") or payload.get("rules_dir")
         print(t("audit.no_source", target=target))
