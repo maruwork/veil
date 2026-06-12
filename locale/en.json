@@ -30,6 +30,7 @@
     "target_miss": "✗ (not found)",
     "not_registered": "Not registered: {path}",
     "unregistered": "Unregistered: {path}",
+    "auto_registered": "Auto-registered: {path}",
     "rules_section_header": "Terminology rules:\n"
   },
   "status": {
