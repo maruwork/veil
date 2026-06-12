@@ -212,7 +212,7 @@ def first_preferred(rhs: str) -> str:
 def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | None]:
     parts = []
     for raw in re.split(r"[、,|]", rhs):
-        cleaned = re.sub(r"[（(]候補\d+[)）]", "", raw).strip()
+        cleaned = re.sub(r"[（(](?:候補\d+|keep)[)）]", "", raw).strip()
         if cleaned:
             parts.append(cleaned)
     while len(parts) < 3:
@@ -657,8 +657,15 @@ def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], li
 
     index: dict[str, dict[str, str]] = {}
     for row in payload["rows"]:
+        if row.get("status") != "active":
+            continue
         source_context = row.get("source_context") or db_path
-        source_file = source_context.split(":", 1)[0] if ":" in source_context else source_context
+        if ":" in source_context:
+            left, right = source_context.split(":", 1)
+            # Single letter before ":" = Windows drive letter, not file:line
+            source_file = left if (right.isdigit() and len(left) > 1) else source_context
+        else:
+            source_file = source_context
         normalized = row["term_normalized"]
         if normalized not in index:
             index[normalized] = {
@@ -772,4 +779,5 @@ def load_rules_for_lint_from_db(db_path: str) -> list[dict[str, str]]:
             "preferred": row["preferred"],
         }
         for row in payload["rows"]
+        if row.get("status") == "active"
     ]
