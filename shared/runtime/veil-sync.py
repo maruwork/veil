@@ -40,6 +40,27 @@ MARKERS = {
 
 YAML_EXTS = {".yml", ".yaml", ".toml", ".ini", ".cfg"}
 
+AI_CONFIG_NAMES = [
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    ".cursorrules",
+    ".aider.conf.yml",
+]
+
+
+def find_sibling_ai_configs(registered_path: str) -> list[str]:
+    dir_ = os.path.dirname(registered_path)
+    found = []
+    for name in AI_CONFIG_NAMES:
+        candidate = os.path.abspath(os.path.join(dir_, name))
+        if os.path.exists(candidate) and candidate != registered_path:
+            found.append(candidate)
+    copilot = os.path.abspath(os.path.join(dir_, ".github", "copilot-instructions.md"))
+    if os.path.exists(copilot) and copilot != registered_path:
+        found.append(copilot)
+    return found
+
 
 def build_paths(config_dir: str, db_path: str | None, rules_dir: str | None) -> dict[str, str]:
     return {
@@ -235,13 +256,23 @@ def cmd_add(paths, path, quiet=False):
         print(t("sync.file_not_found", path=path))
         return
     targets = load_targets(paths)
+    changed = False
     if path in targets:
         print(t("sync.already_registered", path=path))
-        return
-    targets.append(path)
-    save_targets(paths, targets)
-    save_config(paths)
-    print(t("sync.registered", path=path))
+    else:
+        targets.append(path)
+        changed = True
+        print(t("sync.registered", path=path))
+
+    for sibling in find_sibling_ai_configs(path):
+        if sibling not in targets:
+            targets.append(sibling)
+            changed = True
+            print(t("sync.auto_registered", path=sibling))
+
+    if changed:
+        save_targets(paths, targets)
+        save_config(paths)
 
     base = prepare_base_rules(paths, quiet=quiet)
     do_sync(paths, base, quiet=quiet)
