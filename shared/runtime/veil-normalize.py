@@ -17,6 +17,7 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -82,7 +83,7 @@ def parse_candidate_lines(text: str) -> list[str]:
     return candidates
 
 
-def load_rule_index(rules_dir: str) -> tuple[dict[str, dict[str, str]], list[dict[str, object]]]:
+def load_rule_index(rules_dir: str) -> tuple[dict[str, dict[str, str]], list[dict[str, Any]]]:
     if not os.path.isdir(rules_dir):
         return {}, []
     index: dict[str, dict[str, str]] = {}
@@ -129,7 +130,7 @@ def load_rule_index(rules_dir: str) -> tuple[dict[str, dict[str, str]], list[dic
     return index, conflicts
 
 
-def load_rule_index_for_source(rules_dir: str, db_path: str | None) -> tuple[str, dict[str, dict[str, str]], list[dict[str, object]]]:
+def load_rule_index_for_source(rules_dir: str, db_path: str | None) -> tuple[str, dict[str, dict[str, str]], list[dict[str, Any]]]:
     if db_path:
         index, conflicts = load_rule_index_from_db(db_path)
         return db_path, index, conflicts
@@ -144,7 +145,7 @@ def choose_display_variant(variant_counts: dict[str, int]) -> str:
     )[0]
 
 
-def cluster_candidates(candidates: list[str], rule_index: dict[str, dict[str, str]]) -> list[dict[str, object]]:
+def cluster_candidates(candidates: list[str], rule_index: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
     grouped_counts: dict[str, dict[str, int]] = {}
     grouped_totals: dict[str, int] = {}
     for term in candidates:
@@ -155,7 +156,7 @@ def cluster_candidates(candidates: list[str], rule_index: dict[str, dict[str, st
         variants = grouped_counts.setdefault(key, {})
         variants[term] = variants.get(term, 0) + 1
 
-    results: list[dict[str, object]] = []
+    results: list[dict[str, Any]] = []
     for key in sorted(grouped_counts, key=lambda item: (-grouped_totals[item], item)):
         variant_counts = grouped_counts[key]
         variants = sorted(
@@ -191,7 +192,7 @@ def cluster_candidates(candidates: list[str], rule_index: dict[str, dict[str, st
     return results
 
 
-def print_conflicts(conflicts: list[dict[str, object]]) -> None:
+def print_conflicts(conflicts: list[dict[str, Any]]) -> None:
     for conflict in conflicts:
         selected = conflict["selected"]
         ignored = ", ".join(
@@ -219,7 +220,7 @@ def compact_source_label(source_label: str) -> str:
     return tail or source_label
 
 
-def print_text_result(results: list[dict[str, object]], source_label: str) -> None:
+def print_text_result(results: list[dict[str, Any]], source_label: str) -> None:
     print(t("normalize.source_label", label=compact_source_label(source_label)))
     if not results:
         print(t("normalize.no_candidates"))
