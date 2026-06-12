@@ -18,6 +18,7 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
+from typing import Any
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -92,8 +93,8 @@ def empty_counts() -> dict[str, int]:
     }
 
 
-def summarize_rules_dir(rules_dir: str) -> dict[str, object]:
-    file_reports: list[dict[str, object]] = []
+def summarize_rules_dir(rules_dir: str) -> dict[str, Any]:
+    file_reports: list[dict[str, Any]] = []
     summary = empty_counts() | {"files": 0, "legacy_files": 0}
 
     for fname in sorted(os.listdir(rules_dir)):
@@ -149,7 +150,7 @@ def default_output_dir(profile_name: str) -> str:
     return os.path.join(os.getcwd(), "workspace", "profile-exports", profile_name)
 
 
-def load_base_manifest(path: str) -> dict[str, object]:
+def load_base_manifest(path: str) -> dict[str, Any]:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
@@ -161,7 +162,7 @@ def export_profile(
     domain: str,
     intended_use: str,
     base_profile: str,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     if not os.path.isdir(rules_dir):
         return {
             "status": "error",
@@ -219,7 +220,7 @@ def export_profile(
     }
 
 
-def print_text(payload: dict[str, object]) -> None:
+def print_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         print(f"ERROR: {t(str(payload['reason']))} ({payload['rules_dir']})")
         return
