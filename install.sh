@@ -51,4 +51,21 @@ echo "[OK] config.json  veil_root=$REPO_DIR"
 echo "[OK] config.json  lang=$DETECTED_LANG"
 
 echo ""
+echo "Registering sync targets..."
+_veil_try_add() {
+  if [ -f "$1" ]; then
+    python3 "$SYNC_SCRIPT" --add "$1"
+  fi
+}
+# Global Claude Code config (siblings like AGENTS.md auto-registered if present)
+_veil_try_add "$HOME/.claude/CLAUDE.md"
+# Project-level: if install.sh was run from a project directory
+if [ "$PWD" != "$REPO_DIR" ]; then
+  for _name in CLAUDE.md AGENTS.md GEMINI.md .cursorrules .aider.conf.yml; do
+    _veil_try_add "$PWD/$_name"
+  done
+  _veil_try_add "$PWD/.github/copilot-instructions.md"
+fi
+
+echo ""
 echo "done."
