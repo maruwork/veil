@@ -128,7 +128,7 @@ cd $env:USERPROFILE\tools\veil
 
 ### 1. Install the skill
 
-Copies skill files to the tool directories and writes `sync_script` and `veil_root` to `~/.veil/config.json`.
+Copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
 
 ```bash
 bash install.sh
@@ -162,14 +162,13 @@ Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\vei
 
 ### 2. Register sync target files
 
-Register the AI tool config files that VEIL should push vocabulary rules into.
+`install.sh` automatically registers AI config files found in `~/.claude/` and the directory it is run from. To register additional files:
 
 ```bash
 python shared/runtime/veil-sync.py --add /path/to/CLAUDE.md
-python shared/runtime/veil-sync.py --add /path/to/AGENTS.md
 ```
 
-The rules are applied immediately on registration. Supported tools:
+Siblings in the same directory (AGENTS.md, GEMINI.md, .cursorrules, etc.) are auto-registered alongside the given file. The rules are applied immediately on registration. Supported tools:
 
 | Tool | Config file | Marker format |
 |------|-------------|---------------|
@@ -309,7 +308,7 @@ The markdown mirror under `~/.veil/rules/` can also be read or edited directly:
 - update path → update path (keep)
 ```
 
-After editing a mirror file directly, run `import-rules` to reload it into the canonical DB, then `export-html` and `veil-sync.py` to propagate.
+After editing a mirror file directly, run `import-rules` to reload it into the canonical DB, then `export-html` and `veil-sync.py` to propagate. **`import-rules` replaces all existing rules in the DB** — a warning is printed before execution.
 
 ### Update sync targets manually
 
