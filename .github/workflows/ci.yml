@@ -21,8 +21,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Syntax check
         run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
+
+      - name: pytest
+        run: python -m pytest tests/ -q
 
       - name: init-db
         run: python shared/tools/veil-db.py init-db --db /tmp/veil_test.db

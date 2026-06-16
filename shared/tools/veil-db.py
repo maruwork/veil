@@ -49,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_RULES_DIR,
         help=t("db.import_rules_dir_help"),
     )
+    import_parser.add_argument("--yes", action="store_true", help=t("db.import_rules_yes_help"))
     import_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
     readback_parser = subparsers.add_parser("readback", help=t("db.readback_help"))
@@ -167,7 +168,13 @@ def main() -> int:
         return 0
 
     if args.command == "import-rules":
-        print(f"WARNING: import-rules replaces all existing rules in {args.db}. Ctrl-C to abort.", file=sys.stderr)
+        if not args.yes:
+            print(t("db.import_rules_confirm", db=args.db), file=sys.stderr)
+            try:
+                input()
+            except (EOFError, KeyboardInterrupt):
+                print(t("db.import_rules_aborted"), file=sys.stderr)
+                return 1
         payload = replace_rules_from_markdown(args.db, args.rules_dir)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))

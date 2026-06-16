@@ -12,19 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.0.1] - 2026-06-16
+
 ### Added
 - `locale/en.json` and `locale/ja.json` — locale string files covering all 7 Python runtime/tool files
 - `shared/tools/veil_locale.py` — `detect_lang()` (env var → `~/.veil/config.json` → OS locale → `en` fallback) and `t(key, **kwargs)` for locale-aware terminal output
 - Language override via `VEIL_LANG` environment variable or `lang` key in `~/.veil/config.json`
+- `install.ps1` — Windows PowerShell installer; auto-registers AI config files in `~/.claude/` and the run directory
+- `veil-sync.py --remove --purge` — removes the VEIL block from the target file on unregistration
+- `veil-db.py import-rules --yes` — skips the confirmation prompt for scripted use; without `--yes`, prompts interactively and aborts on non-TTY
+- `~/.veil/behavior.md` — optional plain-text file injected into every sync target alongside vocabulary rules; documented in README
+- `tests/` — pytest unit test suite covering `veil-db`, `veil-lint`, `veil-normalize`, and `veil-sync`
+- `.github/workflows/ci.yml` — CI smoke tests across Python 3.8, 3.11, 3.12; added `--purge` and `behavior.md` injection test steps
+- `pyrightconfig.json` and `pytest.ini`
 
 ### Changed
 - All Japanese terminal output strings in `veil-sync.py`, `veil-status.py`, `veil-lint.py`, `veil-normalize.py`, `veil-db.py`, `veil-profile-audit.py`, `veil-profile-export.py` replaced with `t()` calls
 - Output language now follows OS locale automatically (Japanese users get Japanese, English users get English, no configuration required)
 - `veil-sync.py`: renamed loop variable `t` → `target` to avoid shadowing the imported `t()` function
-- `README.md` and `docs/veil-design.md` rewritten in English
+- `README.md` updated: Before/After example, behavior.md section, Windows install option, `--remove --purge` reference, `~/.veil/profile-exports/` default path
 - `LEVEL_REQUIRED`, `LEVEL_RECOMMENDED`, `LEVEL_OBSERVE` constants in `veil-profile-export.py` kept as Japanese — they match section headings in rules files (`## 必須` etc.) and are part of the file format, not output strings
-- **veil-capture restructured**: replaced 11-step procedure list with a 3-section structure (output spec / adoption criteria / post-selection processing); intermediate output structurally suppressed
+- **veil-capture restructured**: replaced 11-step procedure list with a 3-section structure (output spec / adoption criteria / post-selection processing); intermediate output structurally suppressed; step 4 now auto-detects and registers sync targets when list is empty
 - **pending concept removed**: unified to adopt/skip binary; all VEIL-specific pending references removed from docs and skill files
+- `veil-lint.py`: normalized key conflict detection now uses `normalize_term()` to match DB behavior
+- `veil_rule_store.py`: added `UNIQUE` constraint on `term_normalized`; `parse_preferred_variants` strips English `(candidate N)` labels; inactive rules filtered in `load_rules_for_lint_from_db`
+- Profile-export default output path changed from `workspace/profile-exports/` to `~/.veil/profile-exports/`
+- `veil-db.py`: `import-rules` now shows a confirmation prompt; `--yes` flag skips it
 
 ---
 
