@@ -5,7 +5,7 @@ veil-profile-export: Non-destructively export VEIL current profile.
 Usage:
   python shared/tools/veil-profile-export.py --profile-name technical-writing-default
   python shared/tools/veil-profile-export.py --domain finance --base-profile technical-writing-default
-  python shared/tools/veil-profile-export.py --base-manifest workspace/profile-exports/technical-writing-default/manifest.json --profile-name medical-guardrail --domain medical
+  python shared/tools/veil-profile-export.py --base-manifest ~/.veil/profile-exports/technical-writing-default/manifest.json --profile-name medical-guardrail --domain medical
   python shared/tools/veil-profile-export.py --rules-dir <path> --output-dir <path>
   python shared/tools/veil-profile-export.py --json
 """

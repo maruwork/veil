@@ -213,14 +213,14 @@ python shared/runtime/veil-status.py --json
 
 ```bash
 python shared/tools/veil-profile-audit.py
-python shared/tools/veil-profile-audit.py --db workspace/veil_stage1_smoke.db
-python shared/runtime/veil-normalize.py --text "current state" --db workspace/veil_stage1_smoke.db --json
-python shared/runtime/veil-lint.py --text "current state" --db workspace/veil_stage1_smoke.db
-python shared/tools/veil-db.py init-db --db workspace/veil_stage1_smoke.db
-python shared/tools/veil-db.py import-rules --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_rules_fixture
-python shared/tools/veil-db.py readback --db workspace/veil_stage1_smoke.db --json
-python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db --term "current state" --preferred "present state"
-python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_mirror
+python shared/tools/veil-profile-audit.py --db /tmp/veil_smoke.db
+python shared/runtime/veil-normalize.py --text "current state" --db /tmp/veil_smoke.db --json
+python shared/runtime/veil-lint.py --text "current state" --db /tmp/veil_smoke.db
+python shared/tools/veil-db.py init-db --db /tmp/veil_smoke.db
+python shared/tools/veil-db.py import-rules --db /tmp/veil_smoke.db --rules-dir /tmp/veil_smoke_rules --yes
+python shared/tools/veil-db.py readback --db /tmp/veil_smoke.db --json
+python shared/tools/veil-db.py upsert-rule --db /tmp/veil_smoke.db --term "current state" --preferred "present state"
+python shared/tools/veil-db.py export-mirror --db /tmp/veil_smoke.db --rules-dir /tmp/veil_smoke_mirror
 python shared/tools/veil-db.py export-html
 ```
 
