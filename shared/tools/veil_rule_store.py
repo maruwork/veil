@@ -187,7 +187,7 @@ SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS rules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     term_original TEXT NOT NULL,
-    term_normalized TEXT NOT NULL,
+    term_normalized TEXT NOT NULL UNIQUE,
     preferred TEXT NOT NULL,
     preferred_alt_2 TEXT,
     preferred_alt_3 TEXT,
@@ -213,7 +213,7 @@ def first_preferred(rhs: str) -> str:
 def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | None]:
     parts = []
     for raw in re.split(r"[、,|]", rhs):
-        cleaned = re.sub(r"[（(](?:候補\d+|keep)[)）]", "", raw).strip()
+        cleaned = re.sub(r"[（(](?:候補\d+|candidate\s*\d+|keep)[)）]", "", raw).strip()
         if cleaned:
             parts.append(cleaned)
     while len(parts) < 3:

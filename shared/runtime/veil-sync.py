@@ -133,7 +133,7 @@ def load_base_rules(rules_dir):
         if not fname.endswith(".md"):
             continue
         try:
-            with open(os.path.join(rules_dir, fname), encoding="utf-8") as f:
+            with open(os.path.join(rules_dir, fname), encoding="utf-8-sig") as f:
                 content = f.read().strip()
             if content:
                 parts.append(content)

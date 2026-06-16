@@ -32,12 +32,6 @@ def detect_lang() -> str:
         loc = ""
     if loc.startswith("ja"):
         return "ja"
-    if loc.startswith("ko"):
-        return "ko"
-    if loc.startswith("zh_TW") or loc.startswith("zh_HK"):
-        return "zh_TW"
-    if loc.startswith("zh"):
-        return "zh_CN"
     return "en"
 
 

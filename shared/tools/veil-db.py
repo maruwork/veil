@@ -35,7 +35,7 @@ except ModuleNotFoundError:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="VEIL SQLite Stage 1 support CLI")
+    parser = argparse.ArgumentParser(description="VEIL SQLite canonical CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init-db", help=t("db.init_db_help"))
@@ -167,6 +167,7 @@ def main() -> int:
         return 0
 
     if args.command == "import-rules":
+        print(f"WARNING: import-rules replaces all existing rules in {args.db}. Ctrl-C to abort.", file=sys.stderr)
         payload = replace_rules_from_markdown(args.db, args.rules_dir)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))

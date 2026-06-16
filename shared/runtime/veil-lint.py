@@ -32,6 +32,7 @@ from shared.tools.veil_rule_store import (
     RULE_LINE_RE,
     first_preferred,
     load_rules_for_lint_from_db,
+    normalize_term,
     simple_singularize_token,
 )
 from shared.tools.veil_locale import t
@@ -61,10 +62,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def canonical_original(term: str) -> str:
-    return re.sub(r"[\s\-_]+", " ", term.strip().lower())
-
-
 def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
     if not os.path.isdir(rules_dir):
         return [], []
@@ -89,7 +86,7 @@ def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, Any
             preferred = first_preferred(match.group("preferred"))
             if not original or not preferred:
                 continue
-            key = canonical_original(original)
+            key = normalize_term(original)
             entry = {
                 "original": original,
                 "preferred": preferred,

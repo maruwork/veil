@@ -67,13 +67,14 @@ Read `~/.veil/config.json` to get `veil_root` (the absolute path to the veil rep
    If `~/.veil/veil.db` does not exist, first run `python {veil_root}/shared/tools/veil-db.py init-db --db ~/.veil/veil.db`.
 2. Regenerate the mirror using `python {veil_root}/shared/tools/veil-db.py export-mirror`.
 3. Regenerate the HTML using `python {veil_root}/shared/tools/veil-db.py export-html`.
-4. Check if any sync targets are registered with `python {sync_script} --list`.
+4. Read `sync_script` from `~/.veil/config.json`.
+   Check if any sync targets are registered with `python {sync_script} --list`.
    If no targets are listed, scan the current working directory for AI config files
    (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, .aider.conf.yml, .github/copilot-instructions.md)
    and register the first found with `python {sync_script} --add <path>` (siblings auto-register).
    Then run `python {sync_script}`.
 5. Output confirmation (expand `~` to the actual absolute home directory path):
    - en: `{selected} registered. To review or modify terms, see [veil.html](file://<home>/.veil/veil.html).`
-   - ja: `{selected}で登録しました。登録語句を閲覧また修正したい場合は、[veil.html](file://<home>/.veil/veil.html)で確認してください。`
+   - ja: `{selected}で登録しました。登録語句を閲覧や修正したい場合は、[veil.html](file://<home>/.veil/veil.html)で確認してください。`
 
 Report failure in one line and stop only if steps 1–4 fail.

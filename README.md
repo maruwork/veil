@@ -116,13 +116,13 @@ Clone to a fixed location on your machine. VEIL is a global tool, not a per-proj
 
 ```bash
 # macOS / Linux
-git clone https://github.com/fumimaruwork/veil.git ~/tools/veil
+git clone https://github.com/maruwork/veil.git ~/tools/veil
 cd ~/tools/veil
 ```
 
 ```powershell
 # Windows (PowerShell)
-git clone https://github.com/fumimaruwork/veil.git $env:USERPROFILE\tools\veil
+git clone https://github.com/maruwork/veil.git $env:USERPROFILE\tools\veil
 cd $env:USERPROFILE\tools\veil
 ```
 
