@@ -33,8 +33,12 @@ SKILL_CLAUDE = os.path.expanduser("~/.claude/commands/veil-capture.md")
 SKILL_CODEX = os.path.expanduser("~/.agents/skills/veil-capture/SKILL.md")
 
 
+VEIL_VERSION = "1.0.0"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=t("status.description"))
+    parser.add_argument("--version", action="version", version=f"veil {VEIL_VERSION}")
     parser.add_argument("--check", action="store_true", help=t("status.check_help"))
     parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("status.db_help"))
     parser.add_argument("--json", dest="json_output", action="store_true", help=t("status.json_help"))

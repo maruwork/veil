@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Syntax check
+        run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
+
+      - name: init-db
+        run: python shared/tools/veil-db.py init-db --db /tmp/veil_test.db
+
+      - name: upsert-rule
+        run: |
+          python shared/tools/veil-db.py upsert-rule \
+            --db /tmp/veil_test.db \
+            --term "current state" \
+            --preferred "present state" \
+            --preferred-alt-2 "current status"
+
+      - name: export-mirror
+        run: python shared/tools/veil-db.py export-mirror --db /tmp/veil_test.db --rules-dir /tmp/veil_rules_test
+
+      - name: export-html
+        run: python shared/tools/veil-db.py export-html --db /tmp/veil_test.db
+
+      - name: lint hit
+        run: |
+          python shared/runtime/veil-lint.py \
+            --db /tmp/veil_test.db \
+            --text "The current state of the system" \
+            --json | python -c "import json,sys; r=json.load(sys.stdin); assert r['violations'], 'expected violation not found'"
+
+      - name: lint clean
+        run: |
+          python shared/runtime/veil-lint.py \
+            --db /tmp/veil_test.db \
+            --text "The present state of the system" \
+            --json | python -c "import json,sys; r=json.load(sys.stdin); assert not r['violations'], 'unexpected violation'"
+
+      - name: normalize
+        run: |
+          python shared/runtime/veil-normalize.py \
+            --db /tmp/veil_test.db \
+            --text "current states"
+
+      - name: version
+        run: python shared/runtime/veil-status.py --version

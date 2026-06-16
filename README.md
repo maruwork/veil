@@ -369,14 +369,14 @@ python shared/tools/veil-profile-audit.py --db workspace/veil_stage1_smoke.db
 
 ### SQLite support route
 
-The SQLite canonical support CLI is `shared/tools/veil-db.py`. To verify with a workspace fixture:
+The SQLite canonical support CLI is `shared/tools/veil-db.py`. Common operations:
 
 ```bash
-python shared/tools/veil-db.py init-db --db workspace/veil_stage1_smoke.db
-python shared/tools/veil-db.py import-rules --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_rules_fixture
-python shared/tools/veil-db.py readback --db workspace/veil_stage1_smoke.db --json
-python shared/tools/veil-db.py upsert-rule --db workspace/veil_stage1_smoke.db --term "current state" --preferred "present state"
-python shared/tools/veil-db.py export-mirror --db workspace/veil_stage1_smoke.db --rules-dir workspace/veil_stage1_mirror
+python shared/tools/veil-db.py init-db                        # initialize ~/.veil/veil.db
+python shared/tools/veil-db.py upsert-rule --term "foo" --preferred "bar"
+python shared/tools/veil-db.py readback --json
+python shared/tools/veil-db.py export-mirror                  # regenerate ~/.veil/rules/
+python shared/tools/veil-db.py export-html                    # regenerate ~/.veil/veil.html
 ```
 
 ### Export the current profile
