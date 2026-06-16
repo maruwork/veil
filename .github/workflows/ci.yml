@@ -61,5 +61,31 @@ jobs:
             --db /tmp/veil_test.db \
             --text "current states"
 
+      - name: sync and purge
+        run: |
+          echo "# test" > /tmp/veil_purge_target.md
+          python shared/runtime/veil-sync.py \
+            --db /tmp/veil_test.db \
+            --rules-dir /tmp/veil_rules_test \
+            --add /tmp/veil_purge_target.md
+          grep -q "VEIL_START" /tmp/veil_purge_target.md
+          python shared/runtime/veil-sync.py \
+            --db /tmp/veil_test.db \
+            --rules-dir /tmp/veil_rules_test \
+            --remove /tmp/veil_purge_target.md --purge
+          ! grep -q "VEIL_START" /tmp/veil_purge_target.md
+
+      - name: behavior.md injection
+        run: |
+          mkdir -p ~/.veil
+          echo "Test behavior rule." > ~/.veil/behavior.md
+          echo "# target" > /tmp/veil_behavior_target.md
+          python shared/runtime/veil-sync.py \
+            --db /tmp/veil_test.db \
+            --rules-dir /tmp/veil_rules_test \
+            --add /tmp/veil_behavior_target.md
+          grep -q "Test behavior rule" /tmp/veil_behavior_target.md
+          rm ~/.veil/behavior.md
+
       - name: version
         run: python shared/runtime/veil-status.py --version

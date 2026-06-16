@@ -142,7 +142,7 @@
     "domain_help": "profile の対象 domain。既定: technical-writing",
     "intended_use_help": "profile の intended use。既定: AI-assisted technical writing terminology guardrail",
     "base_profile_help": "派生元 profile 名。既定: none",
-    "output_dir_help": "export 先 directory。既定: workspace/profile-exports/<profile-name>",
+    "output_dir_help": "export 先 directory。既定: ~/.veil/profile-exports/<profile-name>",
     "json_help": "JSON 形式で結果を出力する。",
     "rules_dir_not_found": "rules directory が見つかりません。"
   }

@@ -142,7 +142,7 @@
     "domain_help": "Target domain. Default: technical-writing",
     "intended_use_help": "Intended use. Default: AI-assisted technical writing terminology guardrail",
     "base_profile_help": "Base profile name. Default: none",
-    "output_dir_help": "Export target directory. Default: workspace/profile-exports/<profile-name>",
+    "output_dir_help": "Export target directory. Default: ~/.veil/profile-exports/<profile-name>",
     "json_help": "Output in JSON format.",
     "rules_dir_not_found": "rules directory not found."
   }

@@ -12,6 +12,12 @@ VEIL is a terminology guardrail for AI-assisted technical writing. It captures v
 
 The problem it solves: AI tools invent English terms, coin abbreviations, or use inconsistent phrasing. You correct it, but the next session starts fresh. Technical documents and explanations keep drifting.
 
+**Before VEIL:** AI uses "current state" in a response. You correct it to "present state". Next session, the AI uses "current state" again. Every session requires the same correction.
+
+**After VEIL:** "present state" is registered as the preferred form. VEIL syncs the rule to `CLAUDE.md` / `AGENTS.md`. The next session, the AI reads the rule and outputs "present state" from the start — no re-correction needed.
+
+**Success condition:** once a term is registered, it does not require re-explanation or correction across sessions or AI tools.
+
 The more AI is in your workflow, the worse this gets. VEIL is not a static style guide — it runs a `capture → normalize → sync → lint` loop to enforce vocabulary consistency. Zero dependencies, fully local.
 
 **The canonical source of truth is `~/.veil/veil.db`. `~/.veil/rules/` is the AI-readable markdown surface and mirror. `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` are sync targets, not storage.**
@@ -85,6 +91,21 @@ Enforce tightly only at the key points, not everywhere:
 | `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror / export-html` |
 
 `shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert, generates the markdown mirror, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
+
+### AI behavior rules
+
+`~/.veil/behavior.md` is an optional plain-text file. When present, its content is appended to every sync target alongside vocabulary rules. Use it to enforce output behavior that is not term-specific: tone, code style, response format, language constraints.
+
+Example:
+
+```
+Do not use compound English words mixed into Japanese sentences.
+Respond to Japanese prompts in Japanese.
+```
+
+Create the file manually — VEIL reads it automatically during sync. Vocabulary rules in `~/.veil/rules/` and behavior rules in `~/.veil/behavior.md` are kept separate so each can evolve independently.
+
+---
 
 ### Core and profile
 
