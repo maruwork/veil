@@ -31,6 +31,8 @@
     "not_registered": "Not registered: {path}",
     "unregistered": "Unregistered: {path}",
     "auto_registered": "Auto-registered: {path}",
+    "purge_help": "Also remove the VEIL block from the target file when unregistering.",
+    "block_removed": "  VEIL block removed: {path}",
     "rules_section_header": "Terminology rules:\n"
   },
   "status": {

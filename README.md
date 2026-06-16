@@ -131,7 +131,13 @@ cd $env:USERPROFILE\tools\veil
 Copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
 
 ```bash
+# macOS / Linux
 bash install.sh
+```
+
+```powershell
+# Windows (PowerShell)
+.\install.ps1
 ```
 
 To install manually:
@@ -316,7 +322,8 @@ After editing a mirror file directly, run `import-rules` to reload it into the c
 python shared/runtime/veil-sync.py              # update all sync targets
 python shared/runtime/veil-sync.py --list       # list registered targets
 python shared/runtime/veil-sync.py --add <path> # register a sync target
-python shared/runtime/veil-sync.py --remove <path> # unregister a sync target
+python shared/runtime/veil-sync.py --remove <path>          # unregister a sync target
+python shared/runtime/veil-sync.py --remove <path> --purge  # unregister and remove VEIL block from file
 ```
 
 ### Check vocabulary before sending
@@ -362,7 +369,7 @@ Check rule count and any remaining legacy flat rules in `~/.veil/rules/` using `
 ```bash
 python shared/tools/veil-profile-audit.py
 python shared/tools/veil-profile-audit.py --json
-python shared/tools/veil-profile-audit.py --db workspace/veil_stage1_smoke.db
+python shared/tools/veil-profile-audit.py --db ~/.veil/veil.db
 ```
 
 `audit`, `normalize`, and `lint` all accept `--db` to read from a SQLite source. `veil-normalize.py` maintains the existing-match return format and allows distinguishing the source via `source_type` and `source` in JSON output. `veil-lint.py` keeps `rules-dir` compatibility and maintains the `violation / clean / skip` return contract and exit codes.
@@ -386,10 +393,10 @@ To cut the current default profile as a domain profile pack:
 ```bash
 python shared/tools/veil-profile-export.py --profile-name technical-writing-default
 python shared/tools/veil-profile-export.py --profile-name finance-guardrail --domain finance --base-profile technical-writing-default
-python shared/tools/veil-profile-export.py --profile-name technical-writing-default --output-dir workspace/profile-exports/custom-pack
+python shared/tools/veil-profile-export.py --profile-name technical-writing-default --output-dir ~/my-exports/custom-pack
 ```
 
-By default, output goes to `workspace/profile-exports/<profile-name>/`:
+By default, output goes to `~/.veil/profile-exports/<profile-name>/`:
 
 - `*.md` rule files
 - `manifest.json`
@@ -399,7 +406,7 @@ This is a read-only export — it does not modify the canonical route or `~/.vei
 To branch from an existing pack:
 
 ```bash
-python shared/tools/veil-profile-export.py --base-manifest workspace/profile-exports/technical-writing-default/manifest.json --profile-name medical-guardrail --domain medical
+python shared/tools/veil-profile-export.py --base-manifest ~/.veil/profile-exports/technical-writing-default/manifest.json --profile-name medical-guardrail --domain medical
 ```
 
 ---

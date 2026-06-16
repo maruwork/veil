@@ -86,6 +86,7 @@ def build_parser():
     group.add_argument("--add", metavar="PATH", help=t("sync.add_help"))
     group.add_argument("--list", action="store_true", help=t("sync.list_help"))
     group.add_argument("--remove", metavar="PATH", help=t("sync.remove_help"))
+    parser.add_argument("--purge", action="store_true", help=t("sync.purge_help"))
     return parser
 
 
@@ -296,7 +297,30 @@ def cmd_list(paths):
         print(f"  [{status}] {target}")
 
 
-def cmd_remove(paths, path):
+def _remove_veil_block(path: str) -> bool:
+    marker_start, marker_end = get_markers(path)
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        pattern = r"\n*" + re.escape(marker_start) + r".*?" + re.escape(marker_end) + r"\n?"
+        new_content = re.sub(pattern, "", content, flags=re.DOTALL)
+        if new_content == content:
+            return False
+        new_content = new_content.rstrip("\n") + "\n"
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(new_content)
+            shutil.move(tmp, path)
+        except Exception:
+            os.unlink(tmp)
+            raise
+        return True
+    except OSError:
+        return False
+
+
+def cmd_remove(paths, path, purge: bool = False):
     path = os.path.abspath(path)
     targets = load_targets(paths)
     if path not in targets:
@@ -304,6 +328,10 @@ def cmd_remove(paths, path):
         return
     targets.remove(path)
     save_targets(paths, targets)
+    if purge and os.path.exists(path):
+        removed = _remove_veil_block(path)
+        if removed:
+            print(t("sync.block_removed", path=path))
     print(t("sync.unregistered", path=path))
 
 
@@ -316,6 +344,6 @@ if __name__ == "__main__":
     elif args.list:
         cmd_list(paths)
     elif args.remove:
-        cmd_remove(paths, args.remove)
+        cmd_remove(paths, args.remove, purge=args.purge)
     else:
         cmd_sync(paths, quiet=args.quiet)

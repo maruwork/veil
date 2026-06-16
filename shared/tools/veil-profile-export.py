@@ -147,7 +147,7 @@ def summarize_rules_dir(rules_dir: str) -> dict[str, Any]:
 
 
 def default_output_dir(profile_name: str) -> str:
-    return os.path.join(os.getcwd(), "workspace", "profile-exports", profile_name)
+    return os.path.join(os.path.expanduser("~/.veil"), "profile-exports", profile_name)
 
 
 def load_base_manifest(path: str) -> dict[str, Any]:
