@@ -111,37 +111,52 @@ The current default profile is for technical writing.
 
 ## Setup
 
-Requires Python 3.8 or later.
+Requires Python 3.8 or later and Git.
 
-Clone to a fixed location on your machine. VEIL is a global tool, not a per-project dependency.
+### One-liner install
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/maruwork/veil/main/get-veil.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/maruwork/veil/main/get-veil.ps1 | iex
+```
+
+Clones the repo to `~/tools/veil` (macOS/Linux) or `%USERPROFILE%\tools\veil` (Windows), then runs the installer. Re-running updates the existing install via `git pull`.
+
+To use a different location:
+
+```bash
+VEIL_REPO=~/dev/veil bash <(curl -fsSL https://raw.githubusercontent.com/maruwork/veil/main/get-veil.sh)
+```
+
+```powershell
+$env:VEIL_REPO = "$env:USERPROFILE\dev\veil"
+irm https://raw.githubusercontent.com/maruwork/veil/main/get-veil.ps1 | iex
+```
+
+### Manual install
+
+Clone to a fixed location, then run the installer:
 
 ```bash
 # macOS / Linux
 git clone https://github.com/maruwork/veil.git ~/tools/veil
-cd ~/tools/veil
+bash ~/tools/veil/install.sh
 ```
 
 ```powershell
 # Windows (PowerShell)
 git clone https://github.com/maruwork/veil.git $env:USERPROFILE\tools\veil
-cd $env:USERPROFILE\tools\veil
+& "$env:USERPROFILE\tools\veil\install.ps1"
 ```
 
-### 1. Install the skill
+The installer copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, initializes `~/.veil/veil.db`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
 
-Copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
-
-```bash
-# macOS / Linux
-bash install.sh
-```
-
-```powershell
-# Windows (PowerShell)
-.\install.ps1
-```
-
-To install manually:
+To install skill files only without the installer:
 
 **Claude Code**
 
@@ -439,6 +454,8 @@ veil/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
+├── get-veil.sh                           # one-liner installer (macOS / Linux)
+├── get-veil.ps1                          # one-liner installer (Windows)
 ├── install.sh                            # skill file deploy script (macOS / Linux)
 ├── install.ps1                           # skill file deploy script (Windows)
 ├── pytest.ini                            # pytest configuration
