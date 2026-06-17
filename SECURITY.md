@@ -13,7 +13,13 @@ VEIL is currently maintained as a single active release line.
 
 If you believe you found a security problem in VEIL, do not include exploit details or sensitive data in a public issue.
 
-Please contact the repository owner through the GitHub account that maintains this repository and include:
+Use **Private vulnerability reporting** on the hosted repository:
+
+https://github.com/maruwork/veil/security/advisories/new
+
+You can also open a private security advisory from the repository **Security** tab.
+
+When reporting, include:
 
 - affected version or commit
 - reproduction steps

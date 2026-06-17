@@ -14,6 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.4] - 2026-06-17
+
+### Added
+- `SUPPORT.md` — documentation, issue routing, and security intake pointers
+- `.github/dependabot.yml` — monthly GitHub Actions dependency updates
+- `.github/workflows/codeql.yml` — CodeQL analysis on push, pull request, and weekly schedule
+- `.github/ISSUE_TEMPLATE/feature_request.md` and `config.yml` — feature requests and security advisory link
+- `audit.manifest.yml` — tracked quickstart manifest with `run_windows` / `run_unix` for repeat audits
+- `tests/test_profile.py` — pytest coverage for `veil-profile-audit.py` and `veil-profile-export.py`
+
+### Changed
+- `SECURITY.md` — private vulnerability reporting URL for `maruwork/veil`
+- `CONTRIBUTING.md` — cross-link to `SUPPORT.md`
+- `README.md` — community policy file list includes `SUPPORT.md`
+- `VEIL_VERSION` bumped to `1.0.4`
+
+### Fixed
+- `.github/workflows/ci.yml` (post-1.0.3): lint JSON written to temp file to avoid `pipefail` on Ubuntu CI
+- `.github/workflows/ci.yml` (post-1.0.3): added `permissions: contents: read` for CodeQL compatibility
+
+---
+
 ## [1.0.3] - 2026-06-17
 
 ### Fixed

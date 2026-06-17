@@ -5,6 +5,7 @@ Thank you for considering a contribution to VEIL.
 ## Before You Start
 
 - read `README.md`
+- read `SUPPORT.md` for issue routing
 - read `SECURITY.md` if the change may involve credentials, local files, or vulnerability behavior
 - check whether the issue already exists
 

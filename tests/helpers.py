@@ -44,7 +44,17 @@ def normalize_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess
 
 
 _STATUS_SCRIPT = os.path.join(PROJECT_ROOT, "shared", "runtime", "veil-status.py")
+_PROFILE_AUDIT_SCRIPT = os.path.join(PROJECT_ROOT, "shared", "tools", "veil-profile-audit.py")
+_PROFILE_EXPORT_SCRIPT = os.path.join(PROJECT_ROOT, "shared", "tools", "veil-profile-export.py")
 
 
 def status_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return _run(_STATUS_SCRIPT, *args, check=check)
+
+
+def profile_audit_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return _run(_PROFILE_AUDIT_SCRIPT, *args, check=check)
+
+
+def profile_export_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return _run(_PROFILE_EXPORT_SCRIPT, *args, check=check)

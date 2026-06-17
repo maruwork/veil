@@ -1,0 +1,23 @@
+version: 1
+workdir: in-place
+
+commands:
+  - id: version
+    run_windows: python shared/runtime/veil-status.py --version
+    run_unix: python shared/runtime/veil-status.py --version
+    expect_exit: 0
+
+  - id: pytest
+    run_windows: python -m pytest tests/ -q
+    run_unix: python -m pytest tests/ -q
+    expect_exit: 0
+
+  - id: lint-help
+    run_windows: python shared/runtime/veil-lint.py --help
+    run_unix: python shared/runtime/veil-lint.py --help
+    expect_exit: 0
+
+  - id: status
+    run_windows: python shared/runtime/veil-status.py
+    run_unix: python shared/runtime/veil-status.py
+    expect_exit: 0

@@ -488,11 +488,24 @@ veil/
 │   ├── test_lint.py
 │   ├── test_locale.py
 │   ├── test_normalize.py
+│   ├── test_profile.py
 │   ├── test_status.py
 │   └── test_sync.py
 └── docs/
     └── veil-design.md                   # design reference
 ```
+
+---
+
+## Community
+
+| File | Purpose |
+| --- | --- |
+| [SUPPORT.md](SUPPORT.md) | Documentation pointers, issue routing, scope |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution flow and PR expectations |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ---
 
