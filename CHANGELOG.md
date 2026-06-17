@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.3] - 2026-06-17
+
+### Fixed
+- `veil-status.py`: bumped `VEIL_VERSION` to `1.0.3` to match release tag
+- `tests/test_status.py`: updated `--version` assertion to `1.0.3`
+- `.github/workflows/ci.yml` windows job: added full smoke suite (init-db / upsert-rule / export-mirror / export-html / lint / normalize / sync-purge / behavior.md) using `shell: bash` and `$RUNNER_TEMP` for cross-platform path handling
+
+---
+
 ## [1.0.2] - 2026-06-17
 
 ### Fixed

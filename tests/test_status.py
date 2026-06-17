@@ -9,7 +9,7 @@ from .helpers import status_cmd
 
 def test_version():
     r = status_cmd("--version", check=False)
-    assert "1.0.1" in r.stdout
+    assert "1.0.3" in r.stdout
 
 
 def test_json_db_missing(tmp_path: Path):

@@ -33,7 +33,7 @@ SKILL_CLAUDE = os.path.expanduser("~/.claude/commands/veil-capture.md")
 SKILL_CODEX = os.path.expanduser("~/.agents/skills/veil-capture/SKILL.md")
 
 
-VEIL_VERSION = "1.0.1"
+VEIL_VERSION = "1.0.3"
 
 
 def parse_args() -> argparse.Namespace:

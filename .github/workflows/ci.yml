@@ -116,3 +116,79 @@ jobs:
 
       - name: pytest
         run: python -m pytest tests/ -q
+
+      - name: init-db
+        shell: bash
+        run: python shared/tools/veil-db.py init-db --db "$RUNNER_TEMP/veil_test.db"
+
+      - name: upsert-rule
+        shell: bash
+        run: |
+          python shared/tools/veil-db.py upsert-rule \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --term "current state" \
+            --preferred "present state" \
+            --preferred-alt-2 "current status"
+
+      - name: export-mirror
+        shell: bash
+        run: python shared/tools/veil-db.py export-mirror --db "$RUNNER_TEMP/veil_test.db" --rules-dir "$RUNNER_TEMP/veil_rules_test"
+
+      - name: export-html
+        shell: bash
+        run: python shared/tools/veil-db.py export-html --db "$RUNNER_TEMP/veil_test.db"
+
+      - name: lint hit
+        shell: bash
+        run: |
+          python shared/runtime/veil-lint.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --text "The current state of the system" \
+            --json | python -c "import json,sys; r=json.load(sys.stdin); assert r['violations'], 'expected violation not found'"
+
+      - name: lint clean
+        shell: bash
+        run: |
+          python shared/runtime/veil-lint.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --text "The present state of the system" \
+            --json | python -c "import json,sys; r=json.load(sys.stdin); assert not r['violations'], 'unexpected violation'"
+
+      - name: normalize
+        shell: bash
+        run: |
+          python shared/runtime/veil-normalize.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --text "current states"
+
+      - name: sync and purge
+        shell: bash
+        run: |
+          echo "# test" > "$RUNNER_TEMP/veil_purge_target.md"
+          python shared/runtime/veil-sync.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
+            --add "$RUNNER_TEMP/veil_purge_target.md"
+          grep -q "VEIL_START" "$RUNNER_TEMP/veil_purge_target.md"
+          python shared/runtime/veil-sync.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
+            --remove "$RUNNER_TEMP/veil_purge_target.md" --purge
+          ! grep -q "VEIL_START" "$RUNNER_TEMP/veil_purge_target.md"
+
+      - name: behavior.md injection
+        shell: bash
+        run: |
+          mkdir -p ~/.veil
+          echo "Test behavior rule." > ~/.veil/behavior.md
+          echo "# target" > "$RUNNER_TEMP/veil_behavior_target.md"
+          python shared/runtime/veil-sync.py \
+            --db "$RUNNER_TEMP/veil_test.db" \
+            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
+            --add "$RUNNER_TEMP/veil_behavior_target.md"
+          grep -q "Test behavior rule" "$RUNNER_TEMP/veil_behavior_target.md"
+          rm ~/.veil/behavior.md
+
+      - name: version
+        shell: bash
+        run: python shared/runtime/veil-status.py --version
