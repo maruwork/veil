@@ -41,3 +41,10 @@ def lint_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]
 
 def normalize_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return _run(_NORMALIZE_SCRIPT, *args, check=check)
+
+
+_STATUS_SCRIPT = os.path.join(PROJECT_ROOT, "shared", "runtime", "veil-status.py")
+
+
+def status_cmd(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return _run(_STATUS_SCRIPT, *args, check=check)
