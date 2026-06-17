@@ -30,7 +30,8 @@ $DetectedLang = "en"
 $LangRaw = $env:VEIL_LANG
 if (-not $LangRaw) { $LangRaw = $env:LANG }
 if (-not $LangRaw) { $LangRaw = (Get-WinSystemLocale).Name }
-if ($LangRaw -match "^ja") { $DetectedLang = "ja" }
+if ($LangRaw -match "^([A-Za-z]{2,3})") { $DetectedLang = $Matches[1].ToLower() }
+else { $DetectedLang = "en" }
 
 # Write config.json
 New-Item -ItemType Directory -Force -Path $VeilDir | Out-Null
@@ -53,6 +54,11 @@ $jsonContent = [PSCustomObject]$cfgHash | ConvertTo-Json
 Write-Host "[OK] config.json  sync_script=$SyncScriptFwd"
 Write-Host "[OK] config.json  veil_root=$RepoDirFwd"
 Write-Host "[OK] config.json  lang=$DetectedLang"
+
+Write-Host ""
+Write-Host "Initializing SQLite canonical DB..."
+python "$RepoDir\shared\tools\veil-db.py" init-db --db "$VeilDir\veil.db"
+Write-Host "[OK] veil.db       $VeilDir\veil.db"
 
 Write-Host ""
 Write-Host "Registering sync targets..."

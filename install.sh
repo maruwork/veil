@@ -51,6 +51,11 @@ echo "[OK] config.json  veil_root=$REPO_DIR"
 echo "[OK] config.json  lang=$DETECTED_LANG"
 
 echo ""
+echo "Initializing SQLite canonical DB..."
+python3 "$REPO_DIR/shared/tools/veil-db.py" init-db --db "$VEIL_DIR/veil.db"
+echo "[OK] veil.db       $VEIL_DIR/veil.db"
+
+echo ""
 echo "Registering sync targets..."
 _veil_try_add() {
   if [ -f "$1" ]; then
