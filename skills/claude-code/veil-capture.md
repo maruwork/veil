@@ -55,7 +55,12 @@ After receiving the user's selection, execute the following steps in order. Do n
 
 Read `~/.veil/config.json` to get `veil_root` (the absolute path to the veil repo). Use it for all commands below.
 
-1. Record the selected preferred form:
+For each term in the output list:
+- If the user replied OK or did not specify an override, use candidate 1.
+- If the user specified an override (e.g. "current state → current status"), use the specified form.
+- If the user said "skip" or "keep current" for a term, skip that term — do not call upsert-rule for it.
+
+1. For each adopted term, record the preferred form:
    ```
    python {veil_root}/shared/tools/veil-db.py upsert-rule --db ~/.veil/veil.db \
      --term "{term}" --preferred "{candidate1}" \
