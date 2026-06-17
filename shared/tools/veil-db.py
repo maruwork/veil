@@ -35,7 +35,7 @@ except ModuleNotFoundError:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="VEIL SQLite canonical CLI")
+    parser = argparse.ArgumentParser(description=t("db.description"))
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init-db", help=t("db.init_db_help"))

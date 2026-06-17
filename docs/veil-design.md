@@ -22,7 +22,7 @@ Detailed specification for the runtime and support components. Entry point: [REA
 | Vocabulary rule canonical | `~/.veil/veil.db` | canonical source of truth |
 | Vocabulary rule markdown mirror | `~/.veil/rules/` | AI-readable markdown surface / mirror |
 | Sync target list | `~/.veil/targets.json` | list of sync target file paths |
-| Tool config | `~/.veil/config.json` | written by `install.sh` and `--add`; keys: `sync_script`, `veil_root`, `lang` |
+| Tool config | `~/.veil/config.json` | written by `install.sh` / `install.ps1` and `--add`; keys: `sync_script`, `veil_root`, `lang` |
 
 `~/.veil/` is fixed to the user home directory. In the current phase, canonical is SQLite and markdown rules are carried as the mirror.
 
@@ -76,6 +76,7 @@ python shared/runtime/veil-sync.py
 python shared/runtime/veil-sync.py --add <path>
 python shared/runtime/veil-sync.py --list
 python shared/runtime/veil-sync.py --remove <path>
+python shared/runtime/veil-sync.py --remove <path> --purge
 ```
 
 ### 3-3. shared/runtime/veil-normalize.py

@@ -1,20 +1,21 @@
 # VEIL — Vocabulary Engine for Individual Language
 
+[![CI](https://github.com/maruwork/veil/actions/workflows/ci.yml/badge.svg)](https://github.com/maruwork/veil/actions/workflows/ci.yml)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](shared/runtime/veil-sync.py)
 
 ---
 
+**For developers and technical writers** who use AI tools (Claude Code, Codex, Cursor, Copilot, Gemini CLI, Aider) and need vocabulary to stay consistent across sessions.
+
 ## What is VEIL
 
-VEIL is a terminology guardrail for AI-assisted technical writing. It captures vocabulary that drifts in AI output, normalizes it, pushes the rules to AI tool configuration files, and checks that final responses actually follow them.
-
-The problem it solves: AI tools invent English terms, coin abbreviations, or use inconsistent phrasing. You correct it, but the next session starts fresh. Technical documents and explanations keep drifting.
+AI tools invent English terms, coin abbreviations, and use inconsistent phrasing. You correct it once, but the next session starts fresh and the same terms drift again.
 
 **Before VEIL:** AI uses "current state" in a response. You correct it to "present state". Next session, the AI uses "current state" again. Every session requires the same correction.
 
-**After VEIL:** "present state" is registered as the preferred form. VEIL syncs the rule to `CLAUDE.md` / `AGENTS.md`. The next session, the AI reads the rule and outputs "present state" from the start — no re-correction needed.
+**After VEIL:** "present state" is registered as the preferred form. VEIL syncs the rule to `CLAUDE.md` / `AGENTS.md`. The next session, the AI reads the rule and outputs "present state" from the start.
 
 **Success condition:** once a term is registered, it does not require re-explanation or correction across sessions or AI tools.
 
@@ -32,9 +33,6 @@ task close / conversation boundary
   /veil-capture (skill)
         ↓
   AI extracts problem terms
-        ↓
-  prefer state terms, judgment terms, structural terms, operational labels
-  over bare verbs
         ↓
   shared/runtime/veil-normalize.py — collapse variants, cross-check existing rules
         ↓
@@ -55,26 +53,6 @@ next session: AI outputs with consistent vocabulary
 
 ---
 
-## Term adoption strategy
-
-VEIL is not designed to register everything at once. Add high-demand terms first, a few at a time.
-
-Basic rules:
-
-- **Classify first.** Do not mix identifiers, proper nouns, descriptive terms, and project-specific terms and rush to a translation decision.
-- **Adopt high-demand terms first.** Lock in frequently troublesome terms and terms that are core to VEIL operation itself.
-- **Skip uncertain terms.** If a term is unclear whether it is a proper noun or common term, if translations conflict, or if the pain level is still low — do not rush to canonicalize.
-- **Do not add too many at once.** Run a small set of adopted terms through `sync` and `lint`, confirm they are working, then add the next batch.
-
-Enforce tightly only at the key points, not everywhere:
-
-- **Enforce the flow tightly.** Run `capture` at every task close / conversation boundary, and `lint` before every final response.
-- **Enforce high-impact terms tightly.** Prioritize prohibited terms, VEIL core terms, and high-demand terms where drift causes real problems.
-- **Do not rush low-frequency or ambiguous terms.** Skip them.
-- **Do not enforce the full natural text.** Do not put natural paraphrases, machine-processed terms, and context-dependent terms behind hard gates.
-
----
-
 ## Components
 
 | Component | Role |
@@ -89,6 +67,8 @@ Enforce tightly only at the key points, not everywhere:
 | `shared/tools/veil-profile-audit.py` | Audit rule count and legacy flat rule presence in current profile |
 | `shared/tools/veil-profile-export.py` | Export current profile as a domain profile pack |
 | `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror / export-html` |
+
+The Python scripts (veil-sync, veil-lint, veil-normalize, etc.) are CLI tools invoked from the terminal or by the skill. The `/veil-capture` skill installs as 2 files — one for Claude Code (`~/.claude/commands/veil-capture.md`) and one for Codex (`~/.agents/skills/veil-capture/SKILL.md`).
 
 `shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert, generates the markdown mirror, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
 
@@ -222,9 +202,9 @@ Run at every task close or conversation boundary in Claude Code:
 Example output:
 
 ```
-- common asset → shared asset | common resource
-- current state → present state | current state (keep)
-- validator → validator (keep) | checker
+- common asset (current) → shared asset (candidate 1) | common resource (candidate 2)
+- current state (current) → present state (candidate 1) | current state (keep)
+- validator (current) → validator (keep) | checker (candidate 2)
 
 Select current or a candidate.
 ```
@@ -432,6 +412,26 @@ python shared/tools/veil-profile-export.py --base-manifest ~/.veil/profile-expor
 
 ---
 
+## Term adoption strategy
+
+VEIL is not designed to register everything at once. Add high-demand terms first, a few at a time.
+
+Basic rules:
+
+- **Classify first.** Do not mix identifiers, proper nouns, descriptive terms, and project-specific terms and rush to a translation decision.
+- **Adopt high-demand terms first.** Lock in frequently troublesome terms and terms that are core to VEIL operation itself.
+- **Skip uncertain terms.** If a term is unclear whether it is a proper noun or common term, if translations conflict, or if the pain level is still low — do not rush to canonicalize.
+- **Do not add too many at once.** Run a small set of adopted terms through `sync` and `lint`, confirm they are working, then add the next batch.
+
+Enforce tightly only at the key points, not everywhere:
+
+- **Enforce the flow tightly.** Run `capture` at every task close / conversation boundary, and `lint` before every final response.
+- **Enforce high-impact terms tightly.** Prioritize prohibited terms, VEIL core terms, and high-demand terms where drift causes real problems.
+- **Do not rush low-frequency or ambiguous terms.** Skip them.
+- **Do not enforce the full natural text.** Do not put natural paraphrases, machine-processed terms, and context-dependent terms behind hard gates.
+
+---
+
 ## File structure
 
 ```
@@ -439,27 +439,40 @@ veil/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── install.sh                            # skill file deploy script
+├── install.sh                            # skill file deploy script (macOS / Linux)
+├── install.ps1                           # skill file deploy script (Windows)
+├── pytest.ini                            # pytest configuration
+├── pyrightconfig.json                    # Pyright type-check configuration
 ├── locale/                              # locale strings
 │   ├── en.json
 │   └── ja.json
-├── shared/runtime/veil-normalize.py     # candidate term normalization and cross-check
-├── shared/runtime/veil-sync.py          # rule sync script (core tool)
-├── shared/runtime/veil-lint.py          # pre-response vocabulary check (core tool)
-├── shared/runtime/veil-status.py        # canonical / mirror / sync target status
-├── shared/tools/veil-profile-audit.py   # profile audit helper
-├── shared/tools/veil-profile-export.py  # profile export helper
-├── shared/tools/veil-db.py              # SQLite canonical support CLI
-├── shared/tools/veil_locale.py          # locale detection and t() lookup
-├── shared/tools/veil_rule_store.py      # SQLite schema / upsert / mirror export shared helper
-├── skills/                 # skill templates
+├── shared/
+│   ├── runtime/
+│   │   ├── veil-normalize.py             # candidate term normalization and cross-check
+│   │   ├── veil-sync.py                  # rule sync script (core tool)
+│   │   ├── veil-lint.py                  # pre-response vocabulary check (core tool)
+│   │   └── veil-status.py               # canonical / mirror / sync target status
+│   └── tools/
+│       ├── veil-profile-audit.py         # profile audit helper
+│       ├── veil-profile-export.py        # profile export helper
+│       ├── veil-db.py                    # SQLite canonical support CLI
+│       ├── veil_locale.py                # locale detection and t() lookup
+│       └── veil_rule_store.py            # SQLite schema / upsert / mirror export shared helper
+├── skills/                              # skill templates
 │   ├── claude-code/
-│   │   └── veil-capture.md
+│   │   └── veil-capture.md              # Claude Code slash command
 │   └── codex/
 │       └── veil-capture/
-│           └── SKILL.md
+│           └── SKILL.md                 # Codex skill
+├── tests/                               # pytest suite
+│   ├── conftest.py
+│   ├── helpers.py
+│   ├── test_db.py
+│   ├── test_lint.py
+│   ├── test_normalize.py
+│   └── test_sync.py
 └── docs/
-    └── veil-design.md      # design reference
+    └── veil-design.md                   # design reference
 ```
 
 ---

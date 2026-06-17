@@ -47,7 +47,8 @@ if (Test-Path $ConfigFile) {
 $cfgHash["sync_script"] = $SyncScriptFwd
 $cfgHash["veil_root"]   = $RepoDirFwd
 $cfgHash["lang"]        = $DetectedLang
-[PSCustomObject]$cfgHash | ConvertTo-Json | Set-Content $ConfigFile -Encoding utf8NoBOM
+$jsonContent = [PSCustomObject]$cfgHash | ConvertTo-Json
+[System.IO.File]::WriteAllText($ConfigFile, $jsonContent, (New-Object System.Text.UTF8Encoding $false))
 
 Write-Host "[OK] config.json  sync_script=$SyncScriptFwd"
 Write-Host "[OK] config.json  veil_root=$RepoDirFwd"

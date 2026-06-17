@@ -33,15 +33,15 @@
     "auto_registered": "自動登録: {path}",
     "purge_help": "登録解除時にターゲットファイルの VEIL ブロックも削除する。",
     "block_removed": "  VEIL ブロック削除: {path}",
-    "rules_section_header": "表記統一ルール：\n"
+    "rules_section_header": "Terminology rules:\n"
   },
   "status": {
     "description": "VEIL の状態確認とセットアップ診断を表示する。",
     "check_help": "セットアップ診断を実行する。",
     "db_help": "DB path を上書きする。",
     "json_help": "JSON 形式で出力する。",
-    "sync_target_ok": "sync target: {path}",
-    "sync_target_miss": "sync target not found: {path}",
+    "sync_target_ok": "同期先: {path}",
+    "sync_target_miss": "同期先が見つかりません: {path}",
     "canonical_found": "canonical:    {path}",
     "canonical_rule_count": "  rule count: {count}",
     "canonical_not_found": "canonical:    not found  ({path})",
@@ -84,6 +84,7 @@
     "read_error": "読み込みエラー: {exc}"
   },
   "db": {
+    "description": "VEIL SQLite canonical CLI。",
     "init_db_help": "SQLite schema を初期化する。",
     "db_help": "DB path。既定: ~/.veil/veil.db",
     "json_help": "JSON 形式で出力する。",

@@ -84,6 +84,7 @@
     "read_error": "Read error: {exc}"
   },
   "db": {
+    "description": "VEIL SQLite canonical CLI.",
     "init_db_help": "Initialize SQLite schema.",
     "db_help": "DB path. Default: ~/.veil/veil.db",
     "json_help": "Output in JSON format.",

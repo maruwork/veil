@@ -608,7 +608,7 @@ def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, st
         )
         for row in entries_sorted:
             preferreds = [row["preferred"], row.get("preferred_alt_2"), row.get("preferred_alt_3")]
-            preferred_text = "、".join([str(item).strip() for item in preferreds if item and str(item).strip()])
+            preferred_text = " / ".join([str(item).strip() for item in preferreds if item and str(item).strip()])
             parts.append(f"- {row['term_original']} → {preferred_text}")
         rendered[filename] = "\n".join(parts).rstrip() + "\n"
     return rendered
