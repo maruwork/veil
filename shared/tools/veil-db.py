@@ -11,6 +11,7 @@ try:
         DEFAULT_DB_PATH,
         DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        PROFILE_LEVEL_DEFAULT,
         export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
@@ -24,6 +25,7 @@ except ModuleNotFoundError:
         DEFAULT_DB_PATH,
         DEFAULT_HTML_PATH,
         DEFAULT_RULES_DIR,
+        PROFILE_LEVEL_DEFAULT,
         export_html_from_db,
         export_markdown_mirror_from_db,
         init_db,
@@ -63,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_parser.add_argument("--preferred-alt-2", help=t("db.preferred_alt_2_help"))
     upsert_parser.add_argument("--preferred-alt-3", help=t("db.preferred_alt_3_help"))
     upsert_parser.add_argument("--status", default="active", help=t("db.status_help"))
+    upsert_parser.add_argument("--level", default=PROFILE_LEVEL_DEFAULT, help=t("db.level_help"))
     upsert_parser.add_argument("--category-hint", help=t("db.category_hint_help"))
     upsert_parser.add_argument("--note", help=t("db.note_help"))
     upsert_parser.add_argument("--source-context", help=t("db.source_context_help"))
@@ -86,7 +89,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def print_import_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {t(str(payload['reason']))}")
+        tag = "ERROR" if payload["status"] == "error" else "SKIP"
+        detail = f" ({payload['error']})" if payload.get("error") else ""
+        print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
     print(
         "IMPORTED:"
@@ -115,7 +120,9 @@ def print_import_text(payload: dict[str, Any]) -> None:
 
 def print_readback_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {t(str(payload['reason']))}")
+        tag = "ERROR" if payload["status"] == "error" else "SKIP"
+        detail = f" ({payload['error']})" if payload.get("error") else ""
+        print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
     summary = payload["summary"]
     print(f"READBACK: db={payload['db_path']}, total={summary['total']}")
@@ -125,15 +132,22 @@ def print_readback_text(payload: dict[str, Any]) -> None:
 
 def print_upsert_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {t(str(payload['reason']))}")
+        tag = "ERROR" if payload["status"] == "error" else "SKIP"
+        detail = f" ({payload['error']})" if payload.get("error") else ""
+        print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
     row = payload["row"]
-    print(f"UPSERT: {payload['action']} db={payload['db_path']} {row['term_original']} -> {row['preferred']}")
+    print(
+        f"UPSERT: {payload['action']} db={payload['db_path']}"
+        f" {row['term_original']} -> {row['preferred']} [level={row['profile_level']}]"
+    )
 
 
 def print_export_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {t(str(payload['reason']))}")
+        tag = "ERROR" if payload["status"] == "error" else "SKIP"
+        detail = f" ({payload['error']})" if payload.get("error") else ""
+        print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
     print(
         "EXPORT-MIRROR:"
@@ -149,7 +163,9 @@ def print_export_text(payload: dict[str, Any]) -> None:
 
 def print_export_html_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
-        print(f"SKIP: {t(str(payload['reason']))}")
+        tag = "ERROR" if payload["status"] == "error" else "SKIP"
+        detail = f" ({payload['error']})" if payload.get("error") else ""
+        print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
     print(f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']}")
 
@@ -159,13 +175,19 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "init-db":
-        init_db(args.db)
-        payload = {"status": "ok", "db_path": args.db}
+        try:
+            init_db(args.db)
+            payload = {"status": "ok", "db_path": args.db}
+        except Exception as exc:
+            payload = {"status": "error", "reason": "store.db_unreadable", "db_path": args.db, "error": str(exc)}
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
-            print(f"INIT-DB: {args.db}")
-        return 0
+            if payload["status"] == "ok":
+                print(f"INIT-DB: {args.db}")
+            else:
+                print(f"ERROR: {t(str(payload['reason']))} ({payload['error']})")
+        return 0 if payload["status"] == "ok" else 1
 
     if args.command == "import-rules":
         if not args.yes:
@@ -209,6 +231,7 @@ def main() -> int:
             preferred_alt_2=alt2_val,
             preferred_alt_3=alt3_val,
             status=args.status,
+            profile_level=args.level,
             category_hint=args.category_hint,
             note=args.note,
             source_context=args.source_context,

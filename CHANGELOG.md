@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Corrupted SQLite files now return structured CLI errors across `veil-status.py`, `veil-lint.py`, `veil-normalize.py`, `veil-sync.py`, and `veil-db.py` instead of uncaught tracebacks.
+- `veil-lint.py` now excludes indented Markdown code blocks and tilde-fenced code blocks in addition to inline code and backtick fences.
+- `veil-db.py import-rules` now round-trips candidate 2 / candidate 3 values exported with the markdown mirror ` / ` separator.
+
+### Changed
+- SQLite canonical now stores `profile_level` (`required`, `recommended`, `observe`) and `export-mirror` renders section headings so generated mirrors are no longer misclassified as legacy flat rules.
+- `veil-profile-audit.py` and `veil-profile-export.py` now compute level counts consistently from both DB and mirror sources.
+- Added GitHub tag-release automation workflow so pushed `v*` tags create GitHub releases automatically.
+
 ---
 
 ## [1.0.4] - 2026-06-17

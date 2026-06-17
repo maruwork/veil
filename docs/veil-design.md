@@ -129,7 +129,7 @@ Checks whether registered source terms remain in final text, acting as a pre-res
 1. Load rules in `- original → preferred` format from SQLite canonical or `~/.veil/rules/*.md` mirror
 2. Scan the input text
 3. Return any registered source terms found as violation candidates
-4. Exclude inline code and code blocks from scanning
+4. Exclude inline code, fenced code blocks, and indented code blocks from scanning
 5. Return registered rule violations as fail-close
 6. Return the suggested fix and a first-hit line preview for each violation
 
@@ -198,6 +198,7 @@ python shared/runtime/veil-status.py --json
    - Export current default profile as a section-aware domain profile pack
 5. `shared/tools/veil-db.py`
    - Handle SQLite canonical `init-db / import-rules / readback / upsert-rule / export-mirror / export-html`
+   - `upsert-rule` can set profile level explicitly (`required / recommended / observe`)
    - `export-html` writes `~/.veil/veil.html`: a searchable browser list of all registered terms with copy buttons
 
 **Modifying a registered term via HTML**
@@ -220,7 +221,7 @@ python shared/runtime/veil-lint.py --text "current state" --db /tmp/veil_smoke.d
 python shared/tools/veil-db.py init-db --db /tmp/veil_smoke.db
 python shared/tools/veil-db.py import-rules --db /tmp/veil_smoke.db --rules-dir /tmp/veil_smoke_rules --yes
 python shared/tools/veil-db.py readback --db /tmp/veil_smoke.db --json
-python shared/tools/veil-db.py upsert-rule --db /tmp/veil_smoke.db --term "current state" --preferred "present state"
+python shared/tools/veil-db.py upsert-rule --db /tmp/veil_smoke.db --term "current state" --preferred "present state" --level required
 python shared/tools/veil-db.py export-mirror --db /tmp/veil_smoke.db --rules-dir /tmp/veil_smoke_mirror
 python shared/tools/veil-db.py export-html
 ```

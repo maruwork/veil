@@ -47,3 +47,25 @@ def test_lint_case_insensitive(seeded):
     result = lint_cmd("--db", seeded["db"], "--text", "The Current State", "--json", check=False)
     payload = json.loads(result.stdout)
     assert payload["violations"], "Case-insensitive match expected"
+
+
+def test_lint_protected_indented_code_block(seeded):
+    result = lint_cmd("--db", seeded["db"], "--text", "    current state", "--json")
+    payload = json.loads(result.stdout)
+    assert not payload["violations"], "Indented code block should be protected"
+
+
+def test_lint_protected_tilde_fence(seeded):
+    text = "~~~text\ncurrent state\n~~~"
+    result = lint_cmd("--db", seeded["db"], "--text", text, "--json")
+    payload = json.loads(result.stdout)
+    assert not payload["violations"], "Tilde fenced code block should be protected"
+
+
+def test_lint_corrupted_db_returns_error(tmp_path):
+    db = tmp_path / "bad.db"
+    db.write_text("not a sqlite database", encoding="utf-8")
+    result = lint_cmd("--db", str(db), "--text", "The current state", "--json", check=False)
+    payload = json.loads(result.stdout)
+    assert result.returncode == 2
+    assert payload["status"] == "error"

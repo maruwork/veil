@@ -304,7 +304,7 @@ To change the preferred form, use the HTML list:
 To update directly without AI:
 
 ```bash
-python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
+python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state" --level required
 python shared/tools/veil-db.py export-mirror   # regenerate markdown mirror
 python shared/tools/veil-db.py export-html     # regenerate HTML list
 python shared/runtime/veil-sync.py             # push to sync targets
@@ -324,9 +324,17 @@ The markdown mirror under `~/.veil/rules/` can also be read or edited directly:
 ```markdown
 # u
 
+## 必須
+
 - uncommitted → uncommitted (keep)
 - untracked → untracked (keep)
+
+## 推奨
+
 - unstable wording → inconsistent phrasing
+
+## 観察
+
 - update path → update path (keep)
 ```
 
@@ -388,7 +396,7 @@ python shared/tools/veil-profile-audit.py --json
 python shared/tools/veil-profile-audit.py --db ~/.veil/veil.db
 ```
 
-`audit`, `normalize`, and `lint` all accept `--db` to read from a SQLite source. `veil-normalize.py` maintains the existing-match return format and allows distinguishing the source via `source_type` and `source` in JSON output. `veil-lint.py` keeps `rules-dir` compatibility and maintains the `violation / clean / skip` return contract and exit codes.
+`audit`, `normalize`, and `lint` all accept `--db` to read from a SQLite source. `veil-normalize.py` maintains the existing-match return format and allows distinguishing the source via `source_type` and `source` in JSON output. `veil-lint.py` keeps `rules-dir` compatibility and maintains the `violation / clean / skip / error` return contract and exit codes. If the DB file exists but is unreadable, the CLI returns a structured error instead of a traceback.
 
 ### SQLite support route
 
@@ -396,7 +404,7 @@ The SQLite canonical support CLI is `shared/tools/veil-db.py`. Common operations
 
 ```bash
 python shared/tools/veil-db.py init-db                        # initialize ~/.veil/veil.db
-python shared/tools/veil-db.py upsert-rule --term "foo" --preferred "bar"
+python shared/tools/veil-db.py upsert-rule --term "foo" --preferred "bar" --level required
 python shared/tools/veil-db.py readback --json
 python shared/tools/veil-db.py export-mirror                  # regenerate ~/.veil/rules/
 python shared/tools/veil-db.py export-html                    # regenerate ~/.veil/veil.html

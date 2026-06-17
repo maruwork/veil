@@ -40,8 +40,9 @@ from shared.tools.veil_locale import t
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
-FENCED_CODE_RE = re.compile(r"```.*?```", re.DOTALL)
+FENCED_CODE_RE = re.compile(r"(?ms)(^|\n)(?P<fence>`{3,}|~{3,})[^\n]*\n.*?\n[ \t]*(?P=fence)[ \t]*(?=\n|$)")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+INDENTED_CODE_RE = re.compile(r"(?m)(?:^(?: {4}|\t).*(?:\n|$))+")
 
 
 def parse_args() -> argparse.Namespace:
@@ -120,12 +121,15 @@ def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, Any
     return rules, conflicts
 
 
-def load_rules_for_source(rules_dir: str, db_path: str | None) -> tuple[str, str, list[dict[str, str]], list[dict[str, Any]]]:
+def load_rules_for_source(
+    rules_dir: str,
+    db_path: str | None,
+) -> tuple[str, str, list[dict[str, str]], list[dict[str, Any]], dict[str, Any] | None]:
     if db_path:
-        rules = load_rules_for_lint_from_db(db_path)
-        return "db", db_path, rules, []
+        status, rules, payload = load_rules_for_lint_from_db(db_path)
+        return "db", db_path, rules, [], payload if status == "error" else None
     rules, conflicts = load_rules(rules_dir)
-    return "rules-dir", rules_dir, rules, conflicts
+    return "rules-dir", rules_dir, rules, conflicts, None
 
 
 def build_original_pattern(original: str) -> re.Pattern[str]:
@@ -165,6 +169,7 @@ def mask_ranges(text: str, pattern: re.Pattern[str]) -> str:
 
 def mask_protected_segments(text: str) -> str:
     masked = mask_ranges(text, FENCED_CODE_RE)
+    masked = mask_ranges(masked, INDENTED_CODE_RE)
     masked = mask_ranges(masked, INLINE_CODE_RE)
     return masked
 
@@ -297,7 +302,24 @@ def main() -> int:
         print(t("lint.read_error", exc=exc), file=sys.stderr)
         return 2
 
-    source_type, source_label, rules, conflicts = load_rules_for_source(args.rules_dir, args.db)
+    source_type, source_label, rules, conflicts, source_error = load_rules_for_source(args.rules_dir, args.db)
+    if source_error is not None:
+        payload = {
+            "status": "error",
+            "reason": t(str(source_error.get("reason"))),
+            "source_type": source_type,
+            "source": source_label,
+            "rules_dir": args.rules_dir,
+            "db_path": args.db,
+            "conflicts": conflicts,
+            "error": source_error.get("error"),
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            detail = f" ({source_error['error']})" if source_error.get("error") else ""
+            print(t("lint.source_error", source_type=source_type, source_label=source_label, reason=payload["reason"]) + detail)
+        return 2
     if conflicts:
         print_conflicts(conflicts)
     if not rules:

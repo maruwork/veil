@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from datetime import datetime, timezone
 from typing import Any
@@ -26,20 +25,22 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 try:
+    from shared.tools.veil_rule_store import (
+        add_profile_level_count,
+        empty_profile_level_counts,
+        load_rules_from_markdown_dir,
+    )
     from shared.tools.veil_locale import t
 except ModuleNotFoundError:
+    from veil_rule_store import (  # type: ignore[no-redef]
+        add_profile_level_count,
+        empty_profile_level_counts,
+        load_rules_from_markdown_dir,
+    )
     from veil_locale import t  # type: ignore[no-redef]
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
 DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
-
-# These constants match section headings in rules files (## 必須, ## 推奨, ## 観察).
-# They are part of the file format specification and must not be localized.
-LEVEL_REQUIRED = "必須"
-LEVEL_RECOMMENDED = "推奨"
-LEVEL_OBSERVE = "観察"
-RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
-LEVEL_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s*(?P<level>必須|推奨|観察)\s*$")
 
 
 def parse_args() -> argparse.Namespace:
@@ -84,66 +85,40 @@ def parse_args() -> argparse.Namespace:
 
 
 def empty_counts() -> dict[str, int]:
-    return {
-        "required_count": 0,
-        "recommended_count": 0,
-        "observe_count": 0,
-        "legacy_flat_count": 0,
-        "total_rules": 0,
-    }
+    return empty_profile_level_counts()
 
 
 def summarize_rules_dir(rules_dir: str) -> dict[str, Any]:
+    parsed = load_rules_from_markdown_dir(rules_dir)
+    if parsed["status"] != "ok":
+        return {"status": parsed["status"], "reason": parsed["reason"], "summary": empty_counts() | {"files": 0, "legacy_files": 0}, "files": []}
+
     file_reports: list[dict[str, Any]] = []
     summary = empty_counts() | {"files": 0, "legacy_files": 0}
 
-    for fname in sorted(os.listdir(rules_dir)):
-        if not fname.endswith(".md"):
-            continue
-        path = os.path.join(rules_dir, fname)
-        try:
-            with open(path, encoding="utf-8") as f:
-                lines = f.readlines()
-        except OSError:
-            continue
+    files_by_name: dict[str, dict[str, Any]] = {}
+    for row in parsed["rules"]:
+        fname = str(row["source_file"])
+        counts = files_by_name.setdefault(fname, {"file": fname, **empty_counts()})
+        add_profile_level_count(
+            counts,
+            str(row.get("profile_level")),
+            legacy_flat=bool(row.get("legacy_flat")),
+        )
+        add_profile_level_count(
+            summary,
+            str(row.get("profile_level")),
+            legacy_flat=bool(row.get("legacy_flat")),
+        )
 
-        counts = empty_counts()
-        seen_heading = False
-        current_level = LEVEL_REQUIRED
-        for line in lines:
-            heading = LEVEL_HEADING_RE.match(line)
-            if heading:
-                seen_heading = True
-                current_level = heading.group("level")
-                continue
-            if not RULE_LINE_RE.match(line):
-                continue
-            counts["total_rules"] += 1
-            if not seen_heading:
-                counts["legacy_flat_count"] += 1
-                counts["required_count"] += 1
-                continue
-            if current_level == LEVEL_REQUIRED:
-                counts["required_count"] += 1
-            elif current_level == LEVEL_RECOMMENDED:
-                counts["recommended_count"] += 1
-            elif current_level == LEVEL_OBSERVE:
-                counts["observe_count"] += 1
-
-        if counts["total_rules"] == 0:
-            continue
-
+    for fname in sorted(files_by_name):
+        counts = files_by_name[fname]
         summary["files"] += 1
-        summary["required_count"] += counts["required_count"]
-        summary["recommended_count"] += counts["recommended_count"]
-        summary["observe_count"] += counts["observe_count"]
-        summary["legacy_flat_count"] += counts["legacy_flat_count"]
-        summary["total_rules"] += counts["total_rules"]
         if counts["legacy_flat_count"] > 0:
             summary["legacy_files"] += 1
-        file_reports.append({"file": fname, **counts})
+        file_reports.append(counts)
 
-    return {"summary": summary, "files": file_reports}
+    return {"status": "ok", "summary": summary, "files": file_reports}
 
 
 def default_output_dir(profile_name: str) -> str:
@@ -189,6 +164,17 @@ def export_profile(
         copied_files.append(fname)
 
     summary_payload = summarize_rules_dir(rules_dir)
+    if summary_payload.get("status") != "ok":
+        return {
+            "status": "error",
+            "reason": summary_payload.get("reason", "export.rules_dir_not_found"),
+            "rules_dir": rules_dir,
+            "output_dir": output_dir,
+            "profile_name": profile_name,
+            "domain": domain,
+            "intended_use": intended_use,
+            "base_profile": base_profile,
+        }
     manifest = {
         "profile_name": profile_name,
         "domain": domain,

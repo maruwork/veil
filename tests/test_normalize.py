@@ -32,3 +32,12 @@ def test_normalize_empty_input(tmp_db):
     payload = json.loads(result.stdout)
     assert payload.get("existing", []) == []
     assert payload.get("new", []) == []
+
+
+def test_normalize_corrupted_db_returns_error(tmp_path):
+    db = tmp_path / "bad.db"
+    db.write_text("not a sqlite database", encoding="utf-8")
+    result = normalize_cmd("--db", str(db), "--text", "current state", "--json", check=False)
+    payload = json.loads(result.stdout)
+    assert result.returncode == 2
+    assert payload["status"] == "error"

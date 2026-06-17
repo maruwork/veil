@@ -182,6 +182,33 @@ _HTML_UI_EN: dict[str, str] = {
 
 RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
 LEADING_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
+LEVEL_HEADING_RE = re.compile(
+    r"^\s{0,3}#{1,6}\s*(?P<level>必須|推奨|観察|required|recommended|observe)\s*$",
+    re.IGNORECASE,
+)
+
+PROFILE_LEVEL_REQUIRED = "required"
+PROFILE_LEVEL_RECOMMENDED = "recommended"
+PROFILE_LEVEL_OBSERVE = "observe"
+PROFILE_LEVEL_DEFAULT = PROFILE_LEVEL_REQUIRED
+PROFILE_LEVELS = (
+    PROFILE_LEVEL_REQUIRED,
+    PROFILE_LEVEL_RECOMMENDED,
+    PROFILE_LEVEL_OBSERVE,
+)
+PROFILE_LEVEL_TO_HEADING = {
+    PROFILE_LEVEL_REQUIRED: "必須",
+    PROFILE_LEVEL_RECOMMENDED: "推奨",
+    PROFILE_LEVEL_OBSERVE: "観察",
+}
+HEADING_TO_PROFILE_LEVEL = {heading: level for level, heading in PROFILE_LEVEL_TO_HEADING.items()}
+HEADING_TO_PROFILE_LEVEL.update(
+    {
+        "required": PROFILE_LEVEL_REQUIRED,
+        "recommended": PROFILE_LEVEL_RECOMMENDED,
+        "observe": PROFILE_LEVEL_OBSERVE,
+    }
+)
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS rules (
@@ -192,6 +219,7 @@ CREATE TABLE IF NOT EXISTS rules (
     preferred_alt_2 TEXT,
     preferred_alt_3 TEXT,
     status TEXT NOT NULL,
+    profile_level TEXT NOT NULL DEFAULT 'required',
     category_hint TEXT,
     note TEXT,
     source_context TEXT,
@@ -212,13 +240,72 @@ def first_preferred(rhs: str) -> str:
 
 def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | None]:
     parts = []
-    for raw in re.split(r"[、,|]", rhs):
+    for raw in re.split(r"\s+/\s+|[、,|]", rhs):
         cleaned = re.sub(r"[（(](?:候補\d+|candidate\s*\d+|keep)[)）]", "", raw).strip()
         if cleaned:
             parts.append(cleaned)
     while len(parts) < 3:
         parts.append(None)
     return parts[0], parts[1], parts[2]
+
+
+def canonicalize_profile_level(level: str | None) -> str:
+    normalized = (level or "").strip().lower()
+    alias_map = {
+        "required": PROFILE_LEVEL_REQUIRED,
+        "require": PROFILE_LEVEL_REQUIRED,
+        "must": PROFILE_LEVEL_REQUIRED,
+        "mandatory": PROFILE_LEVEL_REQUIRED,
+        "必須": PROFILE_LEVEL_REQUIRED,
+        "recommended": PROFILE_LEVEL_RECOMMENDED,
+        "recommend": PROFILE_LEVEL_RECOMMENDED,
+        "should": PROFILE_LEVEL_RECOMMENDED,
+        "推奨": PROFILE_LEVEL_RECOMMENDED,
+        "observe": PROFILE_LEVEL_OBSERVE,
+        "observation": PROFILE_LEVEL_OBSERVE,
+        "watch": PROFILE_LEVEL_OBSERVE,
+        "観察": PROFILE_LEVEL_OBSERVE,
+    }
+    return alias_map.get(normalized, PROFILE_LEVEL_DEFAULT)
+
+
+def profile_level_heading(level: str | None) -> str:
+    canonical = canonicalize_profile_level(level)
+    return PROFILE_LEVEL_TO_HEADING.get(canonical, PROFILE_LEVEL_TO_HEADING[PROFILE_LEVEL_DEFAULT])
+
+
+def empty_profile_level_counts() -> dict[str, int]:
+    return {
+        "required_count": 0,
+        "recommended_count": 0,
+        "observe_count": 0,
+        "legacy_flat_count": 0,
+        "total_rules": 0,
+    }
+
+
+def add_profile_level_count(counts: dict[str, int], level: str | None, legacy_flat: bool = False) -> None:
+    counts["total_rules"] += 1
+    canonical = canonicalize_profile_level(level)
+    if canonical == PROFILE_LEVEL_RECOMMENDED:
+        counts["recommended_count"] += 1
+    elif canonical == PROFILE_LEVEL_OBSERVE:
+        counts["observe_count"] += 1
+    else:
+        counts["required_count"] += 1
+    if legacy_flat:
+        counts["legacy_flat_count"] += 1
+
+
+def db_error_payload(db_path: str, exc: sqlite3.Error) -> dict[str, Any]:
+    return {
+        "status": "error",
+        "reason": "store.db_unreadable",
+        "db_path": db_path,
+        "summary": {"total": 0},
+        "rows": [],
+        "error": str(exc),
+    }
 
 
 def simple_singularize_token(token: str) -> str:
@@ -275,7 +362,14 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
             warnings.append({"file": fname, "line": 0, "warning_key": "store.load_failed", "warning_args": {"exc": str(exc)}})
             continue
 
+        seen_heading = False
+        current_level = PROFILE_LEVEL_DEFAULT
         for line_no, line in enumerate(lines, start=1):
+            heading = LEVEL_HEADING_RE.match(line)
+            if heading:
+                current_level = HEADING_TO_PROFILE_LEVEL[heading.group("level").lower()]
+                seen_heading = True
+                continue
             match = RULE_LINE_RE.match(line)
             stripped = line.strip()
             if not match:
@@ -310,11 +404,13 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
                 "preferred_alt_2": preferred_alt_2,
                 "preferred_alt_3": preferred_alt_3,
                 "status": "active",
+                "profile_level": current_level,
                 "category_hint": None,
                 "note": None,
                 "source_context": f"{fname}:{line_no}",
                 "source_file": fname,
                 "source_line": line_no,
+                "legacy_flat": not seen_heading,
             }
             rules.append(entry)
 
@@ -362,9 +458,19 @@ def open_db(db_path: str) -> sqlite3.Connection:
     return conn
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
+    existing = {
+        str(row["name"])
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+
 def init_db(db_path: str) -> None:
     with open_db(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
+        _ensure_column(conn, "rules", "profile_level", "TEXT NOT NULL DEFAULT 'required'")
         conn.commit()
 
 
@@ -373,42 +479,47 @@ def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, Any]:
     if parsed["status"] != "ok":
         return parsed
 
-    init_db(db_path)
     imported_at = now_utc_iso()
-    with open_db(db_path) as conn:
-        conn.execute("DELETE FROM rules")
-        for entry in parsed["selected_rules"]:
-            conn.execute(
-                """
-                INSERT INTO rules (
-                    term_original,
-                    term_normalized,
-                    preferred,
-                    preferred_alt_2,
-                    preferred_alt_3,
-                    status,
-                    category_hint,
-                    note,
-                    source_context,
-                    created_at,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    entry["term_original"],
-                    entry["term_normalized"],
-                    entry["preferred"],
-                    entry["preferred_alt_2"],
-                    entry["preferred_alt_3"],
-                    entry["status"],
-                    entry["category_hint"],
-                    entry["note"],
-                    entry["source_context"],
-                    imported_at,
-                    imported_at,
-                ),
-            )
-        conn.commit()
+    try:
+        init_db(db_path)
+        with open_db(db_path) as conn:
+            conn.execute("DELETE FROM rules")
+            for entry in parsed["selected_rules"]:
+                conn.execute(
+                    """
+                    INSERT INTO rules (
+                        term_original,
+                        term_normalized,
+                        preferred,
+                        preferred_alt_2,
+                        preferred_alt_3,
+                        status,
+                        profile_level,
+                        category_hint,
+                        note,
+                        source_context,
+                        created_at,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        entry["term_original"],
+                        entry["term_normalized"],
+                        entry["preferred"],
+                        entry["preferred_alt_2"],
+                        entry["preferred_alt_3"],
+                        entry["status"],
+                        entry["profile_level"],
+                        entry["category_hint"],
+                        entry["note"],
+                        entry["source_context"],
+                        imported_at,
+                        imported_at,
+                    ),
+                )
+            conn.commit()
+    except sqlite3.Error as exc:
+        return db_error_payload(db_path, exc)
 
     payload = dict(parsed)
     payload["db_path"] = db_path
@@ -432,6 +543,7 @@ def upsert_rule(
     preferred_alt_2: str | None = None,
     preferred_alt_3: str | None = None,
     status: str = "active",
+    profile_level: str = PROFILE_LEVEL_DEFAULT,
     category_hint: str | None = None,
     note: str | None = None,
     source_context: str | None = None,
@@ -447,85 +559,93 @@ def upsert_rule(
 
     normalized = normalize_term(original)
     now = now_utc_iso()
-    init_db(db_path)
-    with open_db(db_path) as conn:
-        row = conn.execute(
-            """
-            SELECT id, created_at
-            FROM rules
-            WHERE term_normalized = ?
-            ORDER BY id
-            LIMIT 1
-            """,
-            (normalized,),
-        ).fetchone()
-        if row:
-            conn.execute(
+    canonical_level = canonicalize_profile_level(profile_level)
+    try:
+        init_db(db_path)
+        with open_db(db_path) as conn:
+            row = conn.execute(
                 """
-                UPDATE rules
-                SET
-                    term_original = ?,
-                    preferred = ?,
-                    preferred_alt_2 = ?,
-                    preferred_alt_3 = ?,
-                    status = ?,
-                    category_hint = ?,
-                    note = ?,
-                    source_context = ?,
-                    updated_at = ?
-                WHERE id = ?
+                SELECT id, created_at
+                FROM rules
+                WHERE term_normalized = ?
+                ORDER BY id
+                LIMIT 1
                 """,
-                (
-                    original,
-                    preferred_1,
-                    preferred_alt_2,
-                    preferred_alt_3,
-                    status,
-                    category_hint,
-                    note,
-                    source_context,
-                    now,
-                    row["id"],
-                ),
-            )
-            rule_id = row["id"]
-            action = "updated"
-            created_at = row["created_at"]
-        else:
-            cursor = conn.execute(
-                """
-                INSERT INTO rules (
-                    term_original,
-                    term_normalized,
-                    preferred,
-                    preferred_alt_2,
-                    preferred_alt_3,
-                    status,
-                    category_hint,
-                    note,
-                    source_context,
-                    created_at,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    original,
-                    normalized,
-                    preferred_1,
-                    preferred_alt_2,
-                    preferred_alt_3,
-                    status,
-                    category_hint,
-                    note,
-                    source_context,
-                    now,
-                    now,
-                ),
-            )
-            rule_id = cursor.lastrowid
-            action = "inserted"
-            created_at = now
-        conn.commit()
+                (normalized,),
+            ).fetchone()
+            if row:
+                conn.execute(
+                    """
+                    UPDATE rules
+                    SET
+                        term_original = ?,
+                        preferred = ?,
+                        preferred_alt_2 = ?,
+                        preferred_alt_3 = ?,
+                        status = ?,
+                        profile_level = ?,
+                        category_hint = ?,
+                        note = ?,
+                        source_context = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        original,
+                        preferred_1,
+                        preferred_alt_2,
+                        preferred_alt_3,
+                        status,
+                        canonical_level,
+                        category_hint,
+                        note,
+                        source_context,
+                        now,
+                        row["id"],
+                    ),
+                )
+                rule_id = row["id"]
+                action = "updated"
+                created_at = row["created_at"]
+            else:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO rules (
+                        term_original,
+                        term_normalized,
+                        preferred,
+                        preferred_alt_2,
+                        preferred_alt_3,
+                        status,
+                        profile_level,
+                        category_hint,
+                        note,
+                        source_context,
+                        created_at,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        original,
+                        normalized,
+                        preferred_1,
+                        preferred_alt_2,
+                        preferred_alt_3,
+                        status,
+                        canonical_level,
+                        category_hint,
+                        note,
+                        source_context,
+                        now,
+                        now,
+                    ),
+                )
+                rule_id = cursor.lastrowid
+                action = "inserted"
+                created_at = now
+            conn.commit()
+    except sqlite3.Error as exc:
+        return db_error_payload(db_path, exc)
 
     return {
         "status": "ok",
@@ -539,6 +659,7 @@ def upsert_rule(
             "preferred_alt_2": preferred_alt_2,
             "preferred_alt_3": preferred_alt_3,
             "status": status,
+            "profile_level": canonical_level,
             "category_hint": category_hint,
             "note": note,
             "source_context": source_context,
@@ -558,7 +679,6 @@ def readback_rules(db_path: str) -> dict[str, Any]:
             "rows": [],
         }
 
-    init_db(db_path)
     query = """
         SELECT
             id,
@@ -568,6 +688,7 @@ def readback_rules(db_path: str) -> dict[str, Any]:
             preferred_alt_2,
             preferred_alt_3,
             status,
+            profile_level,
             category_hint,
             note,
             source_context,
@@ -577,11 +698,15 @@ def readback_rules(db_path: str) -> dict[str, Any]:
         ORDER BY term_normalized, id
     """
 
-    with open_db(db_path) as conn:
-        rows = [dict(row) for row in conn.execute(query).fetchall()]
-        summary = {
-            "total": conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0],
-        }
+    try:
+        init_db(db_path)
+        with open_db(db_path) as conn:
+            rows = [dict(row) for row in conn.execute(query).fetchall()]
+            summary = {
+                "total": conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0],
+            }
+    except sqlite3.Error as exc:
+        return db_error_payload(db_path, exc)
 
     return {
         "status": "ok",
@@ -604,12 +729,27 @@ def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, st
         parts = [f"# {title}", ""]
         entries_sorted = sorted(
             entries,
-            key=lambda r: (str(r["term_normalized"]), str(r["term_original"]).lower(), int(r["id"])),
+            key=lambda r: (
+                PROFILE_LEVELS.index(canonicalize_profile_level(str(r.get("profile_level") or PROFILE_LEVEL_DEFAULT))),
+                str(r["term_normalized"]),
+                str(r["term_original"]).lower(),
+                int(r["id"]),
+            ),
         )
-        for row in entries_sorted:
-            preferreds = [row["preferred"], row.get("preferred_alt_2"), row.get("preferred_alt_3")]
-            preferred_text = " / ".join([str(item).strip() for item in preferreds if item and str(item).strip()])
-            parts.append(f"- {row['term_original']} → {preferred_text}")
+        for level in PROFILE_LEVELS:
+            level_entries = [
+                row for row in entries_sorted
+                if canonicalize_profile_level(str(row.get("profile_level") or PROFILE_LEVEL_DEFAULT)) == level
+            ]
+            if not level_entries:
+                continue
+            parts.append(f"## {profile_level_heading(level)}")
+            parts.append("")
+            for row in level_entries:
+                preferreds = [row["preferred"], row.get("preferred_alt_2"), row.get("preferred_alt_3")]
+                preferred_text = " / ".join([str(item).strip() for item in preferreds if item and str(item).strip()])
+                parts.append(f"- {row['term_original']} → {preferred_text}")
+            parts.append("")
         rendered[filename] = "\n".join(parts).rstrip() + "\n"
     return rendered
 
@@ -631,14 +771,36 @@ def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, An
     rendered = render_markdown_mirror_from_rows(payload["rows"])
     removed_files: list[str] = []
     for stale in sorted(existing_files - set(rendered.keys())):
-        os.remove(os.path.join(rules_dir, stale))
+        try:
+            os.remove(os.path.join(rules_dir, stale))
+        except OSError as exc:
+            return {
+                "status": "error",
+                "reason": "store.mirror_write_failed",
+                "db_path": db_path,
+                "rules_dir": rules_dir,
+                "written_files": [],
+                "removed_files": removed_files,
+                "error": str(exc),
+            }
         removed_files.append(stale)
 
     written_files: list[str] = []
     for filename, content in sorted(rendered.items()):
         path = os.path.join(rules_dir, filename)
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.write(content)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+        except OSError as exc:
+            return {
+                "status": "error",
+                "reason": "store.mirror_write_failed",
+                "db_path": db_path,
+                "rules_dir": rules_dir,
+                "written_files": written_files,
+                "removed_files": removed_files,
+                "error": str(exc),
+            }
         written_files.append(filename)
 
     return {
@@ -651,10 +813,10 @@ def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, An
     }
 
 
-def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], list[dict[str, Any]]]:
+def load_rule_index_from_db(db_path: str) -> tuple[str, dict[str, dict[str, str]], list[dict[str, Any]], dict[str, Any] | None]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
-        return {}, []
+        return payload["status"], {}, [], payload
 
     index: dict[str, dict[str, str]] = {}
     for row in payload["rows"]:
@@ -674,7 +836,7 @@ def load_rule_index_from_db(db_path: str) -> tuple[dict[str, dict[str, str]], li
                 "preferred": row["preferred"],
                 "source_file": source_file,
             }
-    return index, []
+    return "ok", index, [], None
 
 
 def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
@@ -758,8 +920,17 @@ def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None 
     content = _build_html_content("\n".join(row_parts), count, resolved_ui)
 
     os.makedirs(os.path.dirname(os.path.abspath(html_path)), exist_ok=True)
-    with open(html_path, "w", encoding="utf-8") as fh:
-        fh.write(content)
+    try:
+        with open(html_path, "w", encoding="utf-8") as fh:
+            fh.write(content)
+    except OSError as exc:
+        return {
+            "status": "error",
+            "reason": "store.html_write_failed",
+            "db_path": db_path,
+            "html_path": html_path,
+            "error": str(exc),
+        }
 
     return {
         "status": "ok",
@@ -769,16 +940,16 @@ def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None 
     }
 
 
-def load_rules_for_lint_from_db(db_path: str) -> list[dict[str, str]]:
+def load_rules_for_lint_from_db(db_path: str) -> tuple[str, list[dict[str, str]], dict[str, Any] | None]:
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
-        return []
+        return payload["status"], [], payload
 
-    return [
+    return "ok", [
         {
             "original": row["term_original"],
             "preferred": row["preferred"],
         }
         for row in payload["rows"]
         if row.get("status") == "active"
-    ]
+    ], None

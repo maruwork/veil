@@ -171,8 +171,8 @@ def refresh_markdown_mirror(paths, quiet=False):
 def prepare_base_rules(paths, quiet=False):
     payload = refresh_markdown_mirror(paths, quiet=quiet)
     if payload["status"] not in {"ok", "skip"}:
-        return ""
-    return load_base_rules(paths["rules_dir"])
+        return payload["status"], "", payload
+    return payload["status"], load_base_rules(paths["rules_dir"]), None
 
 
 def do_sync(paths, base="", quiet=False, targets=None):
@@ -229,18 +229,24 @@ def cmd_sync(paths, quiet=False):
     if not targets:
         if not quiet:
             print(t("sync.no_targets"))
-        return
-    base = prepare_base_rules(paths, quiet=quiet)
+        return 0
+    _, base, source_error = prepare_base_rules(paths, quiet=quiet)
+    if source_error is not None:
+        if not quiet:
+            detail = f" ({source_error['error']})" if source_error.get("error") else ""
+            print(t("sync.source_error", reason=t(str(source_error.get("reason")))) + detail)
+        return 1
     behavior = load_behavior(paths)
     if not base and not behavior:
         if not quiet:
             print(t("sync.no_rules"))
-        return
+        return 0
     if not quiet:
         print(t("sync.sync_start", count=len(targets)))
     do_sync(paths, base, quiet=quiet, targets=targets)
     if not quiet:
         print(t("sync.sync_done"))
+    return 0
 
 
 def save_config(paths):
@@ -262,39 +268,50 @@ def cmd_add(paths, path, quiet=False):
     path = os.path.abspath(path)
     if not os.path.exists(path):
         print(t("sync.file_not_found", path=path))
-        return
+        return 1
     targets = load_targets(paths)
     changed = False
+    notices: list[tuple[str, str]] = []
     if path in targets:
-        print(t("sync.already_registered", path=path))
+        notices.append(("already_registered", path))
     else:
         targets.append(path)
         changed = True
-        print(t("sync.registered", path=path))
+        notices.append(("registered", path))
 
     for sibling in find_sibling_ai_configs(path):
         if sibling not in targets:
             targets.append(sibling)
             changed = True
-            print(t("sync.auto_registered", path=sibling))
+            notices.append(("auto_registered", sibling))
+
+    _, base, source_error = prepare_base_rules(paths, quiet=quiet)
+    if source_error is not None:
+        detail = f" ({source_error['error']})" if source_error.get("error") else ""
+        print(t("sync.source_error", reason=t(str(source_error.get("reason")))) + detail)
+        return 1
+
+    for key, notice_path in notices:
+        print(t(f"sync.{key}", path=notice_path))
 
     if changed:
         save_targets(paths, targets)
         save_config(paths)
 
-    base = prepare_base_rules(paths, quiet=quiet)
     do_sync(paths, base, quiet=quiet)
+    return 0
 
 
 def cmd_list(paths):
     targets = load_targets(paths)
     if not targets:
         print(t("sync.no_targets_list"))
-        return
+        return 0
     print(t("sync.targets_header"))
     for target in targets:
         status = "[OK]" if os.path.exists(target) else t("sync.target_miss")
-        print(f"  [{status}] {target}")
+        print(f"  {status} {target}")
+    return 0
 
 
 def _remove_veil_block(path: str) -> bool:
@@ -325,7 +342,7 @@ def cmd_remove(paths, path, purge: bool = False):
     targets = load_targets(paths)
     if path not in targets:
         print(t("sync.not_registered", path=path))
-        return
+        return 1
     targets.remove(path)
     save_targets(paths, targets)
     if purge and os.path.exists(path):
@@ -333,6 +350,7 @@ def cmd_remove(paths, path, purge: bool = False):
         if removed:
             print(t("sync.block_removed", path=path))
     print(t("sync.unregistered", path=path))
+    return 0
 
 
 if __name__ == "__main__":
@@ -340,10 +358,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     paths = build_paths(args.config_dir, args.db, args.rules_dir)
     if args.add:
-        cmd_add(paths, args.add, quiet=args.quiet)
+        sys.exit(cmd_add(paths, args.add, quiet=args.quiet))
     elif args.list:
-        cmd_list(paths)
+        sys.exit(cmd_list(paths))
     elif args.remove:
-        cmd_remove(paths, args.remove, purge=args.purge)
+        sys.exit(cmd_remove(paths, args.remove, purge=args.purge))
     else:
-        cmd_sync(paths, quiet=args.quiet)
+        sys.exit(cmd_sync(paths, quiet=args.quiet))

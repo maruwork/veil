@@ -130,12 +130,15 @@ def load_rule_index(rules_dir: str) -> tuple[dict[str, dict[str, str]], list[dic
     return index, conflicts
 
 
-def load_rule_index_for_source(rules_dir: str, db_path: str | None) -> tuple[str, dict[str, dict[str, str]], list[dict[str, Any]]]:
+def load_rule_index_for_source(
+    rules_dir: str,
+    db_path: str | None,
+) -> tuple[str, dict[str, dict[str, str]], list[dict[str, Any]], dict[str, Any] | None]:
     if db_path:
-        index, conflicts = load_rule_index_from_db(db_path)
-        return db_path, index, conflicts
+        status, index, conflicts, payload = load_rule_index_from_db(db_path)
+        return db_path, index, conflicts, payload if status == "error" else None
     index, conflicts = load_rule_index(rules_dir)
-    return rules_dir, index, conflicts
+    return rules_dir, index, conflicts, None
 
 
 def choose_display_variant(variant_counts: dict[str, int]) -> str:
@@ -252,7 +255,24 @@ def main() -> int:
         return 2
 
     candidates = parse_candidate_lines(text)
-    source_label, rule_index, conflicts = load_rule_index_for_source(args.rules_dir, args.db)
+    source_label, rule_index, conflicts, source_error = load_rule_index_for_source(args.rules_dir, args.db)
+    if source_error is not None:
+        payload = {
+            "status": "error",
+            "reason": t(str(source_error.get("reason"))),
+            "source_type": "db" if args.db else "rules-dir",
+            "source": source_label,
+            "candidate_count": len(candidates),
+            "existing": [],
+            "new": [],
+            "error": source_error.get("error"),
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            detail = f" ({source_error['error']})" if source_error.get("error") else ""
+            print(t("normalize.source_error", label=compact_source_label(source_label), reason=payload["reason"]) + detail, file=sys.stderr)
+        return 2
     results = cluster_candidates(candidates, rule_index)
     if conflicts:
         print_conflicts(conflicts)

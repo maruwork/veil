@@ -83,9 +83,13 @@ def _load_targets() -> list[str] | None:
 def collect_status(db_path: str) -> dict:
     db_exists = os.path.exists(db_path)
     rule_count: int | None = None
+    db_error: dict | None = None
     if db_exists:
         result = readback_rules(db_path)
-        rule_count = result["summary"]["total"]
+        if result["status"] == "ok":
+            rule_count = result["summary"]["total"]
+        elif result["status"] == "error":
+            db_error = {"reason": result["reason"], "error": result.get("error")}
 
     mirror_exists = os.path.isdir(DEFAULT_RULES_DIR)
     mirror_updated = _mirror_last_updated(DEFAULT_RULES_DIR) if mirror_exists else None
@@ -100,6 +104,7 @@ def collect_status(db_path: str) -> dict:
         "db_path": db_path,
         "db_exists": db_exists,
         "rule_count": rule_count,
+        "db_error": db_error,
         "rules_dir": DEFAULT_RULES_DIR,
         "mirror_exists": mirror_exists,
         "mirror_last_updated": mirror_updated,
@@ -112,7 +117,12 @@ def collect_setup(db_path: str) -> dict:
     items: list[dict] = []
 
     if os.path.exists(db_path):
-        items.append({"label": _display_path(db_path), "level": "OK"})
+        result = readback_rules(db_path)
+        if result["status"] == "error":
+            detail = f" ({result.get('error')})" if result.get("error") else ""
+            items.append({"label": t("status.canonical_unreadable", path=_display_path(db_path), reason=t(str(result["reason"]))) + detail, "level": "ERROR"})
+        else:
+            items.append({"label": _display_path(db_path), "level": "OK"})
     else:
         items.append({"label": _display_path(db_path), "level": "ERROR"})
 
@@ -149,9 +159,13 @@ def collect_setup(db_path: str) -> dict:
 
 
 def print_status(payload: dict) -> None:
-    if payload["db_exists"]:
+    if payload["db_exists"] and not payload["db_error"]:
         print(t("status.canonical_found", path=_display_path(payload["db_path"])))
         print(t("status.canonical_rule_count", count=payload["rule_count"]))
+    elif payload["db_exists"]:
+        detail = payload["db_error"].get("error") if payload["db_error"] else None
+        suffix = f" ({detail})" if detail else ""
+        print(t("status.canonical_unreadable", path=_display_path(payload["db_path"]), reason=t(str(payload["db_error"]["reason"]))) + suffix)
     else:
         print(t("status.canonical_not_found", path=_display_path(payload["db_path"])))
 

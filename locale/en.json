@@ -33,7 +33,8 @@
     "auto_registered": "Auto-registered: {path}",
     "purge_help": "Also remove the VEIL block from the target file when unregistering.",
     "block_removed": "  VEIL block removed: {path}",
-    "rules_section_header": "Terminology rules:\n"
+    "rules_section_header": "Terminology rules:\n",
+    "source_error": "Error: cannot load source rules: {reason}"
   },
   "status": {
     "description": "Show VEIL status and setup diagnostics.",
@@ -43,6 +44,7 @@
     "sync_target_ok": "sync target: {path}",
     "sync_target_miss": "sync target not found: {path}",
     "canonical_found": "canonical:    {path}",
+    "canonical_unreadable": "canonical:    unreadable  ({path}; {reason})",
     "canonical_rule_count": "  rule count: {count}",
     "canonical_not_found": "canonical:    not found  ({path})",
     "mirror_found": "mirror:       {path}/  (last updated: {updated})",
@@ -65,7 +67,8 @@
     "usage_error": "Usage error: specify one of <file>, --stdin, or --text.",
     "read_error": "Read error: {exc}",
     "no_rules": "SKIP: No VEIL rules in {source_type}:{source_label}",
-    "no_rules_reason": "No VEIL rules found."
+    "no_rules_reason": "No VEIL rules found.",
+    "source_error": "ERROR: cannot load VEIL rules from {source_type}:{source_label} ({reason})"
   },
   "normalize": {
     "description": "Normalize candidate terms and show integration candidates against VEIL rules.",
@@ -81,7 +84,8 @@
     "existing_header": "Existing matches:",
     "new_header": "New candidates:",
     "usage_error": "Usage error: specify one of <file>, --stdin, or --text.",
-    "read_error": "Read error: {exc}"
+    "read_error": "Read error: {exc}",
+    "source_error": "ERROR: cannot load reference rules from {label} ({reason})"
   },
   "db": {
     "description": "VEIL SQLite canonical CLI.",
@@ -97,6 +101,7 @@
     "preferred_alt_2_help": "Candidate 2.",
     "preferred_alt_3_help": "Candidate 3.",
     "status_help": "Status. Default: active",
+    "level_help": "Profile level. Default: required",
     "category_hint_help": "Category hint.",
     "note_help": "Note.",
     "source_context_help": "Source context (e.g. filename:line).",
@@ -111,10 +116,13 @@
   "store": {
     "no_rules_dir": "Rules directory not found.",
     "no_db_file": "DB file not found.",
+    "db_unreadable": "DB file is unreadable or not a valid SQLite database.",
     "empty_term": "term_original or preferred is empty.",
     "load_failed": "Failed to read: {exc}",
     "rule_parse_ignored": "Rule line could not be parsed — skipped.",
-    "empty_original_or_preferred": "original or preferred is empty — skipped."
+    "empty_original_or_preferred": "original or preferred is empty — skipped.",
+    "mirror_write_failed": "Failed to write markdown mirror.",
+    "html_write_failed": "Failed to write HTML output."
   },
   "html": {
     "title": "VEIL — Vocabulary Rules",

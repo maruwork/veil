@@ -33,7 +33,8 @@
     "auto_registered": "自動登録: {path}",
     "purge_help": "登録解除時にターゲットファイルの VEIL ブロックも削除する。",
     "block_removed": "  VEIL ブロック削除: {path}",
-    "rules_section_header": "Terminology rules:\n"
+    "rules_section_header": "Terminology rules:\n",
+    "source_error": "エラー: 参照ルールを読み込めません: {reason}"
   },
   "status": {
     "description": "VEIL の状態確認とセットアップ診断を表示する。",
@@ -43,6 +44,7 @@
     "sync_target_ok": "同期先: {path}",
     "sync_target_miss": "同期先が見つかりません: {path}",
     "canonical_found": "canonical:    {path}",
+    "canonical_unreadable": "canonical:    unreadable  ({path}; {reason})",
     "canonical_rule_count": "  rule count: {count}",
     "canonical_not_found": "canonical:    not found  ({path})",
     "mirror_found": "ミラー:       {path}/  (最終更新: {updated})",
@@ -65,7 +67,8 @@
     "usage_error": "使い方エラー: <file>、--stdin、--text のいずれかを指定してください。",
     "read_error": "読み込みエラー: {exc}",
     "no_rules": "SKIP: {source_type}:{source_label} に VEIL ルールがありません",
-    "no_rules_reason": "VEIL ルールが見つかりません。"
+    "no_rules_reason": "VEIL ルールが見つかりません。",
+    "source_error": "ERROR: {source_type}:{source_label} から VEIL ルールを読み込めません ({reason})"
   },
   "normalize": {
     "description": "候補語を正規化し、VEIL ルールとの統合候補を示す。",
@@ -81,7 +84,8 @@
     "existing_header": "既存一致:",
     "new_header": "新規候補:",
     "usage_error": "使い方エラー: <file>、--stdin、--text のいずれかを指定してください。",
-    "read_error": "読み込みエラー: {exc}"
+    "read_error": "読み込みエラー: {exc}",
+    "source_error": "ERROR: 参照ルール {label} を読み込めません ({reason})"
   },
   "db": {
     "description": "VEIL SQLite canonical CLI。",
@@ -97,6 +101,7 @@
     "preferred_alt_2_help": "候補2。",
     "preferred_alt_3_help": "候補3。",
     "status_help": "status。既定: active",
+    "level_help": "profile level。既定: required",
     "category_hint_help": "カテゴリヒント。",
     "note_help": "メモ。",
     "source_context_help": "参照元（例: ファイル名:行番号）。",
@@ -111,10 +116,13 @@
   "store": {
     "no_rules_dir": "rules directory が見つかりません。",
     "no_db_file": "db file が見つかりません。",
+    "db_unreadable": "db file が壊れているか SQLite DB として読めません。",
     "empty_term": "term_original または preferred が空です。",
     "load_failed": "読み込み失敗: {exc}",
     "rule_parse_ignored": "rule 行として解釈できないため無視した",
-    "empty_original_or_preferred": "original または preferred が空のため無視した"
+    "empty_original_or_preferred": "original または preferred が空のため無視した",
+    "mirror_write_failed": "markdown ミラーを書き出せませんでした。",
+    "html_write_failed": "HTML 出力を書き出せませんでした。"
   },
   "html": {
     "title": "VEIL — 語彙ルール",
