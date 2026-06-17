@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-06-17
+
+### Fixed
+- `veil-sync.py --list`: replaced hardcoded `✓` with `[OK]` to avoid UnicodeEncodeError on Windows cp1252 stdout
+- `locale/en.json`, `locale/ja.json`: replaced `✗` in `target_miss` with `[x]` for ASCII-safe output
+- `tests/helpers.py`: subprocess env now always includes `PYTHONUTF8=1` to ensure UTF-8 stdout in subprocesses
+- `.github/workflows/ci.yml`: added `PYTHONUTF8: "1"` env to windows job
+- `install.ps1`: set `PYTHONUTF8=1` permanently in user environment to fix `→` and other Unicode in rule output on Windows; aligned language detection with `install.sh` (any 2-3 char code, not only `ja`)
+- `install.sh` / `install.ps1`: added `init-db` step so `veil-status --check` passes immediately after install
+
+### Added
+- `get-veil.sh` / `get-veil.ps1`: one-liner installers; clone on first run, `git pull` on re-run; `VEIL_REPO` env var for custom location
+- `tests/test_status.py`: 5 tests covering `--version`, `--json` db present/missing, `--check` exit code and `[ERROR]` output
+- `tests/test_locale.py`: 7 tests covering `detect_lang` env/normalize and `t()` en/ja/missing-key/kwargs
+- `ci.yml`: `windows-latest` job for pytest and syntax check; extended `py_compile` to include `veil-profile-audit.py` and `veil-profile-export.py`
+
+---
+
 ## [1.0.1] - 2026-06-16
 
 ### Added

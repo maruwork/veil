@@ -82,4 +82,9 @@ if ((Resolve-Path $PWD).Path -ne (Resolve-Path $RepoDir).Path) {
 }
 
 Write-Host ""
+Write-Host "Configuring UTF-8 output mode..."
+[System.Environment]::SetEnvironmentVariable("PYTHONUTF8", "1", "User")
+Write-Host "[OK] PYTHONUTF8=1 set for current user"
+
+Write-Host ""
 Write-Host "done."

@@ -293,7 +293,7 @@ def cmd_list(paths):
         return
     print(t("sync.targets_header"))
     for target in targets:
-        status = "✓" if os.path.exists(target) else t("sync.target_miss")
+        status = "[OK]" if os.path.exists(target) else t("sync.target_miss")
         print(f"  [{status}] {target}")
 
 

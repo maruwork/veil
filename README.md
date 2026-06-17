@@ -456,8 +456,8 @@ veil/
 ├── LICENSE
 ├── get-veil.sh                           # one-liner installer (macOS / Linux)
 ├── get-veil.ps1                          # one-liner installer (Windows)
-├── install.sh                            # skill file deploy script (macOS / Linux)
-├── install.ps1                           # skill file deploy script (Windows)
+├── install.sh                            # installer: skills + config + init-db (macOS / Linux)
+├── install.ps1                           # installer: skills + config + init-db (Windows)
 ├── pytest.ini                            # pytest configuration
 ├── pyrightconfig.json                    # Pyright type-check configuration
 ├── locale/                              # locale strings
@@ -486,7 +486,9 @@ veil/
 │   ├── helpers.py
 │   ├── test_db.py
 │   ├── test_lint.py
+│   ├── test_locale.py
 │   ├── test_normalize.py
+│   ├── test_status.py
 │   └── test_sync.py
 └── docs/
     └── veil-design.md                   # design reference

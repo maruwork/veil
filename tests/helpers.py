@@ -15,7 +15,7 @@ _NORMALIZE_SCRIPT = os.path.join(PROJECT_ROOT, "shared", "runtime", "veil-normal
 
 
 def _run(script: str, *args: str, check: bool = True, input: str | None = None) -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, "VEIL_LANG": "en"}
+    env = {**os.environ, "VEIL_LANG": "en", "PYTHONUTF8": "1"}
     return subprocess.run(
         [PYTHON, script, *args],
         check=check,

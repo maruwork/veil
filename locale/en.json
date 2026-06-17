@@ -27,7 +27,7 @@
     "registered": "Registered: {path}",
     "no_targets_list": "No sync targets registered.",
     "targets_header": "Registered sync targets:",
-    "target_miss": "✗ (not found)",
+    "target_miss": "[x] (not found)",
     "not_registered": "Not registered: {path}",
     "unregistered": "Unregistered: {path}",
     "auto_registered": "Auto-registered: {path}",
