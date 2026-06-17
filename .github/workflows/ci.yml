@@ -52,14 +52,16 @@ jobs:
           python shared/runtime/veil-lint.py \
             --db /tmp/veil_test.db \
             --text "The current state of the system" \
-            --json | python -c "import json,sys; r=json.load(sys.stdin); assert r['violations'], 'expected violation not found'"
+            --json > /tmp/lint_hit.json || true
+          python -c "import json,sys; r=json.load(open(sys.argv[1])); assert r['violations'], 'expected violation not found'" /tmp/lint_hit.json
 
       - name: lint clean
         run: |
           python shared/runtime/veil-lint.py \
             --db /tmp/veil_test.db \
             --text "The present state of the system" \
-            --json | python -c "import json,sys; r=json.load(sys.stdin); assert not r['violations'], 'unexpected violation'"
+            --json > /tmp/lint_clean.json || true
+          python -c "import json,sys; r=json.load(open(sys.argv[1])); assert not r['violations'], 'unexpected violation'" /tmp/lint_clean.json
 
       - name: normalize
         run: |
@@ -144,7 +146,8 @@ jobs:
           python shared/runtime/veil-lint.py \
             --db "$RUNNER_TEMP/veil_test.db" \
             --text "The current state of the system" \
-            --json | python -c "import json,sys; r=json.load(sys.stdin); assert r['violations'], 'expected violation not found'"
+            --json > "$RUNNER_TEMP/lint_hit.json" || true
+          python -c "import json,sys; r=json.load(open(sys.argv[1])); assert r['violations'], 'expected violation not found'" "$RUNNER_TEMP/lint_hit.json"
 
       - name: lint clean
         shell: bash
@@ -152,7 +155,8 @@ jobs:
           python shared/runtime/veil-lint.py \
             --db "$RUNNER_TEMP/veil_test.db" \
             --text "The present state of the system" \
-            --json | python -c "import json,sys; r=json.load(sys.stdin); assert not r['violations'], 'unexpected violation'"
+            --json > "$RUNNER_TEMP/lint_clean.json" || true
+          python -c "import json,sys; r=json.load(open(sys.argv[1])); assert not r['violations'], 'unexpected violation'" "$RUNNER_TEMP/lint_clean.json"
 
       - name: normalize
         shell: bash
