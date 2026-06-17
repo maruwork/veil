@@ -11,6 +11,9 @@ Output only the following template.
 - One line per adopted term
 - If candidate 3 exists, append `| {candidate3} (candidate 3)` at the end
 - If there are no terms to adopt, output only `Nothing to adopt.` and stop
+- After the list, output exactly one of:
+  - en: `Candidate 1 will be registered for each. To override, reply with the term and your choice (e.g. "current state → keep current"). Reply OK to proceed.`
+  - ja: `各語の候補1を登録します。変更したい場合は語と選択肢を返信してください（例: "current state → 現状のまま"）。そのまま進む場合はOKと返信してください。`
 
 **Locale override (ja):** Use `（現状）`, `（候補1）`, `（候補2）` labels instead of English equivalents.
 
