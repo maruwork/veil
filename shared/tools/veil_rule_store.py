@@ -84,20 +84,27 @@ _HTML_TEMPLATE = """\
   .alt { color: #555; font-size: 13px; }
   .copy-btn {
     flex-shrink: 0;
-    background: none;
-    border: none;
+    background: #f1f1f1;
+    border: 1px solid #d8d8d8;
     cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 3px;
+    padding: 4px 8px;
+    border-radius: 4px;
     color: #444;
     font-size: 11px;
     line-height: 1;
-    transition: color 0.1s, background 0.1s;
-    opacity: 0;
+    transition: color 0.1s, background 0.1s, border-color 0.1s;
   }
-  tr:hover .copy-btn { opacity: 1; }
-  .copy-btn:hover { color: #555; background: #ebebeb; }
-  .copy-btn.copied { color: #6dbf7a; opacity: 1; }
+  .copy-btn:hover { color: #555; background: #ebebeb; border-color: #c8c8c8; }
+  .copy-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .copy-btn.copied { color: #2f7d3d; border-color: #9fd3aa; }
+  .status {
+    min-height: 20px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: #666;
+  }
+  .status.error { color: #9a3412; }
+  .status.success { color: #166534; }
   .hidden { display: none; }
 </style>
 </head>
@@ -110,6 +117,7 @@ _HTML_TEMPLATE = """\
   <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
 </div>
 <p style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
+<div id="status" class="status" aria-live="polite"></div>
 <table>
   <thead>
     <tr>
@@ -127,20 +135,46 @@ __ROWS__
   const _copyInstruction = "__UI_COPY_INSTRUCTION__";
   const _copyBtn = "__UI_COPY_BTN__";
   const _copyDone = "__UI_COPY_DONE__";
+  const _copyManual = "__UI_COPY_MANUAL__";
+  const _copyManualDone = "__UI_COPY_MANUAL_DONE__";
+  const _copyFailed = "__UI_COPY_FAILED__";
   const _countRegistered = "__UI_COUNT_REGISTERED__";
   const _countMatching = "__UI_COUNT_MATCHING__";
+
+  function setStatus(message, tone = '') {
+    const el = document.getElementById('status');
+    el.textContent = message;
+    el.className = 'status' + (tone ? ' ' + tone : '');
+  }
+
+  function flashCopied(btn, message, tone = 'success') {
+    btn.textContent = _copyDone;
+    btn.classList.add('copied');
+    setStatus(message, tone);
+    setTimeout(() => {
+      btn.textContent = _copyBtn;
+      btn.classList.remove('copied');
+    }, 1500);
+  }
+
+  function openManualCopy(text) {
+    window.prompt(_copyManual, text);
+    setStatus(_copyManualDone, 'success');
+  }
 
   function copy(btn) {
     const term = btn.dataset.term;
     const candidate = btn.dataset.alt;
     const text = _copyInstruction.replace('{term}', term).replace('{candidate}', candidate);
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      openManualCopy(text);
+      return;
+    }
     navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = _copyDone;
-      btn.classList.add('copied');
-      setTimeout(() => {
-        btn.textContent = _copyBtn;
-        btn.classList.remove('copied');
-      }, 1500);
+      flashCopied(btn, _copyDone, 'success');
+    }).catch(() => {
+      openManualCopy(text);
+      setStatus(_copyFailed, 'error');
     });
   }
   function filterRows() {
@@ -168,13 +202,16 @@ _HTML_UI_EN: dict[str, str] = {
     "lang": "en",
     "title": "VEIL — Vocabulary Rules",
     "search_placeholder": "Search terms...",
-    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell and paste into the AI chat.",
+    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell. If clipboard access is blocked, VEIL opens a manual copy prompt.",
     "col_term": "Term",
     "col_preferred": "Preferred (candidate 1)",
     "col_alt2": "Candidate 2",
     "col_alt3": "Candidate 3",
     "copy_btn": "Copy",
-    "copy_done": "✓",
+    "copy_done": "Copied",
+    "copy_manual": "Clipboard access is unavailable. Copy this text manually:",
+    "copy_manual_done": "Manual copy prompt opened.",
+    "copy_failed": "Copy failed. Copy the text manually from the prompt.",
     "count_registered": "{n} terms registered",
     "count_matching": "{n} terms matching",
     "copy_instruction": "Change '{term}' to '{candidate}'",
@@ -200,6 +237,21 @@ PROFILE_LEVEL_TO_HEADING = {
     PROFILE_LEVEL_REQUIRED: "必須",
     PROFILE_LEVEL_RECOMMENDED: "推奨",
     PROFILE_LEVEL_OBSERVE: "観察",
+}
+PROFILE_LEVEL_ALIASES = {
+    "required": PROFILE_LEVEL_REQUIRED,
+    "require": PROFILE_LEVEL_REQUIRED,
+    "must": PROFILE_LEVEL_REQUIRED,
+    "mandatory": PROFILE_LEVEL_REQUIRED,
+    "必須": PROFILE_LEVEL_REQUIRED,
+    "recommended": PROFILE_LEVEL_RECOMMENDED,
+    "recommend": PROFILE_LEVEL_RECOMMENDED,
+    "should": PROFILE_LEVEL_RECOMMENDED,
+    "推奨": PROFILE_LEVEL_RECOMMENDED,
+    "observe": PROFILE_LEVEL_OBSERVE,
+    "observation": PROFILE_LEVEL_OBSERVE,
+    "watch": PROFILE_LEVEL_OBSERVE,
+    "観察": PROFILE_LEVEL_OBSERVE,
 }
 HEADING_TO_PROFILE_LEVEL = {heading: level for level, heading in PROFILE_LEVEL_TO_HEADING.items()}
 HEADING_TO_PROFILE_LEVEL.update(
@@ -249,28 +301,15 @@ def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | No
     return parts[0], parts[1], parts[2]
 
 
-def canonicalize_profile_level(level: str | None) -> str:
+def canonicalize_profile_level(level: str | None, default: str | None = PROFILE_LEVEL_DEFAULT) -> str | None:
     normalized = (level or "").strip().lower()
-    alias_map = {
-        "required": PROFILE_LEVEL_REQUIRED,
-        "require": PROFILE_LEVEL_REQUIRED,
-        "must": PROFILE_LEVEL_REQUIRED,
-        "mandatory": PROFILE_LEVEL_REQUIRED,
-        "必須": PROFILE_LEVEL_REQUIRED,
-        "recommended": PROFILE_LEVEL_RECOMMENDED,
-        "recommend": PROFILE_LEVEL_RECOMMENDED,
-        "should": PROFILE_LEVEL_RECOMMENDED,
-        "推奨": PROFILE_LEVEL_RECOMMENDED,
-        "observe": PROFILE_LEVEL_OBSERVE,
-        "observation": PROFILE_LEVEL_OBSERVE,
-        "watch": PROFILE_LEVEL_OBSERVE,
-        "観察": PROFILE_LEVEL_OBSERVE,
-    }
-    return alias_map.get(normalized, PROFILE_LEVEL_DEFAULT)
+    if not normalized:
+        return default
+    return PROFILE_LEVEL_ALIASES.get(normalized, default)
 
 
 def profile_level_heading(level: str | None) -> str:
-    canonical = canonicalize_profile_level(level)
+    canonical = canonicalize_profile_level(level) or PROFILE_LEVEL_DEFAULT
     return PROFILE_LEVEL_TO_HEADING.get(canonical, PROFILE_LEVEL_TO_HEADING[PROFILE_LEVEL_DEFAULT])
 
 
@@ -286,7 +325,7 @@ def empty_profile_level_counts() -> dict[str, int]:
 
 def add_profile_level_count(counts: dict[str, int], level: str | None, legacy_flat: bool = False) -> None:
     counts["total_rules"] += 1
-    canonical = canonicalize_profile_level(level)
+    canonical = canonicalize_profile_level(level) or PROFILE_LEVEL_DEFAULT
     if canonical == PROFILE_LEVEL_RECOMMENDED:
         counts["recommended_count"] += 1
     elif canonical == PROFILE_LEVEL_OBSERVE:
@@ -559,7 +598,14 @@ def upsert_rule(
 
     normalized = normalize_term(original)
     now = now_utc_iso()
-    canonical_level = canonicalize_profile_level(profile_level)
+    canonical_level = canonicalize_profile_level(profile_level, default=None)
+    if canonical_level is None:
+        return {
+            "status": "error",
+            "reason": "store.invalid_profile_level",
+            "db_path": db_path,
+            "input_level": profile_level,
+        }
     try:
         init_db(db_path)
         with open_db(db_path) as conn:
@@ -730,7 +776,10 @@ def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, st
         entries_sorted = sorted(
             entries,
             key=lambda r: (
-                PROFILE_LEVELS.index(canonicalize_profile_level(str(r.get("profile_level") or PROFILE_LEVEL_DEFAULT))),
+                PROFILE_LEVELS.index(
+                    canonicalize_profile_level(str(r.get("profile_level") or PROFILE_LEVEL_DEFAULT))
+                    or PROFILE_LEVEL_DEFAULT
+                ),
                 str(r["term_normalized"]),
                 str(r["term_original"]).lower(),
                 int(r["id"]),
@@ -739,7 +788,10 @@ def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, st
         for level in PROFILE_LEVELS:
             level_entries = [
                 row for row in entries_sorted
-                if canonicalize_profile_level(str(row.get("profile_level") or PROFILE_LEVEL_DEFAULT)) == level
+                if (
+                    canonicalize_profile_level(str(row.get("profile_level") or PROFILE_LEVEL_DEFAULT))
+                    or PROFILE_LEVEL_DEFAULT
+                ) == level
             ]
             if not level_entries:
                 continue
@@ -845,7 +897,9 @@ def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
     return (
         f'<div class="cell">'
         f'<span class="alt">{_html.escape(str(alt))}</span>'
-        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" onclick="copy(this)">{_html.escape(copy_btn)}</button>'
+        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" '
+        f'title="{_html.escape(copy_btn)}" aria-label="{_html.escape(copy_btn)}" onclick="copy(this)">'
+        f'{_html.escape(copy_btn)}</button>'
         f'</div>'
     )
 
@@ -865,14 +919,26 @@ def _build_html_content(rows_html: str, count: int, ui: dict[str, str]) -> str:
     content = content.replace("__UI_TITLE__", h("title", "VEIL — Vocabulary Rules"))
     content = content.replace("__UI_COUNT_INIT__", _html.escape(count_init))
     content = content.replace("__UI_SEARCH_PLACEHOLDER__", h("search_placeholder", "Search terms..."))
-    content = content.replace("__UI_INSTRUCTION__", h("instruction", "To change the preferred form, click Copy and paste into the AI chat."))
+    content = content.replace(
+        "__UI_INSTRUCTION__",
+        h(
+            "instruction",
+            "To change the preferred form, click Copy. If clipboard access is blocked, VEIL opens a manual copy prompt.",
+        ),
+    )
     content = content.replace("__UI_COL_TERM__", h("col_term", "Term"))
     content = content.replace("__UI_COL_PREFERRED__", h("col_preferred", "Preferred (candidate 1)"))
     content = content.replace("__UI_COL_ALT2__", h("col_alt2", "Candidate 2"))
     content = content.replace("__UI_COL_ALT3__", h("col_alt3", "Candidate 3"))
     content = content.replace("__UI_COPY_INSTRUCTION__", js("copy_instruction", "Change '{term}' to '{candidate}'"))
     content = content.replace("__UI_COPY_BTN__", js("copy_btn", "Copy"))
-    content = content.replace("__UI_COPY_DONE__", js("copy_done", "✓"))
+    content = content.replace("__UI_COPY_DONE__", js("copy_done", "Copied"))
+    content = content.replace(
+        "__UI_COPY_MANUAL__",
+        js("copy_manual", "Clipboard access is unavailable. Copy this text manually:"),
+    )
+    content = content.replace("__UI_COPY_MANUAL_DONE__", js("copy_manual_done", "Manual copy prompt opened."))
+    content = content.replace("__UI_COPY_FAILED__", js("copy_failed", "Copy failed. Copy the text manually from the prompt."))
     content = content.replace("__UI_COUNT_REGISTERED__", js("count_registered", "{n} terms registered"))
     content = content.replace("__UI_COUNT_MATCHING__", js("count_matching", "{n} terms matching"))
     content = content.replace("__ROWS__", rows_html)

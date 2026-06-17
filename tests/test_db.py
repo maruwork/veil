@@ -58,6 +58,43 @@ def test_upsert_with_level(tmp_db):
     assert payload["row"]["profile_level"] == "recommended"
 
 
+def test_upsert_with_level_alias(tmp_db):
+    result = db_cmd(
+        "upsert-rule",
+        "--db",
+        tmp_db,
+        "--term",
+        "observer",
+        "--preferred",
+        "watcher",
+        "--level",
+        "推奨",
+        "--json",
+    )
+    payload = json.loads(result.stdout)
+    assert payload["row"]["profile_level"] == "recommended"
+
+
+def test_upsert_rejects_invalid_level(tmp_db):
+    result = db_cmd(
+        "upsert-rule",
+        "--db",
+        tmp_db,
+        "--term",
+        "broken",
+        "--preferred",
+        "fixed",
+        "--level",
+        "typo",
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert payload["reason"] == "store.invalid_profile_level"
+
+
 def test_readback_empty(tmp_db):
     result = db_cmd("readback", "--db", tmp_db, "--json")
     payload = json.loads(result.stdout)
@@ -88,6 +125,9 @@ def test_export_html(tmp_db, tmp_path):
     content = open(html_path, encoding="utf-8").read()
     assert "current state" in content
     assert "present state" in content
+    assert "Manual copy prompt opened." in content
+    assert "Clipboard access is unavailable. Copy this text manually:" in content
+    assert "opacity: 0" not in content
 
 
 def test_import_rules_yes_flag(tmp_db, tmp_rules):

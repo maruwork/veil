@@ -296,8 +296,8 @@ Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongsid
 To change the preferred form, use the HTML list:
 
 1. Open `~/.veil/veil.html` (run `export-html` first if needed)
-2. Find the term — hover over the target candidate and click **Copy**
-3. This copies a ready-to-paste instruction (`Change '{term}' to '{candidate}'`) to the clipboard
+2. Find the term and click **Copy** on the target candidate
+3. This copies a ready-to-paste instruction (`Change '{term}' to '{candidate}'`) to the clipboard. If clipboard access is blocked, VEIL opens a manual copy prompt instead
 4. Paste into the AI chat — this triggers a new capture cycle that records the updated preferred form
 5. After capture: run `export-mirror`, `export-html`, and `veil-sync.py` to propagate the change
 
