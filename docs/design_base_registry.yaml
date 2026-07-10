@@ -1,56 +1,53 @@
-meta:
+﻿meta:
   subject: veil
-  revision: 1
-  bootstrap: design-methodology
-
+  revision: 2
 categories:
   G.goal:
     state: filled
-    value: "see README.md; DESIGN.md; CHANGELOG.md"
-    evidence: "see DESIGN.md; CHANGELOG.md; CONTRIBUTING.md"
+    value: "see README.md; docs/veil-design.md"
+    evidence: "veil design"
   G.actor:
     state: filled
-    value: "operators and implementers of this repository; see authority docs if present"
-    evidence: "see README.md; DESIGN.md; CHANGELOG.md"
+    value: "operators managing terminology/rules via veil tools"
+    evidence: "README.md"
   G.io:
     state: filled
-    value: "see README.md; DESIGN.md; CHANGELOG.md"
-    evidence: "see DESIGN.md; CHANGELOG.md; CONTRIBUTING.md"
+    value: "see README.md; docs/veil-design.md"
+    evidence: "CLI and design"
   G.behavior:
     state: filled
-    value: "see README.md; DESIGN.md; CHANGELOG.md"
-    evidence: "see DESIGN.md; CHANGELOG.md; CONTRIBUTING.md"
+    value: "see docs/veil-design.md"
+    evidence: "design"
   G.data:
     state: filled
-    value: "see README.md; DESIGN.md; CHANGELOG.md"
-    evidence: "see DESIGN.md; CHANGELOG.md; CONTRIBUTING.md"
+    value: "see docs/veil-design.md"
+    evidence: "rule store design"
   G.oracle:
     state: filled
-    value: "machine checks where tests/CI exist; human judgment for design quality and product sign-off"
-    evidence: "see README.md; DESIGN.md; CHANGELOG.md"
+    value: "machine: veil lint/status tools; human: terminology preference acceptance"
+    evidence: "README.md"
   G.invariant:
     state: filled
-    value: "design truth owners must not be silently duplicated; update named owners instead of residue paths"
-    evidence: "see README.md; DESIGN.md; CHANGELOG.md"
+    value: "canonical terminology rules as designed in docs/veil-design.md"
+    evidence: "docs/veil-design.md"
   G.compose:
     state: filled
-    value: "composition of modules/docs is project-specific; interaction range is not claimed exhaustive"
-    evidence: "see README.md; DESIGN.md; CHANGELOG.md"
+    value: "tools and rule store composition per docs/veil-design.md"
+    evidence: "docs/veil-design.md"
   G.env:
     state: filled
-    value: "runtime and dependency assumptions live in project docs and tooling configs where present"
-    evidence: "see README.md; DESIGN.md; CHANGELOG.md"
+    value: "local DB and runtime tools as documented in README.md"
+    evidence: "README.md"
   G.feedback:
     state: filled
-    value: "none (single-shot product/docs unless a project explicitly adds amplifying self-training)"
-    evidence: "default topology"
+    value: "none amplifying self-training; rule updates are explicit ops"
+    evidence: "product shape"
   G.ops:
     state: filled
-    value: "see README.md; DESIGN.md; CHANGELOG.md"
-    evidence: "see DESIGN.md; CHANGELOG.md; CONTRIBUTING.md"
+    value: "see README.md"
+    evidence: "README.md"
   G.open:
     state: filled
-    value: "unknown slots remain until Gate-R promotion; claimed_complete is false in residuals"
+    value: "unknown slots remain until Gate-R; claimed_complete false"
     evidence: "docs/design_residuals.yaml"
-
 promoted_slots: {}
