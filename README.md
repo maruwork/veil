@@ -171,6 +171,7 @@ git clone https://github.com/maruwork/veil.git $env:USERPROFILE\tools\veil
 ```
 
 On a brand-new install, VEIL seeds `~/.veil/veil.db` from the bundled technical-writing default profile. Re-running the installer does not overwrite an existing DB.
+Every installer run regenerates `~/.veil/veil.html` from the current DB, so reinstalling refreshes the review surface without reseeding canonical data.
 
 The installer copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, initializes `~/.veil/veil.db`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
 

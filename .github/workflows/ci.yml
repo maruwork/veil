@@ -30,6 +30,9 @@ jobs:
       - name: Syntax check
         run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/tools/veil-profile-audit.py shared/tools/veil-profile-export.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
 
+      - name: Installer syntax check
+        run: bash -n install.sh
+
       - name: Capture syntax check
         run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
 
@@ -115,6 +118,17 @@ jobs:
 
       - name: Syntax check
         run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/tools/veil-profile-audit.py shared/tools/veil-profile-export.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
+
+      - name: Installer syntax check
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path "install.ps1"), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
 
       - name: Capture syntax check
         run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py

@@ -67,9 +67,10 @@ if (-not $DbAlreadyPresent) {
     Write-Host ""
     Write-Host "Seeding bundled technical-writing default profile..."
     python "$RepoDir\shared\tools\veil-db.py" import-seed --db "$DbPath" --seed-file "$DefaultProfileSeed" --yes
-    python "$RepoDir\shared\tools\veil-db.py" export-html --db "$DbPath" --html-path "$HtmlPath"
     Write-Host "[OK] default rules $DefaultProfileSeed"
 }
+python "$RepoDir\shared\tools\veil-db.py" export-html --db "$DbPath" --html-path "$HtmlPath"
+Write-Host "[OK] veil.html      $HtmlPath"
 
 Write-Host ""
 Write-Host "Registering sync targets..."

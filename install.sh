@@ -63,9 +63,10 @@ if [ "$DB_ALREADY_PRESENT" -eq 0 ]; then
   echo ""
   echo "Seeding bundled technical-writing default profile..."
   python3 "$REPO_DIR/shared/tools/veil-db.py" import-seed --db "$DB_PATH" --seed-file "$DEFAULT_PROFILE_SEED" --yes
-  python3 "$REPO_DIR/shared/tools/veil-db.py" export-html --db "$DB_PATH" --html-path "$HTML_PATH"
   echo "[OK] default rules $DEFAULT_PROFILE_SEED"
 fi
+python3 "$REPO_DIR/shared/tools/veil-db.py" export-html --db "$DB_PATH" --html-path "$HTML_PATH"
+echo "[OK] veil.html      $HTML_PATH"
 
 echo ""
 echo "Registering sync targets..."
