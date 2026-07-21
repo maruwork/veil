@@ -64,13 +64,17 @@ def parse_args() -> argparse.Namespace:
 
 def read_input(args: argparse.Namespace) -> str:
     if args.text is not None:
-        return args.text
-    if args.stdin or (args.path in (None, "-") and not sys.stdin.isatty()):
-        return sys.stdin.read()
-    if args.path:
+        text = args.text
+    elif args.stdin or (args.path in (None, "-") and not sys.stdin.isatty()):
+        text = sys.stdin.read()
+    elif args.path:
         with open(args.path, encoding="utf-8") as handle:
-            return handle.read()
-    raise ValueError("No input text provided.")
+            text = handle.read()
+    else:
+        raise ValueError("No input text provided.")
+    if not text.strip():
+        raise ValueError("No input text provided.")
+    return text
 
 
 def load_registered_terms(db_path: str) -> set[str]:

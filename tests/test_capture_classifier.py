@@ -2658,6 +2658,20 @@ def test_classify_cli_without_input_reports_error() -> None:
     assert "ERROR: No input text provided." in result.stderr
 
 
+def test_classify_cli_empty_stdin_reports_error() -> None:
+    result = classify_cmd("--stdin", "--json", "--db", "does-not-exist.db", check=False, input="")
+
+    assert result.returncode == 1
+    assert "ERROR: No input text provided." in result.stderr
+
+
+def test_classify_cli_blank_inline_text_reports_error() -> None:
+    result = classify_cmd("--text", "   ", "--json", "--db", "does-not-exist.db", check=False)
+
+    assert result.returncode == 1
+    assert "ERROR: No input text provided." in result.stderr
+
+
 def test_chat_seed_fixture_labels() -> None:
     samples = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     for sample in samples:
