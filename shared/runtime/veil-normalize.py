@@ -13,9 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -23,17 +21,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from shared.tools.veil_rule_store import (
-    LEADING_BULLET_RE,
-    RULE_LINE_RE,
-    first_preferred,
-    load_rule_index_from_db,
-    normalize_term,
-)
+from shared.tools.veil_rule_store import DEFAULT_DB_PATH, LEADING_BULLET_RE, load_rule_index_from_db, normalize_term
 from shared.tools.veil_locale import t
-
-CONFIG_DIR = os.path.expanduser("~/.veil")
-DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,24 +31,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stdin", action="store_true", help=t("normalize.stdin_help"))
     parser.add_argument("--text", help=t("normalize.text_help"))
     parser.add_argument("--json", action="store_true", help=t("normalize.json_help"))
-    parser.add_argument(
-        "--rules-dir",
-        default=DEFAULT_RULES_DIR,
-        help=t("normalize.rules_dir_help"),
-    )
-    parser.add_argument(
-        "--db",
-        help=t("normalize.db_help"),
-    )
+    parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("normalize.db_help"))
     return parser.parse_args()
-
-
-def target_file_for(term: str) -> str:
-    cleaned = LEADING_BULLET_RE.sub("", term.strip()).lower()
-    if not cleaned:
-        return "special.md"
-    first = cleaned[0]
-    return f"{first}.md" if "a" <= first <= "z" else "special.md"
 
 
 def read_input(args: argparse.Namespace) -> str:
@@ -77,68 +50,9 @@ def parse_candidate_lines(text: str) -> list[str]:
     candidates: list[str] = []
     for raw in text.splitlines():
         term = LEADING_BULLET_RE.sub("", raw.strip())
-        if not term:
-            continue
-        candidates.append(term)
+        if term:
+            candidates.append(term)
     return candidates
-
-
-def load_rule_index(rules_dir: str) -> tuple[dict[str, dict[str, str]], list[dict[str, Any]]]:
-    if not os.path.isdir(rules_dir):
-        return {}, []
-    index: dict[str, dict[str, str]] = {}
-    conflicts_by_key: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for fname in sorted(os.listdir(rules_dir)):
-        if not fname.endswith(".md"):
-            continue
-        path = os.path.join(rules_dir, fname)
-        try:
-            with open(path, encoding="utf-8") as f:
-                lines = f.readlines()
-        except OSError:
-            continue
-        for line in lines:
-            match = RULE_LINE_RE.match(line)
-            if not match:
-                continue
-            original = match.group("original").strip()
-            preferred = first_preferred(match.group("preferred"))
-            key = normalize_term(original)
-            if not key:
-                continue
-            entry = {
-                "original": original,
-                "preferred": preferred,
-                "source_file": fname,
-            }
-            if key not in index:
-                index[key] = entry
-            elif (
-                index[key]["original"] != original
-                or index[key]["preferred"] != preferred
-            ):
-                conflicts_by_key[key].append(entry)
-    conflicts = []
-    for key, entries in conflicts_by_key.items():
-        conflicts.append(
-            {
-                "normalized": key,
-                "selected": index[key],
-                "ignored": entries,
-            }
-        )
-    return index, conflicts
-
-
-def load_rule_index_for_source(
-    rules_dir: str,
-    db_path: str | None,
-) -> tuple[str, dict[str, dict[str, str]], list[dict[str, Any]], dict[str, Any] | None]:
-    if db_path:
-        status, index, conflicts, payload = load_rule_index_from_db(db_path)
-        return db_path, index, conflicts, payload if status == "error" else None
-    index, conflicts = load_rule_index(rules_dir)
-    return rules_dir, index, conflicts, None
 
 
 def choose_display_variant(variant_counts: dict[str, int]) -> str:
@@ -189,30 +103,9 @@ def cluster_candidates(candidates: list[str], rule_index: dict[str, dict[str, st
                     "occurrence_count": occurrence_count,
                     "representative": representative,
                     "variants": variants,
-                    "target_file": target_file_for(representative),
                 }
             )
     return results
-
-
-def print_conflicts(conflicts: list[dict[str, Any]]) -> None:
-    for conflict in conflicts:
-        selected = conflict["selected"]
-        ignored = ", ".join(
-            f"{entry['original']} -> {entry['preferred']} ({entry['source_file']})"
-            for entry in conflict["ignored"]
-        )
-        print(
-            t(
-                "normalize.conflict_warning",
-                normalized=conflict["normalized"],
-                original=selected["original"],
-                preferred=selected["preferred"],
-                source_file=selected["source_file"],
-                ignored=ignored,
-            ),
-            file=sys.stderr,
-        )
 
 
 def compact_source_label(source_label: str) -> str:
@@ -234,13 +127,13 @@ def print_text_result(results: list[dict[str, Any]], source_label: str) -> None:
         print()
         print(t("normalize.existing_header"))
         for item in existing_items:
-            print(f"- {item['representative']} → {item['preferred']}")
+            print(f"- {item['representative']} -> {item['preferred']}")
     if new_items:
         print()
         print(t("normalize.new_header"))
         for item in new_items:
             suffix = f" x{item['occurrence_count']}" if item["occurrence_count"] > 1 else ""
-            print(f"- {item['representative']}{suffix} → {item['target_file']}")
+            print(f"- {item['representative']}{suffix}")
 
 
 def main() -> int:
@@ -255,12 +148,14 @@ def main() -> int:
         return 2
 
     candidates = parse_candidate_lines(text)
-    source_label, rule_index, conflicts, source_error = load_rule_index_for_source(args.rules_dir, args.db)
+    status, rule_index, conflicts, source_payload = load_rule_index_from_db(args.db)
+    source_label = args.db
+    source_error = source_payload if status == "error" else None
     if source_error is not None:
         payload = {
             "status": "error",
             "reason": t(str(source_error.get("reason"))),
-            "source_type": "db" if args.db else "rules-dir",
+            "source_type": "db",
             "source": source_label,
             "candidate_count": len(candidates),
             "existing": [],
@@ -273,15 +168,32 @@ def main() -> int:
             detail = f" ({source_error['error']})" if source_error.get("error") else ""
             print(t("normalize.source_error", label=compact_source_label(source_label), reason=payload["reason"]) + detail, file=sys.stderr)
         return 2
+
     results = cluster_candidates(candidates, rule_index)
     if conflicts:
-        print_conflicts(conflicts)
+        for conflict in conflicts:
+            selected = conflict["selected"]
+            ignored = ", ".join(
+                f"{entry['original']} -> {entry['preferred']} ({entry['source_file']})"
+                for entry in conflict["ignored"]
+            )
+            print(
+                t(
+                    "normalize.conflict_warning",
+                    normalized=conflict["normalized"],
+                    original=selected["original"],
+                    preferred=selected["preferred"],
+                    source_file=selected["source_file"],
+                    ignored=ignored,
+                ),
+                file=sys.stderr,
+            )
 
     if args.json:
         existing = [item for item in results if item["status"] == "existing-match"]
         new = [item for item in results if item["status"] == "new-candidate"]
         payload = {
-            "source_type": "db" if args.db else "rules-dir",
+            "source_type": "db",
             "source": source_label,
             "candidate_count": len(candidates),
             "existing": existing,

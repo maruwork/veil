@@ -7,7 +7,7 @@ Usage:
   python shared/runtime/veil-sync.py --add <path>                # register sync target
   python shared/runtime/veil-sync.py --list                      # list registered targets
   python shared/runtime/veil-sync.py --remove <path>             # unregister target
-  python shared/runtime/veil-sync.py --db <path> --rules-dir <path>
+  python shared/runtime/veil-sync.py --db <path>
 
 Supported files:
   CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules,
@@ -28,7 +28,11 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from shared.tools.veil_rule_store import DEFAULT_DB_PATH, DEFAULT_RULES_DIR, export_markdown_mirror_from_db
+from shared.tools.veil_rule_store import (
+    DEFAULT_DB_PATH,
+    get_protected_repo_dir_name,
+    readback_rules,
+)
 from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
@@ -65,14 +69,13 @@ def find_sibling_ai_configs(registered_path: str) -> list[str]:
     return found
 
 
-def build_paths(config_dir: str, db_path: str | None, rules_dir: str | None) -> dict[str, str]:
+def build_paths(config_dir: str, db_path: str | None) -> dict[str, str]:
     return {
         "config_dir": config_dir,
         "targets_file": os.path.join(config_dir, "targets.json"),
         "config_file": os.path.join(config_dir, "config.json"),
         "behavior_file": os.path.join(config_dir, "behavior.md"),
         "db_path": db_path or DEFAULT_DB_PATH,
-        "rules_dir": rules_dir or DEFAULT_RULES_DIR,
     }
 
 
@@ -80,7 +83,6 @@ def build_parser():
     parser = argparse.ArgumentParser(description=t("sync.description"))
     parser.add_argument("--config-dir", default=CONFIG_DIR, help=t("sync.config_dir_help"))
     parser.add_argument("--db", help=t("sync.db_help"))
-    parser.add_argument("--rules-dir", help=t("sync.rules_dir_help"))
     parser.add_argument("--quiet", action="store_true", help=t("sync.quiet_help"))
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--add", metavar="PATH", help=t("sync.add_help"))
@@ -93,6 +95,23 @@ def build_parser():
 def get_markers(path):
     ext = os.path.splitext(path)[1].lower()
     return MARKERS["yaml"] if ext in YAML_EXTS else MARKERS["default"]
+
+
+def _commentize_structured_block(text: str) -> str:
+    lines = text.splitlines()
+    if not lines:
+        return "#"
+    commented: list[str] = []
+    for line in lines:
+        commented.append(f"# {line}" if line.strip() else "#")
+    return "\n".join(commented)
+
+
+def render_sync_block(path: str, combined: str) -> str:
+    marker_start, marker_end = get_markers(path)
+    ext = os.path.splitext(path)[1].lower()
+    body = _commentize_structured_block(combined) if ext in YAML_EXTS else combined
+    return f"{marker_start}\n{body}\n{marker_end}"
 
 
 def load_targets(paths):
@@ -126,53 +145,27 @@ def load_behavior(paths):
         return ""
 
 
-def load_base_rules(rules_dir):
-    if not os.path.isdir(rules_dir):
-        return ""
-    parts = []
-    for fname in sorted(os.listdir(rules_dir)):
-        if not fname.endswith(".md"):
-            continue
-        try:
-            with open(os.path.join(rules_dir, fname), encoding="utf-8-sig") as f:
-                content = f.read().strip()
-            if content:
-                parts.append(content)
-        except OSError:
-            pass
-    return "\n".join(parts)
-
-
-def refresh_markdown_mirror(paths, quiet=False):
-    if os.path.exists(paths["db_path"]):
-        payload = export_markdown_mirror_from_db(paths["db_path"], paths["rules_dir"])
-        if payload["status"] != "ok":
-            if not quiet:
-                reason_raw = payload.get("reason")
-                reason = t(str(reason_raw)) if reason_raw else t("sync.mirror_export_failed")
-                print(t("sync.mirror_error", reason=reason))
-            return payload
-        if not quiet:
-            print(t(
-                "sync.mirror_update",
-                path=paths["rules_dir"],
-                written=len(payload["written_files"]),
-                removed=len(payload["removed_files"]),
-            ))
-        return payload
-    return {
-        "status": "skip",
-        "reason": "db file not found; falling back to rules-dir",
-        "db_path": paths["db_path"],
-        "rules_dir": paths["rules_dir"],
-    }
-
-
 def prepare_base_rules(paths, quiet=False):
-    payload = refresh_markdown_mirror(paths, quiet=quiet)
-    if payload["status"] not in {"ok", "skip"}:
+    payload = readback_rules(paths["db_path"])
+    if payload["status"] == "skip":
+        return payload["status"], "", None
+    if payload["status"] != "ok":
         return payload["status"], "", payload
-    return payload["status"], load_base_rules(paths["rules_dir"]), None
+
+    active_rows = [
+        row for row in payload["rows"]
+        if row.get("status") == "active"
+    ]
+    if not active_rows:
+        return "ok", "", None
+
+    lines: list[str] = []
+    for row in sorted(active_rows, key=lambda item: (str(item["term_normalized"]), str(item["term_original"]).lower())):
+        preferred = str(row["preferred"]).strip()
+        if not preferred:
+            continue
+        lines.append(f"- {row['term_original']} -> {preferred}")
+    return "ok", "\n".join(lines), None
 
 
 def do_sync(paths, base="", quiet=False, targets=None):
@@ -188,12 +181,17 @@ def do_sync(paths, base="", quiet=False, targets=None):
     if not targets or not combined:
         return
     for path in targets:
+        protected_root = get_protected_repo_dir_name(path)
+        if protected_root is not None:
+            if not quiet:
+                print(t("sync.protected_target_skip", path=path, root=protected_root))
+            continue
         if not os.path.exists(path):
             if not quiet:
                 print(t("sync.skip", path=path))
             continue
         marker_start, marker_end = get_markers(path)
-        block = f"{marker_start}\n{combined}\n{marker_end}"
+        block = render_sync_block(path, combined)
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
@@ -266,6 +264,10 @@ def save_config(paths):
 
 def cmd_add(paths, path, quiet=False):
     path = os.path.abspath(path)
+    protected_root = get_protected_repo_dir_name(path)
+    if protected_root is not None:
+        print(t("sync.protected_target_path", path=path, root=protected_root))
+        return 1
     if not os.path.exists(path):
         print(t("sync.file_not_found", path=path))
         return 1
@@ -356,7 +358,7 @@ def cmd_remove(paths, path, purge: bool = False):
 if __name__ == "__main__":
     parser = build_parser()
     args = parser.parse_args()
-    paths = build_paths(args.config_dir, args.db, args.rules_dir)
+    paths = build_paths(args.config_dir, args.db)
     if args.add:
         sys.exit(cmd_add(paths, args.add, quiet=args.quiet))
     elif args.list:

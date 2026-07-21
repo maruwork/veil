@@ -1,0 +1,30 @@
+{
+  "profile_name": "technical-writing-default",
+  "domain": "technical-writing",
+  "intended_use": "AI-assisted technical writing terminology guardrail",
+  "base_profile": "none",
+  "rules": [
+    {
+      "term_original": "current state",
+      "preferred": "present state",
+      "preferred_alt_2": "current status",
+      "status": "active",
+      "profile_level": "required",
+      "source_context": "technical-writing-default.json:1"
+    },
+    {
+      "term_original": "current issue",
+      "preferred": "current problem",
+      "status": "active",
+      "profile_level": "required",
+      "source_context": "technical-writing-default.json:2"
+    },
+    {
+      "term_original": "unstable wording",
+      "preferred": "inconsistent phrasing",
+      "status": "active",
+      "profile_level": "recommended",
+      "source_context": "technical-writing-default.json:3"
+    }
+  ]
+}

@@ -7,6 +7,9 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VEIL_DIR="$HOME/.veil"
 CONFIG_FILE="$VEIL_DIR/config.json"
 SYNC_SCRIPT="$REPO_DIR/shared/runtime/veil-sync.py"
+DEFAULT_PROFILE_SEED="$REPO_DIR/shared/default-profile/technical-writing-default.json"
+DB_PATH="$VEIL_DIR/veil.db"
+HTML_PATH="$VEIL_DIR/veil.html"
 
 echo "VEIL install"
 echo "repo: $REPO_DIR"
@@ -52,8 +55,18 @@ echo "[OK] config.json  lang=$DETECTED_LANG"
 
 echo ""
 echo "Initializing SQLite canonical DB..."
-python3 "$REPO_DIR/shared/tools/veil-db.py" init-db --db "$VEIL_DIR/veil.db"
-echo "[OK] veil.db       $VEIL_DIR/veil.db"
+DB_ALREADY_PRESENT=0
+[ -f "$DB_PATH" ] && DB_ALREADY_PRESENT=1
+python3 "$REPO_DIR/shared/tools/veil-db.py" init-db --db "$DB_PATH"
+echo "[OK] veil.db       $DB_PATH"
+if [ "$DB_ALREADY_PRESENT" -eq 0 ]; then
+  echo ""
+  echo "Seeding bundled technical-writing default profile..."
+  python3 "$REPO_DIR/shared/tools/veil-db.py" import-seed --db "$DB_PATH" --seed-file "$DEFAULT_PROFILE_SEED" --yes
+  echo "[OK] default rules $DEFAULT_PROFILE_SEED"
+fi
+python3 "$REPO_DIR/shared/tools/veil-db.py" export-html --db "$DB_PATH" --html-path "$HTML_PATH"
+echo "[OK] veil.html      $HTML_PATH"
 
 echo ""
 echo "Registering sync targets..."
