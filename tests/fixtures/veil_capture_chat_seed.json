@@ -1,0 +1,302 @@
+[
+  {
+    "term": "migration",
+    "label": "industry_term",
+    "note": "Widely used technical term in software delivery and schema evolution."
+  },
+  {
+    "term": "tracked file",
+    "label": "industry_term",
+    "note": "Common Git-oriented specialist term."
+  },
+  {
+    "term": "branch",
+    "label": "industry_term",
+    "note": "Established VCS workflow term."
+  },
+  {
+    "term": "mainline",
+    "label": "industry_term",
+    "note": "Established release or integration line term."
+  },
+  {
+    "term": "checkpoint",
+    "label": "industry_term",
+    "note": "Established workflow checkpoint term."
+  },
+  {
+    "term": "runtime",
+    "label": "industry_term",
+    "note": "Established software engineering term."
+  },
+  {
+    "term": "DB",
+    "label": "industry_term",
+    "note": "Specialist acronym for database in software work."
+  },
+  {
+    "term": "UI",
+    "label": "industry_term",
+    "note": "Specialist acronym for user interface."
+  },
+  {
+    "term": "UX",
+    "label": "industry_term",
+    "note": "Specialist acronym for user experience."
+  },
+  {
+    "term": "HTML",
+    "label": "industry_term",
+    "note": "Established web technology acronym."
+  },
+  {
+    "term": "prompt",
+    "label": "industry_term",
+    "note": "Established specialist term in current AI tooling workflows."
+  },
+  {
+    "term": "normalize",
+    "label": "industry_term",
+    "note": "Established transformation workflow term."
+  },
+  {
+    "term": "package",
+    "label": "industry_term",
+    "note": "Established software engineering term."
+  },
+  {
+    "term": "packaging",
+    "label": "industry_term",
+    "note": "Established software distribution term."
+  },
+  {
+    "term": "worktree",
+    "label": "industry_term",
+    "note": "Established Git term for an additional working tree."
+  },
+  {
+    "term": "root clutter",
+    "label": "coined_or_shortened",
+    "note": "Project-local wording for repository root noise."
+  },
+  {
+    "term": "bounded naturalness",
+    "label": "coined_or_shortened",
+    "note": "Project-local branch family label."
+  },
+  {
+    "term": "maintainer-only files",
+    "label": "coined_or_shortened",
+    "note": "Project-local phrase describing maintainer-facing artifacts."
+  },
+  {
+    "term": "repo",
+    "label": "coined_or_shortened",
+    "note": "Shortened form of repository."
+  },
+  {
+    "term": "repo truth",
+    "label": "coined_or_shortened",
+    "note": "Project-local phrase for the repository's effective current truth."
+  },
+  {
+    "term": "/veil-capture",
+    "label": "file_config_identifier",
+    "note": "Slash-command style workflow identifier."
+  },
+  {
+    "term": "Capture to /veil-capture",
+    "label": "file_config_identifier",
+    "note": "Slash-command style workflow identifier."
+  },
+  {
+    "term": "README",
+    "label": "file_config_identifier",
+    "note": "Repository file name."
+  },
+  {
+    "term": "AIM_STATUS.md",
+    "label": "file_config_identifier",
+    "note": "Concrete governance status file name."
+  },
+  {
+    "term": "CI",
+    "label": "file_config_identifier",
+    "note": "Machine-oriented pipeline identifier in this repo context."
+  },
+  {
+    "term": "pyrightconfig.json",
+    "label": "file_config_identifier",
+    "note": "Concrete config filename."
+  },
+  {
+    "term": "common",
+    "label": "file_config_identifier",
+    "note": "Repo-specific directory identifier in this workflow."
+  },
+  {
+    "term": "archive",
+    "label": "file_config_identifier",
+    "note": "Repo-specific directory identifier in this workflow."
+  },
+  {
+    "term": "workspace",
+    "label": "file_config_identifier",
+    "note": "Repo-specific directory identifier in this workflow."
+  },
+  {
+    "term": "config",
+    "label": "file_config_identifier",
+    "note": "Configuration shorthand belongs to the file/config/identifier bucket here."
+  },
+  {
+    "term": "tests/**",
+    "label": "file_config_identifier",
+    "note": "Glob path pattern."
+  },
+  {
+    "term": ".github/**",
+    "label": "file_config_identifier",
+    "note": "Directory glob pattern."
+  },
+  {
+    "term": "review",
+    "label": "other",
+    "note": "Too broad as a standalone word."
+  },
+  {
+    "term": "mirror",
+    "label": "other",
+    "note": "Ordinary word here, not a terminology target by itself."
+  },
+  {
+    "term": "export",
+    "label": "other",
+    "note": "Ordinary word here, not a terminology target by itself."
+  },
+  {
+    "term": "import",
+    "label": "other",
+    "note": "Ordinary word here, not a terminology target by itself."
+  },
+  {
+    "term": "mode",
+    "label": "other",
+    "note": "General word, not a terminology target by itself."
+  },
+  {
+    "term": "flow",
+    "label": "other",
+    "note": "General word, not a terminology target by itself."
+  },
+  {
+    "term": "naming",
+    "label": "other",
+    "note": "General word, not a terminology target by itself."
+  },
+  {
+    "term": "registration",
+    "label": "other",
+    "note": "Ordinary operation word here, not a terminology target by itself."
+  },
+  {
+    "term": "deletion",
+    "label": "other",
+    "note": "Ordinary operation word here, not a terminology target by itself."
+  },
+  {
+    "term": "current state",
+    "label": "coined_or_shortened",
+    "note": "Canonicalized project-local shorthand with explicit preferred-form guidance."
+  },
+  {
+    "term": "live state",
+    "label": "other",
+    "note": "Ordinary status phrase here, not a category term."
+  },
+  {
+    "term": "branch question",
+    "label": "other",
+    "note": "Ordinary governance phrase here, not a category term."
+  },
+  {
+    "term": "current checkpoint",
+    "label": "other",
+    "note": "Ordinary governance phrase here, not a category term."
+  },
+  {
+    "term": "current surface",
+    "label": "other",
+    "note": "Ordinary governance phrase here, not a category term."
+  },
+  {
+    "term": "launch evidence",
+    "label": "other",
+    "note": "Ordinary historical phrase here, not a category term."
+  },
+  {
+    "term": "current issue",
+    "label": "other",
+    "note": "Ordinary multiword phrase here, not a category term."
+  },
+  {
+    "term": "unstable wording",
+    "label": "coined_or_shortened",
+    "note": "Project-local shorthand that should normalize toward a clearer preferred phrasing."
+  },
+  {
+    "term": "GitHub standard",
+    "label": "coined_or_shortened",
+    "note": "Ad hoc project shorthand rather than a broadly established term."
+  },
+  {
+    "term": "user",
+    "label": "other",
+    "note": "General word, not a terminology target by itself."
+  },
+  {
+    "term": "GitHub",
+    "label": "other",
+    "note": "Proper noun, but clearly outside the target categories rather than unresolved."
+  },
+  {
+    "term": "PowerShell",
+    "label": "other",
+    "note": "Proper noun tool name, clearly outside the target categories rather than unresolved."
+  },
+  {
+    "term": "Python",
+    "label": "other",
+    "note": "Proper noun for a language/tool name, clearly outside the target categories."
+  },
+  {
+    "term": "root",
+    "label": "other",
+    "note": "Broad ordinary word by itself, not a terminology target."
+  },
+  {
+    "term": "ordinary",
+    "label": "other",
+    "note": "Meta-descriptive word, not a terminology target by itself."
+  },
+  {
+    "term": "noun",
+    "label": "other",
+    "note": "Meta-descriptive word, not a terminology target by itself."
+  },
+  {
+    "term": "multiword",
+    "label": "other",
+    "note": "Meta-descriptive word, not a terminology target by itself."
+  },
+  {
+    "term": "first-pass",
+    "label": "other",
+    "note": "Ordinary explanatory hyphenated wording unless explicitly curated as a local term."
+  },
+  {
+    "term": "veil-capture",
+    "label": "coined_or_shortened",
+    "note": "Explicitly curated local tool/workflow name."
+  }
+]

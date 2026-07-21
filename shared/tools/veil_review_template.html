@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="__UI_LANG__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__UI_TITLE__</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 32px 24px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 16px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: #000; }
+  header span { font-size: 12px; color: #666; }
+  .search-bar { margin-bottom: 24px; }
+  .search-bar input {
+    width: 100%;
+    max-width: 360px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: #aaa; }
+  .search-bar input::placeholder { color: #bbb; }
+  .composer {
+    max-width: 900px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+  }
+  .composer h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .composer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .composer-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .composer-field span {
+    font-size: 12px;
+    color: #555;
+  }
+  .composer-field input,
+  .composer-field select {
+    width: 100%;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+  }
+  .composer-field input:focus,
+  .composer-field select:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+  }
+  .composer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .capture-panel {
+    max-width: 900px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f6f8fb;
+    border: 1px solid #d9e2f0;
+    border-radius: 10px;
+  }
+  .capture-panel h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .capture-panel p {
+    font-size: 12px;
+    color: #5a6472;
+    margin-bottom: 12px;
+  }
+  .capture-panel textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 10px 12px;
+    resize: vertical;
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .capture-panel textarea:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+  }
+  .capture-output {
+    margin-top: 14px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+  }
+  .capture-output h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .capture-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .capture-result-line {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #d8e1ee;
+    border-radius: 8px;
+    color: #1f2937;
+    font-size: 12px;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .capture-result-line:hover {
+    background: #eef4ff;
+    border-color: #b9cdf5;
+  }
+  .capture-result-empty {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #222;
+  }
+  .muted-note {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  table { width: 100%; max-width: 900px; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #666;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+  tbody tr:hover { background: #f8f8f8; }
+  td { padding: 10px 12px; vertical-align: middle; }
+  .term { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; color: #2563eb; }
+  .section-label {
+    display: inline-block;
+    width: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .cell { display: flex; align-items: center; gap: 8px; }
+  .preferred { font-weight: 500; color: #1a1a1a; }
+  .alt { color: #555; font-size: 13px; }
+  .copy-btn {
+    flex-shrink: 0;
+    background: #f1f1f1;
+    border: 1px solid #d8d8d8;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #444;
+    font-size: 11px;
+    line-height: 1;
+    transition: color 0.1s, background 0.1s, border-color 0.1s;
+  }
+  .copy-btn:hover { color: #555; background: #ebebeb; border-color: #c8c8c8; }
+  .copy-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .copy-btn.copied { color: #2f7d3d; border-color: #9fd3aa; }
+  .primary-btn {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+  .primary-btn:hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+  .danger-btn {
+    background: #fff7f7;
+    border-color: #efc8c8;
+    color: #b42318;
+  }
+  .danger-btn:hover { background: #fdecec; border-color: #e9a8a8; color: #912018; }
+  .status {
+    min-height: 20px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: #666;
+  }
+  .status.error { color: #9a3412; }
+  .status.success { color: #166534; }
+  .hidden { display: none; }
+  [dir="rtl"] header { flex-direction: row-reverse; justify-content: flex-end; }
+  [dir="rtl"] thead th,
+  [dir="rtl"] td { text-align: right; }
+  [dir="rtl"] .section-label { margin-right: 0; margin-left: 4px; }
+  [dir="rtl"] .cell { justify-content: flex-end; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VEIL</h1>
+  <span id="count">__UI_COUNT_INIT__</span>
+</header>
+<div class="search-bar">
+  <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
+</div>
+<section class="capture-panel">
+  <h2 id="capture-title">__UI_CAPTURE_TITLE__</h2>
+  <p id="capture-description">__UI_CAPTURE_DESCRIPTION__</p>
+  <textarea id="capture-input" placeholder="__UI_CAPTURE_PLACEHOLDER__"></textarea>
+  <div class="composer-actions">
+    <button type="button" class="copy-btn primary-btn" id="capture-analyze-btn" onclick="analyzeCaptureInput()">__UI_CAPTURE_BTN__</button>
+    <button type="button" class="copy-btn" id="capture-copy-output-btn" onclick="copyCaptureOutput()">__UI_CAPTURE_COPY_OUTPUT_BTN__</button>
+    <button type="button" class="copy-btn" id="capture-copy-prompt-btn" onclick="copyCapturePrompt()">__UI_CAPTURE_COPY_PROMPT_BTN__</button>
+  </div>
+  <div class="capture-output">
+    <h3 id="capture-result-title">__UI_CAPTURE_RESULT_TITLE__</h3>
+    <div id="capture-output" class="capture-result-empty">__UI_CAPTURE_EMPTY__</div>
+    <div class="muted-note" id="capture-note">__UI_CAPTURE_NOTE__</div>
+  </div>
+</section>
+<section class="composer">
+  <h2 id="register-title">__UI_REGISTER_TITLE__</h2>
+  <div class="composer-grid">
+    <label class="composer-field">
+      <span id="label-term">__UI_FIELD_TERM__</span>
+      <input type="text" id="new-term" placeholder="__UI_REGISTER_TERM_PLACEHOLDER__">
+    </label>
+    <label class="composer-field">
+      <span id="label-preferred">__UI_FIELD_PREFERRED__</span>
+      <input type="text" id="new-preferred" placeholder="__UI_REGISTER_PREFERRED_PLACEHOLDER__">
+    </label>
+    <label class="composer-field">
+      <span id="label-alt2">__UI_FIELD_ALT2__</span>
+      <input type="text" id="new-alt2" placeholder="__UI_REGISTER_ALT2_PLACEHOLDER__">
+    </label>
+    <label class="composer-field">
+      <span id="label-alt3">__UI_FIELD_ALT3__</span>
+      <input type="text" id="new-alt3" placeholder="__UI_REGISTER_ALT3_PLACEHOLDER__">
+    </label>
+  </div>
+  <div class="composer-actions">
+    <button type="button" class="copy-btn primary-btn" id="register-btn" onclick="copyRegisterPrompt()">__UI_REGISTER_BTN__</button>
+    <button type="button" class="copy-btn" id="register-commands-btn" onclick="copyRegisterInstruction()">__UI_REGISTER_COMMANDS_BTN__</button>
+  </div>
+</section>
+<p id="instruction" style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
+<div id="status" class="status" aria-live="polite"></div>
+<table>
+  <thead>
+    <tr>
+      <th id="col-term" style="width:220px">__UI_COL_TERM__</th>
+      <th id="col-preferred" style="width:220px">__UI_COL_PREFERRED__</th>
+      <th id="col-alt2" style="width:220px">__UI_COL_ALT2__</th>
+      <th id="col-alt3">__UI_COL_ALT3__</th>
+      <th id="col-actions" style="width:120px">__UI_COL_ACTIONS__</th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+__ROWS__
+  </tbody>
+</table>
+<script>
+  const _i18n = __UI_I18N__;
+  const _captureConfig = __CAPTURE_CONFIG__;
+  const _defaultLang = "__UI_LANG__";
+  const _dbCliPath = __DB_CLI_PATH__;
+  const _dbPath = __DB_PATH__;
+  const _htmlPath = __HTML_PATH__;
+  let _captureResults = [];
+  let _activeLocale = "en";
+
+  function normalizeLocale(raw) {
+    const value = String(raw || '').toLowerCase();
+    if (value.startsWith('ja')) return 'ja';
+    if (value.startsWith('ko')) return 'ko';
+    if (value.startsWith('ar')) return 'ar';
+    if (value.startsWith('zh')) {
+      if (value.includes('hant') || value.includes('tw') || value.includes('hk') || value.includes('mo')) {
+        return 'zh-hant';
+      }
+      return 'zh-hans';
+    }
+    return 'en';
+  }
+
+  function pickLocale() {
+    const candidates = Array.isArray(navigator.languages) && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language, _defaultLang];
+    for (const raw of candidates) {
+      const normalized = normalizeLocale(raw);
+      if (_i18n[normalized]) {
+        return normalized;
+      }
+    }
+    const fallback = normalizeLocale(_defaultLang);
+    return _i18n[fallback] ? fallback : 'en';
+  }
+
+  function localeTag(locale) {
+    if (locale === 'zh-hans') return 'zh-CN';
+    if (locale === 'zh-hant') return 'zh-TW';
+    return locale;
+  }
+
+  function isRtlLocale(locale) {
+    return locale === 'ar';
+  }
+
+  function message(key, replacements = null) {
+    const pack = _i18n[_activeLocale] || _i18n.en || {};
+    const fallback = _i18n.en || {};
+    let value = pack[key] || fallback[key] || '';
+    if (replacements) {
+      for (const [name, replacement] of Object.entries(replacements)) {
+        value = value.replaceAll('{' + name + '}', String(replacement));
+      }
+    }
+    return value;
+  }
+
+  function visibleRowCount() {
+    return document.querySelectorAll('#tbody tr:not(.hidden)').length;
+  }
+
+  function updateCountDisplay(visible) {
+    const query = document.getElementById('search').value.toLowerCase();
+    const key = query ? 'count_matching' : 'count_registered';
+    document.getElementById('count').textContent = message(key, { n: visible });
+  }
+
+  function updateCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      if (
+        !btn.classList.contains('copied') &&
+        !btn.classList.contains('delete-btn') &&
+        btn.id !== 'register-btn' &&
+        btn.id !== 'register-commands-btn' &&
+        btn.id !== 'capture-analyze-btn' &&
+        btn.id !== 'capture-copy-output-btn' &&
+        btn.id !== 'capture-copy-prompt-btn'
+      ) {
+        btn.textContent = message('copy_btn');
+      }
+      if (btn.classList.contains('delete-btn')) {
+        btn.textContent = message('delete_btn');
+        btn.title = message('delete_btn');
+        btn.setAttribute('aria-label', message('delete_btn'));
+      } else if (btn.id === 'register-btn') {
+        btn.textContent = message('register_btn');
+        btn.title = message('register_btn');
+        btn.setAttribute('aria-label', message('register_btn'));
+      } else if (btn.id === 'register-commands-btn') {
+        btn.textContent = message('register_commands_btn');
+        btn.title = message('register_commands_btn');
+        btn.setAttribute('aria-label', message('register_commands_btn'));
+      } else if (btn.id === 'capture-analyze-btn') {
+        btn.textContent = message('capture_btn');
+        btn.title = message('capture_btn');
+        btn.setAttribute('aria-label', message('capture_btn'));
+      } else if (btn.id === 'capture-copy-output-btn') {
+        btn.textContent = message('capture_copy_output_btn');
+        btn.title = message('capture_copy_output_btn');
+        btn.setAttribute('aria-label', message('capture_copy_output_btn'));
+      } else if (btn.id === 'capture-copy-prompt-btn') {
+        btn.textContent = message('capture_copy_prompt_btn');
+        btn.title = message('capture_copy_prompt_btn');
+        btn.setAttribute('aria-label', message('capture_copy_prompt_btn'));
+      } else {
+        btn.title = message('copy_btn');
+        btn.setAttribute('aria-label', message('copy_btn'));
+      }
+    });
+  }
+
+  function applyLocale(locale) {
+    _activeLocale = _i18n[locale] ? locale : 'en';
+    document.documentElement.lang = localeTag(_activeLocale);
+    document.documentElement.dir = isRtlLocale(_activeLocale) ? 'rtl' : 'ltr';
+    document.title = message('title');
+    document.getElementById('search').placeholder = message('search_placeholder');
+    document.getElementById('instruction').textContent = message('instruction');
+    document.getElementById('capture-title').textContent = message('capture_title');
+    document.getElementById('capture-description').textContent = message('capture_description');
+    document.getElementById('capture-input').placeholder = message('capture_placeholder');
+    document.getElementById('capture-result-title').textContent = message('capture_result_title');
+    document.getElementById('capture-note').textContent = message('capture_note');
+    document.getElementById('register-title').textContent = message('register_title');
+    document.getElementById('label-term').textContent = message('field_term');
+    document.getElementById('label-preferred').textContent = message('field_preferred');
+    document.getElementById('label-alt2').textContent = message('field_alt2');
+    document.getElementById('label-alt3').textContent = message('field_alt3');
+    document.getElementById('new-term').placeholder = message('register_term_placeholder');
+    document.getElementById('new-preferred').placeholder = message('register_preferred_placeholder');
+    document.getElementById('new-alt2').placeholder = message('register_alt2_placeholder');
+    document.getElementById('new-alt3').placeholder = message('register_alt3_placeholder');
+    document.getElementById('col-term').textContent = message('col_term');
+    document.getElementById('col-preferred').textContent = message('col_preferred');
+    document.getElementById('col-alt2').textContent = message('col_alt2');
+    document.getElementById('col-alt3').textContent = message('col_alt3');
+    document.getElementById('col-actions').textContent = message('col_actions');
+    updateCopyButtons();
+    updateCountDisplay(visibleRowCount());
+    if (!_captureResults.length) {
+      const output = document.getElementById('capture-output');
+      output.className = 'capture-result-empty';
+      output.textContent = message('capture_empty');
+    } else {
+      renderCaptureOutput(_captureResults);
+    }
+  }
+
+  function setStatus(message, tone = '') {
+    const el = document.getElementById('status');
+    el.textContent = message;
+    el.className = 'status' + (tone ? ' ' + tone : '');
+  }
+
+  function flashCopied(btn, statusMessage, tone = 'success') {
+    btn.textContent = message('copy_done');
+    btn.classList.add('copied');
+    setStatus(statusMessage, tone);
+    setTimeout(() => {
+      btn.textContent = message('copy_btn');
+      btn.classList.remove('copied');
+    }, 1500);
+  }
+
+  function openManualCopy(text) {
+    window.prompt(message('copy_manual'), text);
+    setStatus(message('copy_manual_done'), 'success');
+  }
+
+  function copyText(text, successMessage) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      openManualCopy(text);
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setStatus(successMessage, 'success');
+    }).catch(() => {
+      openManualCopy(text);
+      setStatus(message('copy_failed'), 'error');
+    });
+  }
+
+  function copy(btn) {
+    const term = btn.dataset.term;
+    const candidate = btn.dataset.alt;
+    const text = message('copy_instruction', { term, candidate });
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      openManualCopy(text);
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      flashCopied(btn, message('copy_done'), 'success');
+    }).catch(() => {
+      openManualCopy(text);
+      setStatus(message('copy_failed'), 'error');
+    });
+  }
+
+  function psQuote(value) {
+    return `'${String(value).replace(/'/g, "''")}'`;
+  }
+
+  function buildDbCliCommand(subcommand, args) {
+    const parts = ['python', psQuote(_dbCliPath), subcommand, '--db', psQuote(_dbPath)];
+    for (const [flag, value] of args) {
+      if (value === null || value === undefined || value === '') continue;
+      parts.push(flag, psQuote(value));
+    }
+    return parts.join(' ');
+  }
+
+  function simpleSingularizeToken(token) {
+    if (token.endsWith('ies') && token.length > 4) return token.slice(0, -3) + 'y';
+    if (/(ches|shes|xes|zes|sses)$/.test(token)) return token.slice(0, -2);
+    if (token.endsWith('ses') && token.slice(0, -2).endsWith('s')) return token.slice(0, -2);
+    if (token.length > 4 && token.endsWith('s') && !/(ss|is|us|as|os|ews)$/.test(token)) return token.slice(0, -1);
+    return token;
+  }
+
+  function normalizeTermForCapture(term) {
+    let value = String(term || '').trim().toLowerCase();
+    value = value.replace(/^[\-*窶｢]+\s*/, '');
+    value = value.replace(/[_-]+/g, ' ');
+    value = value.replace(/\s+/g, ' ').trim();
+    const tokens = value.split(' ').filter(Boolean).map(simpleSingularizeToken);
+    return tokens.join(' ');
+  }
+
+  function registeredTermSet() {
+    const set = new Set();
+    document.querySelectorAll('#tbody tr').forEach(row => {
+      const normalized = row.dataset.termNormalized || '';
+      if (normalized) set.add(normalized);
+    });
+    return set;
+  }
+
+  function sanitizeCaptureText(text) {
+    return String(text || '')
+      .replace(/\(line\s+\d+\)/gi, ' ')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/`[^`]*`/g, ' ')
+      .replace(/\b[a-z0-9_]+=([^\s]+)/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const CAPTURE_LABEL_INDUSTRY_TERM = _captureConfig.labels.industry_term;
+  const CAPTURE_LABEL_COINED_OR_SHORTENED = _captureConfig.labels.coined_or_shortened;
+  const CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER = _captureConfig.labels.file_config_identifier;
+  const CAPTURE_LABEL_OTHER = _captureConfig.labels.other;
+  const CAPTURE_LABEL_UNKNOWN = _captureConfig.labels.unknown;
+
+  const CAPTURE_PROPER_NOUN_TERMS = new Set(_captureConfig.proper_noun_terms);
+  const CAPTURE_KNOWN_INDUSTRY_ACRONYMS = new Set(_captureConfig.known_industry_acronyms || []);
+  const CAPTURE_KNOWN_INDUSTRY_TERMS = new Set(_captureConfig.known_industry_terms);
+  const CAPTURE_KNOWN_REPO_DIR_TERMS = new Set(_captureConfig.known_repo_dir_terms || []);
+  const CAPTURE_KNOWN_FILE_CONFIG_TERMS = new Set(_captureConfig.known_file_config_terms || []);
+  const CAPTURE_SHORTENED_TERMS = new Set(_captureConfig.shortened_terms);
+  const CAPTURE_GENERIC_SINGLE_WORDS = new Set(_captureConfig.generic_single_words);
+  const CAPTURE_KNOWN_COINED_TERMS = new Set(_captureConfig.known_coined_terms || []);
+  const CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS = new Set(_captureConfig.known_other_multiword_terms || []);
+  const CAPTURE_ADOPTABLE_OTHER_MULTIWORD_TERMS = new Set(_captureConfig.adoptable_other_multiword_terms || []);
+  const CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS = new Set(_captureConfig.previewable_generic_single_terms || []);
+  const CAPTURE_IDENTIFIER_TOKEN_RE = new RegExp(_captureConfig.identifier_token_pattern, 'g');
+  const CAPTURE_WORD_TOKEN_RE = new RegExp(_captureConfig.word_token_pattern, 'g');
+
+  function captureWordTokens(term) {
+    return normalizeTermForCapture(term).split(' ').filter(Boolean);
+  }
+
+  function captureIdentifierReason(term) {
+    const stripped = String(term || '').trim();
+    if (!stripped) return null;
+    const hasSpace = /\s/.test(stripped);
+    if (/[\/\*]/.test(stripped)) return 'path_or_glob_pattern';
+    if (stripped.includes('.') && stripped.length > 2) return 'filename_or_dotted_identifier';
+    if (stripped.includes('_')) return 'underscore_identifier';
+    if (!hasSpace && /^[0-9a-fA-F]{7,40}$/.test(stripped)) return 'hex_identifier';
+    if (!hasSpace && stripped === stripped.toUpperCase() && stripped.length >= 2) return 'uppercase_identifier';
+    if (!hasSpace && /[a-z][A-Z]|[A-Z][a-z].*[A-Z]/.test(stripped)) return 'camel_or_mixed_case_identifier';
+    return null;
+  }
+
+  function classifyCaptureTerm(term) {
+    const raw = String(term || '').trim().replace(/\s+/g, ' ');
+    const normalized = normalizeTermForCapture(raw);
+    const tokens = captureWordTokens(raw);
+    if (!normalized) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'empty_after_normalization' };
+    }
+    if (CAPTURE_PROPER_NOUN_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'proper_noun_non_target' };
+    }
+    if (CAPTURE_KNOWN_INDUSTRY_ACRONYMS.has(normalized) && raw === raw.toUpperCase()) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_INDUSTRY_TERM, reason: 'known_industry_acronym' };
+    }
+    if (CAPTURE_KNOWN_REPO_DIR_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: 'repo_directory_identifier' };
+    }
+    if (CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: 'config_term' };
+    }
+    if (CAPTURE_KNOWN_INDUSTRY_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_INDUSTRY_TERM, reason: 'known_industry_term' };
+    }
+    if (CAPTURE_SHORTENED_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_COINED_OR_SHORTENED, reason: 'common_shortened_form' };
+    }
+    if (tokens.length <= 1) {
+      if (CAPTURE_GENERIC_SINGLE_WORDS.has(normalized)) {
+        return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'generic_single_word' };
+      }
+    }
+    const identifierReason = captureIdentifierReason(raw);
+    if (identifierReason) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: identifierReason };
+    }
+    if (tokens.length <= 1) {
+      if (normalized.length <= 4) {
+        return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'too_short_without_clear_signal' };
+      }
+      return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'single_word_without_clear_signal' };
+    }
+    if (CAPTURE_KNOWN_COINED_TERMS.has(normalized)) {
+      return { term: raw, normalized, label: CAPTURE_LABEL_COINED_OR_SHORTENED, reason: 'known_coined_phrase' };
+    }
+    return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'ordinary_multiword_phrase' };
+  }
+
+  function captureLabelPriority(label) {
+    if (label === CAPTURE_LABEL_INDUSTRY_TERM) return 4;
+    if (label === CAPTURE_LABEL_COINED_OR_SHORTENED) return 3;
+    if (label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return 2;
+    if (label === CAPTURE_LABEL_OTHER) return 1;
+    return 0;
+  }
+
+  function captureIsAdoptableCandidate(item) {
+    const tokenCount = captureWordTokens(item.term).length;
+    if ((item.count || 0) < 2) return false;
+    if (item.label === CAPTURE_LABEL_UNKNOWN || item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return false;
+    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return tokenCount > 1;
+    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
+    if (item.label === CAPTURE_LABEL_OTHER) {
+      return tokenCount > 1 && CAPTURE_ADOPTABLE_OTHER_MULTIWORD_TERMS.has(item.normalized);
+    }
+    return false;
+  }
+
+  function buildCaptureCandidates(term) {
+    const classified = classifyCaptureTerm(term);
+    const current = classified.term;
+    const normalized = classified.normalized;
+    const isAscii = /[a-z]/i.test(current);
+    let candidate1 = current;
+    let candidate2 = message('capture_keep_current');
+    if (classified.label !== CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER && isAscii && normalized && normalized !== current) {
+      candidate1 = normalized;
+      candidate2 = current;
+    }
+    return {
+      term: current,
+      normalized,
+      label: classified.label,
+      reason: classified.reason,
+      candidate1,
+      candidate2
+    };
+  }
+
+  function formatCaptureLine(item) {
+    return `- ${item.candidate1}${message('capture_candidate1_label')} | ${item.candidate2}${message('capture_candidate2_label')}`;
+  }
+
+  function captureOutputText(results) {
+    return results.length
+      ? results.map(formatCaptureLine).join('\n')
+      : message('capture_none');
+  }
+
+  function loadCaptureResult(index) {
+    const item = _captureResults[index];
+    if (!item) return;
+    document.getElementById('new-term').value = item.term;
+    document.getElementById('new-preferred').value = item.candidate1;
+    document.getElementById('new-alt2').value = item.candidate2 === message('capture_keep_current') ? '' : item.candidate2;
+    document.getElementById('new-alt3').value = '';
+    document.getElementById('new-term').focus();
+    setStatus(message('capture_loaded', { term: item.term }), 'success');
+  }
+
+  function renderCaptureOutput(results) {
+    const output = document.getElementById('capture-output');
+    if (!results.length) {
+      output.className = 'capture-result-empty';
+      output.textContent = message('capture_none');
+      return;
+    }
+
+    output.className = 'capture-result-list';
+    output.innerHTML = '';
+    results.forEach((item, index) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'capture-result-line';
+      btn.textContent = formatCaptureLine(item);
+      btn.onclick = () => loadCaptureResult(index);
+      output.appendChild(btn);
+    });
+  }
+
+  function collectCaptureTerms(text) {
+    const cleaned = sanitizeCaptureText(text);
+    if (!cleaned) return [];
+    const registered = registeredTermSet();
+    const counts = new Map();
+
+    function record(raw) {
+      const classified = classifyCaptureTerm(raw);
+      if (!classified.normalized || registered.has(classified.normalized)) return;
+      const existing = counts.get(classified.normalized);
+      if (existing) {
+        existing.count += 1;
+        if (captureWordTokens(classified.term).length > captureWordTokens(existing.raw).length) {
+          existing.raw = classified.term;
+          existing.classified = classified;
+        }
+        return;
+      }
+      counts.set(classified.normalized, {
+        raw: classified.term,
+        classified,
+        count: 1,
+      });
+    }
+
+    function shouldRecordPhrase(rawTokens) {
+      if (rawTokens.length <= 1) return true;
+      const normalizedTokens = rawTokens.map(normalizeTermForCapture);
+      if (new Set(normalizedTokens).size === 1) return false;
+      const normalizedPhrase = normalizeTermForCapture(rawTokens.join(' '));
+      const phraseLabel = classifyCaptureTerm(rawTokens.join(' ')).label;
+      if (phraseLabel === CAPTURE_LABEL_INDUSTRY_TERM || phraseLabel === CAPTURE_LABEL_COINED_OR_SHORTENED) return true;
+      if (phraseLabel === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER && CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(normalizedPhrase)) return true;
+      if (phraseLabel === CAPTURE_LABEL_OTHER && CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(normalizedPhrase)) return true;
+      const labels = rawTokens.map(token => classifyCaptureTerm(token).label);
+      if (labels.includes(CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER)) return false;
+      if (normalizedTokens.slice(1).some(token => CAPTURE_SHORTENED_TERMS.has(token))) return false;
+      if (rawTokens[1].includes('-')) return false;
+      return false;
+    }
+
+    const maskedChars = cleaned.split('');
+    for (const match of cleaned.matchAll(CAPTURE_IDENTIFIER_TOKEN_RE)) {
+      record(match[0]);
+      const start = match.index || 0;
+      const end = start + match[0].length;
+      for (let idx = start; idx < end; idx += 1) maskedChars[idx] = ' ';
+    }
+    const masked = maskedChars.join('');
+
+    masked.split(/\r?\n/).forEach(line => {
+      const tokens = Array.from(line.matchAll(CAPTURE_WORD_TOKEN_RE)).map(match => match[0]);
+      for (const windowSize of [3, 2]) {
+        for (let idx = 0; idx <= tokens.length - windowSize; idx += 1) {
+          const window = tokens.slice(idx, idx + windowSize);
+          if (shouldRecordPhrase(window)) record(window.join(' '));
+        }
+      }
+      tokens.forEach(token => {
+        if (token.length === 1) return;
+        if (token.length < 4 && token !== token.toUpperCase()) return;
+        record(token);
+      });
+    });
+
+    const provisional = Array.from(counts.values()).map(entry => ({
+      ...buildCaptureCandidates(entry.raw),
+      count: entry.count
+    }));
+
+    const multiwordCandidates = provisional.filter(item => {
+      const tokenCount = captureWordTokens(item.term).length;
+      return tokenCount > 1 && (
+        item.label === CAPTURE_LABEL_COINED_OR_SHORTENED ||
+        item.label === CAPTURE_LABEL_INDUSTRY_TERM ||
+        (item.label === CAPTURE_LABEL_OTHER && CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(item.normalized))
+      );
+    });
+    const coveredSingleTokens = new Set();
+    multiwordCandidates.forEach(item => captureWordTokens(item.term).forEach(token => coveredSingleTokens.add(token)));
+    const longerMultiwordPrefixes = new Set();
+    multiwordCandidates.forEach(item => {
+      if (multiwordCandidates.some(other => other.normalized !== item.normalized && other.normalized.startsWith(item.normalized + ' '))) {
+        longerMultiwordPrefixes.add(item.normalized);
+      }
+    });
+
+    return provisional
+      .filter(item => {
+        const tokenCount = captureWordTokens(item.term).length;
+        if (
+          tokenCount === 1 &&
+          coveredSingleTokens.has(item.normalized) &&
+          (item.label === CAPTURE_LABEL_OTHER || item.label === CAPTURE_LABEL_UNKNOWN) &&
+          !CAPTURE_PROPER_NOUN_TERMS.has(item.normalized)
+        ) {
+          return false;
+        }
+        if ((item.label === CAPTURE_LABEL_COINED_OR_SHORTENED || item.label === CAPTURE_LABEL_INDUSTRY_TERM) && longerMultiwordPrefixes.has(item.normalized)) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const labelDelta = captureLabelPriority(b.label) - captureLabelPriority(a.label);
+        if (labelDelta) return labelDelta;
+        const countDelta = b.count - a.count;
+        if (countDelta) return countDelta;
+        const lengthDelta = b.term.length - a.term.length;
+        if (lengthDelta) return lengthDelta;
+        return a.term.toLowerCase().localeCompare(b.term.toLowerCase());
+      });
+  }
+
+  function extractCaptureCandidates(text, limit = 5) {
+    return collectCaptureTerms(text)
+      .filter(item => captureIsAdoptableCandidate(item))
+      .slice(0, limit)
+      .map(item => ({
+        term: item.term,
+        normalized: item.normalized,
+        label: item.label,
+        reason: item.reason,
+        candidate1: item.candidate1,
+        candidate2: item.candidate2
+      }));
+  }
+
+  function isPreviewableCaptureCandidate(item) {
+    const tokenCount = captureWordTokens(item.term).length;
+    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
+    if (item.label === CAPTURE_LABEL_UNKNOWN) return false;
+    if (item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) {
+      return tokenCount > 1 && CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(item.normalized);
+    }
+    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return true;
+    if (item.label === CAPTURE_LABEL_OTHER) {
+      if (tokenCount > 1) return CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(item.normalized);
+      return CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS.has(item.normalized);
+    }
+    return false;
+  }
+
+  function containsJapaneseScript(text) {
+    return /[぀-ヿ㐀-䶿一-鿿]/.test(String(text || ''));
+  }
+
+  function isInvestigableCaptureCandidate(item, sourceText) {
+    const tokenCount = captureWordTokens(item.term).length;
+    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
+    if (item.reason === 'proper_noun_non_target') return false;
+    if (tokenCount > 1) return true;
+    if (item.label === CAPTURE_LABEL_OTHER) {
+      return CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS.has(item.normalized);
+    }
+    if (item.label === CAPTURE_LABEL_UNKNOWN) {
+      return containsJapaneseScript(sourceText) && /^[A-Za-z][A-Za-z0-9_-]*$/.test(item.term);
+    }
+    return true;
+  }
+
+  function extractCapturePreviewTerms(text, limit = 5) {
+    return collectCaptureTerms(text)
+      .filter(item => isPreviewableCaptureCandidate(item))
+      .slice(0, limit);
+  }
+
+  function extractCaptureInvestigationTerms(text, limit = 8) {
+    function labelPriority(label) {
+      if (label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return 5;
+      if (label === CAPTURE_LABEL_COINED_OR_SHORTENED) return 4;
+      if (label === CAPTURE_LABEL_UNKNOWN) return 3;
+      if (label === CAPTURE_LABEL_OTHER) return 2;
+      if (label === CAPTURE_LABEL_INDUSTRY_TERM) return 1;
+      return 0;
+    }
+
+    const results = collectCaptureTerms(text)
+      .filter(item => isInvestigableCaptureCandidate(item, text));
+    const coveredSingleTokens = new Set();
+    results.forEach(item => {
+      if (captureWordTokens(item.term).length <= 1) return;
+      captureWordTokens(item.term).forEach(token => coveredSingleTokens.add(token));
+    });
+
+    return results
+      .filter(item => !(
+        captureWordTokens(item.term).length === 1 &&
+        coveredSingleTokens.has(item.normalized)
+      ))
+      .sort((a, b) => {
+        const labelDelta = labelPriority(b.label) - labelPriority(a.label);
+        if (labelDelta) return labelDelta;
+        const countDelta = (b.count || 0) - (a.count || 0);
+        if (countDelta) return countDelta;
+        const tokenDelta = captureWordTokens(b.term).length - captureWordTokens(a.term).length;
+        if (tokenDelta) return tokenDelta;
+        const lengthDelta = b.term.length - a.term.length;
+        if (lengthDelta) return lengthDelta;
+        return a.term.toLowerCase().localeCompare(b.term.toLowerCase());
+      })
+      .slice(0, limit);
+  }
+
+  function analyzeCaptureInput() {
+    const text = document.getElementById('capture-input').value.trim();
+    if (!text) {
+      _captureResults = [];
+      const output = document.getElementById('capture-output');
+      output.className = 'capture-result-empty';
+      output.textContent = message('capture_empty');
+      setStatus(message('capture_empty'), 'error');
+      return;
+    }
+    _captureResults = extractCaptureInvestigationTerms(text);
+    renderCaptureOutput(_captureResults);
+    setStatus(_captureResults.length ? message('capture_ready') : message('capture_none'), _captureResults.length ? 'success' : '');
+  }
+
+  function copyCaptureOutput() {
+    const text = captureOutputText(_captureResults).trim();
+    if (!text) {
+      setStatus(message('capture_empty'), 'error');
+      return;
+    }
+    copyText(text, message('capture_copy_output_copied'));
+  }
+
+  function capturePromptText() {
+    const text = document.getElementById('capture-input').value.trim();
+    if (!text) return null;
+    return [
+      message('capture_prompt_header'),
+      text,
+    ].join('\n\n');
+  }
+
+  function copyCapturePrompt() {
+    const text = capturePromptText();
+    if (!text) {
+      setStatus(message('capture_empty'), 'error');
+      return;
+    }
+    copyText(text, message('capture_copy_prompt_copied'));
+  }
+
+  function registerPromptText() {
+    const term = document.getElementById('new-term').value.trim();
+    const preferred = document.getElementById('new-preferred').value.trim();
+    const alt2 = document.getElementById('new-alt2').value.trim();
+    const alt3 = document.getElementById('new-alt3').value.trim();
+    if (!term || !preferred) {
+      setStatus(message('register_missing'), 'error');
+      return null;
+    }
+    const lines = [
+      message('register_prompt_header'),
+      `- ${message('field_term')}: ${term}`,
+      `- ${message('field_preferred')}: ${preferred}`,
+    ];
+    if (alt2) lines.push(`- ${message('field_alt2')}: ${alt2}`);
+    if (alt3) lines.push(`- ${message('field_alt3')}: ${alt3}`);
+    lines.push(message('register_prompt_footer'));
+    return lines.join('\n');
+  }
+
+  function registerInstructionText() {
+    const term = document.getElementById('new-term').value.trim();
+    const preferred = document.getElementById('new-preferred').value.trim();
+    const alt2 = document.getElementById('new-alt2').value.trim();
+    const alt3 = document.getElementById('new-alt3').value.trim();
+    if (!term || !preferred) {
+      setStatus(message('register_missing'), 'error');
+      return null;
+    }
+    return [
+      message('register_instruction_header'),
+      buildDbCliCommand('upsert-rule', [
+        ['--term', term],
+        ['--preferred', preferred],
+        ['--preferred-alt-2', alt2],
+        ['--preferred-alt-3', alt3],
+      ]),
+      buildDbCliCommand('export-html', [['--html-path', _htmlPath]]),
+    ].join('\n');
+  }
+
+  function resetRegisterForm() {
+    document.getElementById('new-term').value = '';
+    document.getElementById('new-preferred').value = '';
+    document.getElementById('new-alt2').value = '';
+    document.getElementById('new-alt3').value = '';
+  }
+
+  function copyRegisterInstruction() {
+    const text = registerInstructionText();
+    if (!text) return;
+    copyText(text, message('register_commands_copied'));
+    resetRegisterForm();
+  }
+
+  function copyRegisterPrompt() {
+    const text = registerPromptText();
+    if (!text) return;
+    copyText(text, message('register_copied'));
+    resetRegisterForm();
+  }
+
+  function copyDeleteInstruction(btn) {
+    const term = btn.dataset.term;
+    const lines = [
+      message('delete_instruction_header'),
+      buildDbCliCommand('delete-rule', [['--term', term]]),
+      buildDbCliCommand('export-html', [['--html-path', _htmlPath]]),
+    ];
+    copyText(lines.join('\n'), message('delete_copied'));
+  }
+  function filterRows() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const rows = document.querySelectorAll('#tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      if (!q || text.includes(q)) {
+        row.classList.remove('hidden');
+        visible++;
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+    updateCountDisplay(visible);
+  }
+  applyLocale(pickLocale());
+</script>
+</body>
+</html>

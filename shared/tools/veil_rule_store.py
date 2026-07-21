@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from __future__ import annotations
 
-import html as _html
+from contextlib import closing
+import json
 import os
 import re
 import sqlite3
@@ -10,217 +11,31 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from shared.tools.veil_capture_taxonomy import capture_taxonomy_payload
+    from shared.tools.veil_delivery_freshness import render_with_manifest
+    from shared.tools.veil_html_review import render_review_html
+    from shared.tools.veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG, get_html_ui_for_lang
+except ModuleNotFoundError:
+    from veil_capture_taxonomy import capture_taxonomy_payload  # type: ignore[no-redef]
+    from veil_delivery_freshness import render_with_manifest  # type: ignore[no-redef]
+    from veil_html_review import render_review_html  # type: ignore[no-redef]
+    from veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG, get_html_ui_for_lang  # type: ignore[no-redef]
+
 CONFIG_DIR = os.path.expanduser("~/.veil")
-DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
 DEFAULT_DB_PATH = os.path.join(CONFIG_DIR, "veil.db")
 DEFAULT_HTML_PATH = os.path.join(CONFIG_DIR, "veil.html")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_BUNDLED_PROFILE_SEED_PATH = str(REPO_ROOT / "shared" / "default-profile" / "technical-writing-default.json")
+DB_CLI_PATH = (REPO_ROOT / "shared" / "tools" / "veil-db.py").as_posix()
+PROTECTED_REPO_DIR_NAMES = ("common", "archive")
+PROTECTED_REPO_DIRS = tuple((REPO_ROOT / name).resolve() for name in PROTECTED_REPO_DIR_NAMES)
 
-_HTML_TEMPLATE = """\
-<!DOCTYPE html>
-<html lang="__UI_LANG__">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>__UI_TITLE__</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1a1a1a;
-    padding: 32px 24px;
-  }
-  header {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    margin-bottom: 32px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 16px;
-  }
-  header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: #000; }
-  header span { font-size: 12px; color: #666; }
-  .search-bar { margin-bottom: 24px; }
-  .search-bar input {
-    width: 100%;
-    max-width: 360px;
-    padding: 8px 12px;
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    color: #1a1a1a;
-    font-size: 13px;
-    outline: none;
-  }
-  .search-bar input:focus { border-color: #aaa; }
-  .search-bar input::placeholder { color: #bbb; }
-  table { width: 100%; max-width: 900px; border-collapse: collapse; }
-  thead th {
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: #666;
-    text-transform: uppercase;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
-  tbody tr:hover { background: #f8f8f8; }
-  td { padding: 10px 12px; vertical-align: middle; }
-  .term { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; color: #2563eb; }
-  .section-label {
-    display: inline-block;
-    width: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #444;
-    text-transform: uppercase;
-    margin-right: 4px;
-  }
-  .cell { display: flex; align-items: center; gap: 8px; }
-  .preferred { font-weight: 500; color: #1a1a1a; }
-  .alt { color: #555; font-size: 13px; }
-  .copy-btn {
-    flex-shrink: 0;
-    background: #f1f1f1;
-    border: 1px solid #d8d8d8;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: #444;
-    font-size: 11px;
-    line-height: 1;
-    transition: color 0.1s, background 0.1s, border-color 0.1s;
-  }
-  .copy-btn:hover { color: #555; background: #ebebeb; border-color: #c8c8c8; }
-  .copy-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .copy-btn.copied { color: #2f7d3d; border-color: #9fd3aa; }
-  .status {
-    min-height: 20px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    color: #666;
-  }
-  .status.error { color: #9a3412; }
-  .status.success { color: #166534; }
-  .hidden { display: none; }
-</style>
-</head>
-<body>
-<header>
-  <h1>VEIL</h1>
-  <span id="count">__UI_COUNT_INIT__</span>
-</header>
-<div class="search-bar">
-  <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
-</div>
-<p style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
-<div id="status" class="status" aria-live="polite"></div>
-<table>
-  <thead>
-    <tr>
-      <th style="width:220px">__UI_COL_TERM__</th>
-      <th style="width:220px">__UI_COL_PREFERRED__</th>
-      <th style="width:220px">__UI_COL_ALT2__</th>
-      <th>__UI_COL_ALT3__</th>
-    </tr>
-  </thead>
-  <tbody id="tbody">
-__ROWS__
-  </tbody>
-</table>
-<script>
-  const _copyInstruction = "__UI_COPY_INSTRUCTION__";
-  const _copyBtn = "__UI_COPY_BTN__";
-  const _copyDone = "__UI_COPY_DONE__";
-  const _copyManual = "__UI_COPY_MANUAL__";
-  const _copyManualDone = "__UI_COPY_MANUAL_DONE__";
-  const _copyFailed = "__UI_COPY_FAILED__";
-  const _countRegistered = "__UI_COUNT_REGISTERED__";
-  const _countMatching = "__UI_COUNT_MATCHING__";
 
-  function setStatus(message, tone = '') {
-    const el = document.getElementById('status');
-    el.textContent = message;
-    el.className = 'status' + (tone ? ' ' + tone : '');
-  }
-
-  function flashCopied(btn, message, tone = 'success') {
-    btn.textContent = _copyDone;
-    btn.classList.add('copied');
-    setStatus(message, tone);
-    setTimeout(() => {
-      btn.textContent = _copyBtn;
-      btn.classList.remove('copied');
-    }, 1500);
-  }
-
-  function openManualCopy(text) {
-    window.prompt(_copyManual, text);
-    setStatus(_copyManualDone, 'success');
-  }
-
-  function copy(btn) {
-    const term = btn.dataset.term;
-    const candidate = btn.dataset.alt;
-    const text = _copyInstruction.replace('{term}', term).replace('{candidate}', candidate);
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      openManualCopy(text);
-      return;
-    }
-    navigator.clipboard.writeText(text).then(() => {
-      flashCopied(btn, _copyDone, 'success');
-    }).catch(() => {
-      openManualCopy(text);
-      setStatus(_copyFailed, 'error');
-    });
-  }
-  function filterRows() {
-    const q = document.getElementById('search').value.toLowerCase();
-    const rows = document.querySelectorAll('#tbody tr');
-    let visible = 0;
-    rows.forEach(row => {
-      const text = row.textContent.toLowerCase();
-      if (!q || text.includes(q)) {
-        row.classList.remove('hidden');
-        visible++;
-      } else {
-        row.classList.add('hidden');
-      }
-    });
-    document.getElementById('count').textContent =
-      (q ? _countMatching : _countRegistered).replace('{n}', visible);
-  }
-</script>
-</body>
-</html>
-"""
-
-_HTML_UI_EN: dict[str, str] = {
-    "lang": "en",
-    "title": "VEIL — Vocabulary Rules",
-    "search_placeholder": "Search terms...",
-    "instruction": "To change the preferred form of a registered term, click Copy on a candidate cell. If clipboard access is blocked, VEIL opens a manual copy prompt.",
-    "col_term": "Term",
-    "col_preferred": "Preferred (candidate 1)",
-    "col_alt2": "Candidate 2",
-    "col_alt3": "Candidate 3",
-    "copy_btn": "Copy",
-    "copy_done": "Copied",
-    "copy_manual": "Clipboard access is unavailable. Copy this text manually:",
-    "copy_manual_done": "Manual copy prompt opened.",
-    "copy_failed": "Copy failed. Copy the text manually from the prompt.",
-    "count_registered": "{n} terms registered",
-    "count_matching": "{n} terms matching",
-    "copy_instruction": "Change '{term}' to '{candidate}'",
-}
-
-RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:→|->)\s*(?P<preferred>.+?)\s*$")
+RULE_LINE_RE = re.compile(r"^\s*-\s*(?P<original>.+?)\s*(?:->|→)\s*(?P<preferred>.+?)\s*$")
 LEADING_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s*")
 LEVEL_HEADING_RE = re.compile(
-    r"^\s{0,3}#{1,6}\s*(?P<level>必須|推奨|観察|required|recommended|observe)\s*$",
+    r"^\s{0,3}#{1,6}\s*(?P<level>required|recommended|observe|必須|推奨|観察)\s*$",
     re.IGNORECASE,
 )
 
@@ -234,9 +49,9 @@ PROFILE_LEVELS = (
     PROFILE_LEVEL_OBSERVE,
 )
 PROFILE_LEVEL_TO_HEADING = {
-    PROFILE_LEVEL_REQUIRED: "必須",
-    PROFILE_LEVEL_RECOMMENDED: "推奨",
-    PROFILE_LEVEL_OBSERVE: "観察",
+    PROFILE_LEVEL_REQUIRED: "Required",
+    PROFILE_LEVEL_RECOMMENDED: "Recommended",
+    PROFILE_LEVEL_OBSERVE: "Observe",
 }
 PROFILE_LEVEL_ALIASES = {
     "required": PROFILE_LEVEL_REQUIRED,
@@ -292,8 +107,13 @@ def first_preferred(rhs: str) -> str:
 
 def parse_preferred_variants(rhs: str) -> tuple[str | None, str | None, str | None]:
     parts = []
-    for raw in re.split(r"\s+/\s+|[、,|]", rhs):
-        cleaned = re.sub(r"[（(](?:候補\d+|candidate\s*\d+|keep)[)）]", "", raw).strip()
+    for raw in re.split(r"\s*(?:\||｜)\s*", rhs):
+        cleaned = re.sub(
+            r"^[\[(]?\s*(?:candidate\s*\d+|keep(?:\s+current)?)\s*[\])]?[:.\-]?\s*",
+            "",
+            raw,
+            flags=re.IGNORECASE,
+        ).strip()
         if cleaned:
             parts.append(cleaned)
     while len(parts) < 3:
@@ -336,6 +156,27 @@ def add_profile_level_count(counts: dict[str, int], level: str | None, legacy_fl
         counts["legacy_flat_count"] += 1
 
 
+def get_protected_repo_dir_name(path: str) -> str | None:
+    candidate = Path(path).resolve(strict=False)
+    for protected_root in PROTECTED_REPO_DIRS:
+        try:
+            candidate.relative_to(protected_root)
+            return protected_root.name
+        except ValueError:
+            continue
+    return None
+
+
+def build_protected_output_payload(path_key: str, path: str) -> dict[str, Any]:
+    return {
+        "status": "error",
+        "reason": "store.protected_output_path",
+        path_key: path,
+        "protected_root": get_protected_repo_dir_name(path),
+        "error": path,
+    }
+
+
 def db_error_payload(db_path: str, exc: sqlite3.Error) -> dict[str, Any]:
     return {
         "status": "error",
@@ -371,14 +212,44 @@ def normalize_term(term: str) -> str:
     return " ".join(tokens)
 
 
-def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
-    if not os.path.isdir(rules_dir):
+def load_rules_from_seed_file(seed_path: str) -> dict[str, Any]:
+    if not os.path.exists(seed_path):
         return {
             "status": "skip",
-            "reason": "store.no_rules_dir",
-            "rules_dir": rules_dir,
+            "reason": "store.no_seed_file",
+            "seed_file": seed_path,
             "files_seen": 0,
             "rules": [],
+            "selected_rules": [],
+            "conflicts": [],
+            "warnings": [],
+        }
+
+    try:
+        with open(seed_path, encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "error",
+            "reason": "store.seed_unreadable",
+            "seed_file": seed_path,
+            "files_seen": 1,
+            "rules": [],
+            "selected_rules": [],
+            "conflicts": [],
+            "warnings": [],
+            "error": str(exc),
+        }
+
+    raw_rules = raw.get("rules") if isinstance(raw, dict) else raw
+    if not isinstance(raw_rules, list):
+        return {
+            "status": "error",
+            "reason": "store.seed_invalid_format",
+            "seed_file": seed_path,
+            "files_seen": 1,
+            "rules": [],
+            "selected_rules": [],
             "conflicts": [],
             "warnings": [],
         }
@@ -387,81 +258,59 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
     warnings: list[dict[str, Any]] = []
     selected_by_normalized: dict[str, dict[str, Any]] = {}
     conflicts_by_key: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    files_seen = 0
+    source_name = os.path.basename(seed_path)
 
-    for fname in sorted(os.listdir(rules_dir)):
-        if not fname.endswith(".md"):
+    for idx, raw_entry in enumerate(raw_rules, start=1):
+        if not isinstance(raw_entry, dict):
+            warnings.append(
+                {
+                    "file": source_name,
+                    "line": idx,
+                    "warning_key": "store.seed_entry_ignored",
+                }
+            )
             continue
-        files_seen += 1
-        path = os.path.join(rules_dir, fname)
-        try:
-            with open(path, encoding="utf-8") as handle:
-                lines = handle.readlines()
-        except OSError as exc:
-            warnings.append({"file": fname, "line": 0, "warning_key": "store.load_failed", "warning_args": {"exc": str(exc)}})
+
+        original = str(raw_entry.get("term_original") or raw_entry.get("term") or "").strip()
+        preferred = str(raw_entry.get("preferred") or "").strip()
+        if not original or not preferred:
+            warnings.append(
+                {
+                    "file": source_name,
+                    "line": idx,
+                    "warning_key": "store.empty_original_or_preferred",
+                }
+            )
             continue
 
-        seen_heading = False
-        current_level = PROFILE_LEVEL_DEFAULT
-        for line_no, line in enumerate(lines, start=1):
-            heading = LEVEL_HEADING_RE.match(line)
-            if heading:
-                current_level = HEADING_TO_PROFILE_LEVEL[heading.group("level").lower()]
-                seen_heading = True
-                continue
-            match = RULE_LINE_RE.match(line)
-            stripped = line.strip()
-            if not match:
-                if stripped.startswith("-"):
-                    warnings.append(
-                        {
-                            "file": fname,
-                            "line": line_no,
-                            "warning_key": "store.rule_parse_ignored",
-                            "content": stripped,
-                        }
-                    )
-                continue
+        normalized = normalize_term(original)
+        entry = {
+            "term_original": original,
+            "term_normalized": normalized,
+            "preferred": preferred,
+            "preferred_alt_2": raw_entry.get("preferred_alt_2"),
+            "preferred_alt_3": raw_entry.get("preferred_alt_3"),
+            "status": str(raw_entry.get("status") or "active"),
+            "profile_level": canonicalize_profile_level(str(raw_entry.get("profile_level") or PROFILE_LEVEL_DEFAULT))
+            or PROFILE_LEVEL_DEFAULT,
+            "category_hint": raw_entry.get("category_hint"),
+            "note": raw_entry.get("note"),
+            "source_context": str(raw_entry.get("source_context") or f"{source_name}:{idx}"),
+            "source_file": source_name,
+            "source_line": idx,
+            "legacy_flat": False,
+        }
+        rules.append(entry)
 
-            original = match.group("original").strip()
-            preferred, preferred_alt_2, preferred_alt_3 = parse_preferred_variants(match.group("preferred"))
-            if not original or not preferred:
-                warnings.append(
-                    {
-                        "file": fname,
-                        "line": line_no,
-                        "warning_key": "store.empty_original_or_preferred",
-                    }
-                )
-                continue
-
-            normalized = normalize_term(original)
-            entry = {
-                "term_original": original,
-                "term_normalized": normalized,
-                "preferred": preferred,
-                "preferred_alt_2": preferred_alt_2,
-                "preferred_alt_3": preferred_alt_3,
-                "status": "active",
-                "profile_level": current_level,
-                "category_hint": None,
-                "note": None,
-                "source_context": f"{fname}:{line_no}",
-                "source_file": fname,
-                "source_line": line_no,
-                "legacy_flat": not seen_heading,
-            }
-            rules.append(entry)
-
-            if normalized not in selected_by_normalized:
-                selected_by_normalized[normalized] = entry
-            else:
-                selected = selected_by_normalized[normalized]
-                if (
-                    selected["term_original"] != entry["term_original"]
-                    or selected["preferred"] != entry["preferred"]
-                ):
-                    conflicts_by_key[normalized].append(entry)
+        if normalized not in selected_by_normalized:
+            selected_by_normalized[normalized] = entry
+        else:
+            selected = selected_by_normalized[normalized]
+            if (
+                selected["term_original"] != entry["term_original"]
+                or selected["preferred"] != entry["preferred"]
+            ):
+                conflicts_by_key[normalized].append(entry)
 
     conflicts = []
     for normalized, ignored in conflicts_by_key.items():
@@ -475,8 +324,8 @@ def load_rules_from_markdown_dir(rules_dir: str) -> dict[str, Any]:
 
     return {
         "status": "ok",
-        "rules_dir": rules_dir,
-        "files_seen": files_seen,
+        "seed_file": seed_path,
+        "files_seen": 1,
         "rules": rules,
         "selected_rules": list(selected_by_normalized.values()),
         "conflicts": conflicts,
@@ -497,6 +346,13 @@ def open_db(db_path: str) -> sqlite3.Connection:
     return conn
 
 
+def open_db_readonly(db_path: str) -> sqlite3.Connection:
+    uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+    conn = sqlite3.connect(uri, uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
     existing = {
         str(row["name"])
@@ -506,22 +362,33 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) 
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
+def _existing_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {
+        str(row["name"])
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+
+
 def init_db(db_path: str) -> None:
-    with open_db(db_path) as conn:
+    if get_protected_repo_dir_name(db_path) is not None:
+        raise ValueError(f"store.protected_output_path:{db_path}")
+    with closing(open_db(db_path)) as conn:
         conn.executescript(SCHEMA_SQL)
         _ensure_column(conn, "rules", "profile_level", "TEXT NOT NULL DEFAULT 'required'")
         conn.commit()
 
 
-def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, Any]:
-    parsed = load_rules_from_markdown_dir(rules_dir)
+def replace_rules_from_seed(db_path: str, seed_file: str) -> dict[str, Any]:
+    if get_protected_repo_dir_name(db_path) is not None:
+        return build_protected_output_payload("db_path", db_path)
+    parsed = load_rules_from_seed_file(seed_file)
     if parsed["status"] != "ok":
         return parsed
 
     imported_at = now_utc_iso()
     try:
         init_db(db_path)
-        with open_db(db_path) as conn:
+        with closing(open_db(db_path)) as conn:
             conn.execute("DELETE FROM rules")
             for entry in parsed["selected_rules"]:
                 conn.execute(
@@ -566,15 +433,6 @@ def replace_rules_from_markdown(db_path: str, rules_dir: str) -> dict[str, Any]:
     return payload
 
 
-def choose_mirror_filename(term_original: str) -> str:
-    stripped = term_original.strip()
-    if stripped:
-        first = stripped[0].lower()
-        if "a" <= first <= "z":
-            return f"{first}.md"
-    return "special.md"
-
-
 def upsert_rule(
     db_path: str,
     term_original: str,
@@ -587,6 +445,8 @@ def upsert_rule(
     note: str | None = None,
     source_context: str | None = None,
 ) -> dict[str, Any]:
+    if get_protected_repo_dir_name(db_path) is not None:
+        return build_protected_output_payload("db_path", db_path)
     original = term_original.strip()
     preferred_1 = preferred.strip()
     if not original or not preferred_1:
@@ -608,7 +468,7 @@ def upsert_rule(
         }
     try:
         init_db(db_path)
-        with open_db(db_path) as conn:
+        with closing(open_db(db_path)) as conn:
             row = conn.execute(
                 """
                 SELECT id, created_at
@@ -715,6 +575,65 @@ def upsert_rule(
     }
 
 
+def delete_rule(db_path: str, term_original: str) -> dict[str, Any]:
+    if get_protected_repo_dir_name(db_path) is not None:
+        return build_protected_output_payload("db_path", db_path)
+    original = term_original.strip()
+    if not original:
+        return {
+            "status": "skip",
+            "reason": "store.empty_term",
+            "db_path": db_path,
+        }
+
+    normalized = normalize_term(original)
+    try:
+        init_db(db_path)
+        with closing(open_db(db_path)) as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    id,
+                    term_original,
+                    term_normalized,
+                    preferred,
+                    preferred_alt_2,
+                    preferred_alt_3,
+                    status,
+                    profile_level,
+                    category_hint,
+                    note,
+                    source_context,
+                    created_at,
+                    updated_at
+                FROM rules
+                WHERE term_normalized = ?
+                ORDER BY id
+                LIMIT 1
+                """,
+                (normalized,),
+            ).fetchone()
+            if row is None:
+                return {
+                    "status": "skip",
+                    "reason": "store.rule_not_found",
+                    "db_path": db_path,
+                    "term_original": original,
+                    "term_normalized": normalized,
+                }
+            conn.execute("DELETE FROM rules WHERE id = ?", (row["id"],))
+            conn.commit()
+    except sqlite3.Error as exc:
+        return db_error_payload(db_path, exc)
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "action": "deleted",
+        "row": dict(row),
+    }
+
+
 def readback_rules(db_path: str) -> dict[str, Any]:
     if not os.path.exists(db_path):
         return {
@@ -725,28 +644,38 @@ def readback_rules(db_path: str) -> dict[str, Any]:
             "rows": [],
         }
 
-    query = """
-        SELECT
-            id,
-            term_original,
-            term_normalized,
-            preferred,
-            preferred_alt_2,
-            preferred_alt_3,
-            status,
-            profile_level,
-            category_hint,
-            note,
-            source_context,
-            created_at,
-            updated_at
-        FROM rules
-        ORDER BY term_normalized, id
-    """
-
     try:
-        init_db(db_path)
-        with open_db(db_path) as conn:
+        with closing(open_db_readonly(db_path)) as conn:
+            columns = _existing_columns(conn, "rules")
+            if not columns:
+                return {
+                    "status": "error",
+                    "reason": "store.db_unreadable",
+                    "db_path": db_path,
+                    "summary": {"total": 0},
+                    "rows": [],
+                    "error": "rules table not found",
+                }
+            select_parts = [
+                "id",
+                "term_original",
+                "term_normalized",
+                "preferred",
+                "preferred_alt_2" if "preferred_alt_2" in columns else "NULL AS preferred_alt_2",
+                "preferred_alt_3" if "preferred_alt_3" in columns else "NULL AS preferred_alt_3",
+                "status" if "status" in columns else "'active' AS status",
+                "profile_level" if "profile_level" in columns else f"'{PROFILE_LEVEL_DEFAULT}' AS profile_level",
+                "category_hint" if "category_hint" in columns else "NULL AS category_hint",
+                "note" if "note" in columns else "NULL AS note",
+                "source_context" if "source_context" in columns else "NULL AS source_context",
+                "created_at" if "created_at" in columns else "'' AS created_at",
+                "updated_at" if "updated_at" in columns else "'' AS updated_at",
+            ]
+            query = (
+                "SELECT\n            "
+                + ",\n            ".join(select_parts)
+                + "\n        FROM rules\n        ORDER BY term_normalized, id"
+            )
             rows = [dict(row) for row in conn.execute(query).fetchall()]
             summary = {
                 "total": conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0],
@@ -759,109 +688,6 @@ def readback_rules(db_path: str) -> dict[str, Any]:
         "db_path": db_path,
         "summary": summary,
         "rows": rows,
-    }
-
-
-def render_markdown_mirror_from_rows(rows: list[dict[str, Any]]) -> dict[str, str]:
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row in rows:
-        if row.get("status") != "active":
-            continue
-        grouped[choose_mirror_filename(str(row["term_original"]))].append(row)
-
-    rendered: dict[str, str] = {}
-    for filename, entries in grouped.items():
-        title = Path(filename).stem
-        parts = [f"# {title}", ""]
-        entries_sorted = sorted(
-            entries,
-            key=lambda r: (
-                PROFILE_LEVELS.index(
-                    canonicalize_profile_level(str(r.get("profile_level") or PROFILE_LEVEL_DEFAULT))
-                    or PROFILE_LEVEL_DEFAULT
-                ),
-                str(r["term_normalized"]),
-                str(r["term_original"]).lower(),
-                int(r["id"]),
-            ),
-        )
-        for level in PROFILE_LEVELS:
-            level_entries = [
-                row for row in entries_sorted
-                if (
-                    canonicalize_profile_level(str(row.get("profile_level") or PROFILE_LEVEL_DEFAULT))
-                    or PROFILE_LEVEL_DEFAULT
-                ) == level
-            ]
-            if not level_entries:
-                continue
-            parts.append(f"## {profile_level_heading(level)}")
-            parts.append("")
-            for row in level_entries:
-                preferreds = [row["preferred"], row.get("preferred_alt_2"), row.get("preferred_alt_3")]
-                preferred_text = " / ".join([str(item).strip() for item in preferreds if item and str(item).strip()])
-                parts.append(f"- {row['term_original']} → {preferred_text}")
-            parts.append("")
-        rendered[filename] = "\n".join(parts).rstrip() + "\n"
-    return rendered
-
-
-def export_markdown_mirror_from_db(db_path: str, rules_dir: str) -> dict[str, Any]:
-    payload = readback_rules(db_path)
-    if payload["status"] != "ok":
-        return {
-            "status": payload["status"],
-            "reason": payload.get("reason"),
-            "db_path": db_path,
-            "rules_dir": rules_dir,
-            "written_files": [],
-            "removed_files": [],
-        }
-
-    os.makedirs(rules_dir, exist_ok=True)
-    existing_files = {name for name in os.listdir(rules_dir) if name.endswith(".md")}
-    rendered = render_markdown_mirror_from_rows(payload["rows"])
-    removed_files: list[str] = []
-    for stale in sorted(existing_files - set(rendered.keys())):
-        try:
-            os.remove(os.path.join(rules_dir, stale))
-        except OSError as exc:
-            return {
-                "status": "error",
-                "reason": "store.mirror_write_failed",
-                "db_path": db_path,
-                "rules_dir": rules_dir,
-                "written_files": [],
-                "removed_files": removed_files,
-                "error": str(exc),
-            }
-        removed_files.append(stale)
-
-    written_files: list[str] = []
-    for filename, content in sorted(rendered.items()):
-        path = os.path.join(rules_dir, filename)
-        try:
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.write(content)
-        except OSError as exc:
-            return {
-                "status": "error",
-                "reason": "store.mirror_write_failed",
-                "db_path": db_path,
-                "rules_dir": rules_dir,
-                "written_files": written_files,
-                "removed_files": removed_files,
-                "error": str(exc),
-            }
-        written_files.append(filename)
-
-    return {
-        "status": "ok",
-        "db_path": db_path,
-        "rules_dir": rules_dir,
-        "written_files": written_files,
-        "removed_files": removed_files,
-        "row_count": len(payload["rows"]),
     }
 
 
@@ -891,61 +717,13 @@ def load_rule_index_from_db(db_path: str) -> tuple[str, dict[str, dict[str, str]
     return "ok", index, [], None
 
 
-def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
-    if not alt or not str(alt).strip():
-        return ""
-    return (
-        f'<div class="cell">'
-        f'<span class="alt">{_html.escape(str(alt))}</span>'
-        f'<button class="copy-btn" data-term="{_html.escape(term)}" data-alt="{_html.escape(str(alt))}" '
-        f'title="{_html.escape(copy_btn)}" aria-label="{_html.escape(copy_btn)}" onclick="copy(this)">'
-        f'{_html.escape(copy_btn)}</button>'
-        f'</div>'
-    )
-
-
-def _build_html_content(rows_html: str, count: int, ui: dict[str, str]) -> str:
-    import json as _json
-
-    def js(key: str, default: str) -> str:
-        return _json.dumps(ui.get(key, default), ensure_ascii=False)[1:-1]
-
-    def h(key: str, default: str) -> str:
-        return _html.escape(ui.get(key, default))
-
-    count_init = ui.get("count_registered", "{n} terms registered").replace("{n}", str(count))
-    content = _HTML_TEMPLATE
-    content = content.replace("__UI_LANG__", h("lang", "en"))
-    content = content.replace("__UI_TITLE__", h("title", "VEIL — Vocabulary Rules"))
-    content = content.replace("__UI_COUNT_INIT__", _html.escape(count_init))
-    content = content.replace("__UI_SEARCH_PLACEHOLDER__", h("search_placeholder", "Search terms..."))
-    content = content.replace(
-        "__UI_INSTRUCTION__",
-        h(
-            "instruction",
-            "To change the preferred form, click Copy. If clipboard access is blocked, VEIL opens a manual copy prompt.",
-        ),
-    )
-    content = content.replace("__UI_COL_TERM__", h("col_term", "Term"))
-    content = content.replace("__UI_COL_PREFERRED__", h("col_preferred", "Preferred (candidate 1)"))
-    content = content.replace("__UI_COL_ALT2__", h("col_alt2", "Candidate 2"))
-    content = content.replace("__UI_COL_ALT3__", h("col_alt3", "Candidate 3"))
-    content = content.replace("__UI_COPY_INSTRUCTION__", js("copy_instruction", "Change '{term}' to '{candidate}'"))
-    content = content.replace("__UI_COPY_BTN__", js("copy_btn", "Copy"))
-    content = content.replace("__UI_COPY_DONE__", js("copy_done", "Copied"))
-    content = content.replace(
-        "__UI_COPY_MANUAL__",
-        js("copy_manual", "Clipboard access is unavailable. Copy this text manually:"),
-    )
-    content = content.replace("__UI_COPY_MANUAL_DONE__", js("copy_manual_done", "Manual copy prompt opened."))
-    content = content.replace("__UI_COPY_FAILED__", js("copy_failed", "Copy failed. Copy the text manually from the prompt."))
-    content = content.replace("__UI_COUNT_REGISTERED__", js("count_registered", "{n} terms registered"))
-    content = content.replace("__UI_COUNT_MATCHING__", js("count_matching", "{n} terms matching"))
-    content = content.replace("__ROWS__", rows_html)
-    return content
-
-
-def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None = None) -> dict[str, Any]:
+def export_html_from_db(
+    db_path: str,
+    html_path: str,
+    ui: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    if get_protected_repo_dir_name(html_path) is not None:
+        return build_protected_output_payload("html_path", html_path)
     payload = readback_rules(db_path)
     if payload["status"] != "ok":
         return {
@@ -953,37 +731,35 @@ def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None 
             "reason": payload.get("reason"),
             "db_path": db_path,
             "html_path": html_path,
+            "error": payload.get("error"),
         }
+    rows = payload["rows"]  # type: ignore[assignment]
 
     resolved_ui = ui if ui is not None else _HTML_UI_EN
-    copy_btn = resolved_ui.get("copy_btn", "Copy")
-
-    active_rows = [r for r in payload["rows"] if r.get("status") == "active"]  # type: ignore[union-attr]
-    rows_sorted = sorted(
-        active_rows,
-        key=lambda r: (str(r["term_normalized"]), str(r["term_original"]).lower()),
+    capture_config = capture_taxonomy_payload()
+    content = render_review_html(
+        rows,
+        resolved_ui,
+        template=_HTML_TEMPLATE,
+        ui_by_lang=_HTML_UI_BY_LANG,
+        capture_config=capture_config,
+        db_cli_path=DB_CLI_PATH,
+        db_path=db_path,
+        html_path=html_path,
     )
-
-    row_parts: list[str] = []
-    for row in rows_sorted:
-        term = str(row["term_original"])
-        preferred = str(row["preferred"])
-        alt2 = row.get("preferred_alt_2")
-        alt3 = row.get("preferred_alt_3")
-        first_char = term[0] if term else "?"
-        section = first_char.upper() if first_char.isalpha() else "?"
-        row_parts.append(
-            f"    <tr>\n"
-            f"      <td><span class=\"section-label\">{_html.escape(section)}</span>"
-            f"<span class=\"term\">{_html.escape(term)}</span></td>\n"
-            f"      <td><span class=\"preferred\">{_html.escape(preferred)}</span></td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None, copy_btn)}</td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None, copy_btn)}</td>\n"
-            f"    </tr>"
-        )
-
-    count = len(rows_sorted)
-    content = _build_html_content("\n".join(row_parts), count, resolved_ui)
+    content = render_with_manifest(
+        content,
+        template=_HTML_TEMPLATE,
+        ui_by_lang=_HTML_UI_BY_LANG,
+        capture_taxonomy=capture_config,
+        rows=rows,
+        settings={
+            "db_cli_path": DB_CLI_PATH,
+            "db_path": Path(db_path).as_posix(),
+            "html_path": Path(html_path).as_posix(),
+            "default_lang": str(resolved_ui.get("lang", "en")),
+        },
+    )
 
     os.makedirs(os.path.dirname(os.path.abspath(html_path)), exist_ok=True)
     try:
@@ -1002,7 +778,8 @@ def export_html_from_db(db_path: str, html_path: str, ui: dict[str, str] | None 
         "status": "ok",
         "db_path": db_path,
         "html_path": html_path,
-        "row_count": count,
+        "row_count": sum(1 for row in rows if row.get("status") == "active"),
+        "source_type": "db",
     }
 
 

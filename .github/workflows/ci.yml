@@ -30,6 +30,9 @@ jobs:
       - name: Syntax check
         run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/tools/veil-profile-audit.py shared/tools/veil-profile-export.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
 
+      - name: Capture syntax check
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+
       - name: pytest
         run: python -m pytest tests/ -q
 
@@ -43,9 +46,6 @@ jobs:
             --term "current state" \
             --preferred "present state" \
             --preferred-alt-2 "current status"
-
-      - name: export-mirror
-        run: python shared/tools/veil-db.py export-mirror --db /tmp/veil_test.db --rules-dir /tmp/veil_rules_test
 
       - name: export-html
         run: python shared/tools/veil-db.py export-html --db /tmp/veil_test.db
@@ -77,12 +77,10 @@ jobs:
           echo "# test" > /tmp/veil_purge_target.md
           python shared/runtime/veil-sync.py \
             --db /tmp/veil_test.db \
-            --rules-dir /tmp/veil_rules_test \
             --add /tmp/veil_purge_target.md
           grep -q "VEIL_START" /tmp/veil_purge_target.md
           python shared/runtime/veil-sync.py \
             --db /tmp/veil_test.db \
-            --rules-dir /tmp/veil_rules_test \
             --remove /tmp/veil_purge_target.md --purge
           ! grep -q "VEIL_START" /tmp/veil_purge_target.md
 
@@ -93,7 +91,6 @@ jobs:
           echo "# target" > /tmp/veil_behavior_target.md
           python shared/runtime/veil-sync.py \
             --db /tmp/veil_test.db \
-            --rules-dir /tmp/veil_rules_test \
             --add /tmp/veil_behavior_target.md
           grep -q "Test behavior rule" /tmp/veil_behavior_target.md
           rm ~/.veil/behavior.md
@@ -119,8 +116,14 @@ jobs:
       - name: Syntax check
         run: python -m py_compile shared/tools/veil_rule_store.py shared/tools/veil_locale.py shared/tools/veil-db.py shared/tools/veil-profile-audit.py shared/tools/veil-profile-export.py shared/runtime/veil-sync.py shared/runtime/veil-lint.py shared/runtime/veil-normalize.py shared/runtime/veil-status.py
 
+      - name: Capture syntax check
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+
       - name: pytest
         run: python -m pytest tests/ -q
+
+      - name: Browser E2E
+        run: python tests/browser_e2e_runner.py --json
 
       - name: init-db
         shell: bash
@@ -134,10 +137,6 @@ jobs:
             --term "current state" \
             --preferred "present state" \
             --preferred-alt-2 "current status"
-
-      - name: export-mirror
-        shell: bash
-        run: python shared/tools/veil-db.py export-mirror --db "$RUNNER_TEMP/veil_test.db" --rules-dir "$RUNNER_TEMP/veil_rules_test"
 
       - name: export-html
         shell: bash
@@ -174,12 +173,10 @@ jobs:
           echo "# test" > "$RUNNER_TEMP/veil_purge_target.md"
           python shared/runtime/veil-sync.py \
             --db "$RUNNER_TEMP/veil_test.db" \
-            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
             --add "$RUNNER_TEMP/veil_purge_target.md"
           grep -q "VEIL_START" "$RUNNER_TEMP/veil_purge_target.md"
           python shared/runtime/veil-sync.py \
             --db "$RUNNER_TEMP/veil_test.db" \
-            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
             --remove "$RUNNER_TEMP/veil_purge_target.md" --purge
           ! grep -q "VEIL_START" "$RUNNER_TEMP/veil_purge_target.md"
 
@@ -191,7 +188,6 @@ jobs:
           echo "# target" > "$RUNNER_TEMP/veil_behavior_target.md"
           python shared/runtime/veil-sync.py \
             --db "$RUNNER_TEMP/veil_test.db" \
-            --rules-dir "$RUNNER_TEMP/veil_rules_test" \
             --add "$RUNNER_TEMP/veil_behavior_target.md"
           grep -q "Test behavior rule" "$RUNNER_TEMP/veil_behavior_target.md"
           rm ~/.veil/behavior.md

@@ -8,6 +8,9 @@ $RepoDir    = $PSScriptRoot
 $VeilDir    = "$env:USERPROFILE\.veil"
 $ConfigFile = "$VeilDir\config.json"
 $SyncScript = "$RepoDir\shared\runtime\veil-sync.py"
+$DefaultProfileSeed = "$RepoDir\shared\default-profile\technical-writing-default.json"
+$DbPath = "$VeilDir\veil.db"
+$HtmlPath = "$VeilDir\veil.html"
 
 Write-Host "VEIL install"
 Write-Host "repo: $RepoDir"
@@ -57,8 +60,16 @@ Write-Host "[OK] config.json  lang=$DetectedLang"
 
 Write-Host ""
 Write-Host "Initializing SQLite canonical DB..."
-python "$RepoDir\shared\tools\veil-db.py" init-db --db "$VeilDir\veil.db"
-Write-Host "[OK] veil.db       $VeilDir\veil.db"
+$DbAlreadyPresent = Test-Path $DbPath
+python "$RepoDir\shared\tools\veil-db.py" init-db --db "$DbPath"
+Write-Host "[OK] veil.db       $DbPath"
+if (-not $DbAlreadyPresent) {
+    Write-Host ""
+    Write-Host "Seeding bundled technical-writing default profile..."
+    python "$RepoDir\shared\tools\veil-db.py" import-seed --db "$DbPath" --seed-file "$DefaultProfileSeed" --yes
+    python "$RepoDir\shared\tools\veil-db.py" export-html --db "$DbPath" --html-path "$HtmlPath"
+    Write-Host "[OK] default rules $DefaultProfileSeed"
+}
 
 Write-Host ""
 Write-Host "Registering sync targets..."

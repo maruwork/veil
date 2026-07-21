@@ -8,29 +8,33 @@ from typing import Any
 
 try:
     from shared.tools.veil_rule_store import (
+        DEFAULT_BUNDLED_PROFILE_SEED_PATH,
         DEFAULT_DB_PATH,
         DEFAULT_HTML_PATH,
-        DEFAULT_RULES_DIR,
         PROFILE_LEVEL_DEFAULT,
+        delete_rule,
         export_html_from_db,
-        export_markdown_mirror_from_db,
+        get_html_ui_for_lang,
+        get_protected_repo_dir_name,
         init_db,
         readback_rules,
-        replace_rules_from_markdown,
+        replace_rules_from_seed,
         upsert_rule,
     )
     from shared.tools.veil_locale import detect_lang, t
 except ModuleNotFoundError:
     from veil_rule_store import (  # type: ignore[no-redef]
+        DEFAULT_BUNDLED_PROFILE_SEED_PATH,
         DEFAULT_DB_PATH,
         DEFAULT_HTML_PATH,
-        DEFAULT_RULES_DIR,
         PROFILE_LEVEL_DEFAULT,
+        delete_rule,
         export_html_from_db,
-        export_markdown_mirror_from_db,
+        get_html_ui_for_lang,
+        get_protected_repo_dir_name,
         init_db,
         readback_rules,
-        replace_rules_from_markdown,
+        replace_rules_from_seed,
         upsert_rule,
     )
     from veil_locale import detect_lang, t  # type: ignore[no-redef]
@@ -44,15 +48,15 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
     init_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    import_parser = subparsers.add_parser("import-rules", help=t("db.import_rules_help"))
-    import_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
-    import_parser.add_argument(
-        "--rules-dir",
-        default=DEFAULT_RULES_DIR,
-        help=t("db.import_rules_dir_help"),
+    import_seed_parser = subparsers.add_parser("import-seed", help=t("db.import_seed_help"))
+    import_seed_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    import_seed_parser.add_argument(
+        "--seed-file",
+        default=DEFAULT_BUNDLED_PROFILE_SEED_PATH,
+        help=t("db.import_seed_file_help"),
     )
-    import_parser.add_argument("--yes", action="store_true", help=t("db.import_rules_yes_help"))
-    import_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+    import_seed_parser.add_argument("--yes", action="store_true", help=t("db.import_rules_yes_help"))
+    import_seed_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
     readback_parser = subparsers.add_parser("readback", help=t("db.readback_help"))
     readback_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
@@ -65,20 +69,16 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_parser.add_argument("--preferred-alt-2", help=t("db.preferred_alt_2_help"))
     upsert_parser.add_argument("--preferred-alt-3", help=t("db.preferred_alt_3_help"))
     upsert_parser.add_argument("--status", default="active", help=t("db.status_help"))
-    upsert_parser.add_argument("--level", default=PROFILE_LEVEL_DEFAULT, help=t("db.level_help"))
+    upsert_parser.add_argument("--level", default=PROFILE_LEVEL_DEFAULT, help=argparse.SUPPRESS)
     upsert_parser.add_argument("--category-hint", help=t("db.category_hint_help"))
     upsert_parser.add_argument("--note", help=t("db.note_help"))
     upsert_parser.add_argument("--source-context", help=t("db.source_context_help"))
     upsert_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
-    export_parser = subparsers.add_parser("export-mirror", help=t("db.export_mirror_help"))
-    export_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
-    export_parser.add_argument(
-        "--rules-dir",
-        default=DEFAULT_RULES_DIR,
-        help=t("db.export_rules_dir_help"),
-    )
-    export_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+    delete_parser = subparsers.add_parser("delete-rule", help=t("db.delete_rule_help"))
+    delete_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    delete_parser.add_argument("--term", required=True, help=t("db.term_help"))
+    delete_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
     html_parser = subparsers.add_parser("export-html", help=t("db.export_html_help"))
     html_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
@@ -139,26 +139,18 @@ def print_upsert_text(payload: dict[str, Any]) -> None:
     row = payload["row"]
     print(
         f"UPSERT: {payload['action']} db={payload['db_path']}"
-        f" {row['term_original']} -> {row['preferred']} [level={row['profile_level']}]"
+        f" {row['term_original']} -> {row['preferred']}"
     )
 
 
-def print_export_text(payload: dict[str, Any]) -> None:
+def print_delete_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         tag = "ERROR" if payload["status"] == "error" else "SKIP"
         detail = f" ({payload['error']})" if payload.get("error") else ""
         print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
-    print(
-        "EXPORT-MIRROR:"
-        f" db={payload['db_path']}, rules_dir={payload['rules_dir']},"
-        f" rows={payload['row_count']}, written={len(payload['written_files'])},"  # type: ignore[arg-type]
-        f" removed={len(payload['removed_files'])}"  # type: ignore[arg-type]
-    )
-    for filename in payload["written_files"]:  # type: ignore[union-attr]
-        print(f"- wrote {filename}")
-    for filename in payload["removed_files"]:  # type: ignore[union-attr]
-        print(f"- removed {filename}")
+    row = payload["row"]
+    print(f"DELETE: {payload['action']} db={payload['db_path']} {row['term_original']}")
 
 
 def print_export_html_text(payload: dict[str, Any]) -> None:
@@ -167,7 +159,15 @@ def print_export_html_text(payload: dict[str, Any]) -> None:
         detail = f" ({payload['error']})" if payload.get("error") else ""
         print(f"{tag}: {t(str(payload['reason']))}{detail}")
         return
-    print(f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']}")
+    source = payload.get("source_type", "db")
+    warning = ""
+    if payload.get("warning_reason"):
+        warning_detail = t(str(payload["warning_reason"]))
+        warning = f", warning={warning_detail}"
+    print(
+        f"EXPORT-HTML: db={payload['db_path']}, html={payload['html_path']}, rows={payload['row_count']},"
+        f" source={source}{warning}"
+    )
 
 
 def main() -> int:
@@ -175,6 +175,18 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "init-db":
+        if get_protected_repo_dir_name(args.db) is not None:
+            payload = {
+                "status": "error",
+                "reason": "store.protected_output_path",
+                "db_path": args.db,
+                "error": args.db,
+            }
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print(f"ERROR: {t(str(payload['reason']))} ({payload['error']})")
+            return 1
         try:
             init_db(args.db)
             payload = {"status": "ok", "db_path": args.db}
@@ -189,7 +201,7 @@ def main() -> int:
                 print(f"ERROR: {t(str(payload['reason']))} ({payload['error']})")
         return 0 if payload["status"] == "ok" else 1
 
-    if args.command == "import-rules":
+    if args.command == "import-seed":
         if not args.yes:
             print(t("db.import_rules_confirm", db=args.db), file=sys.stderr)
             try:
@@ -197,7 +209,7 @@ def main() -> int:
             except (EOFError, KeyboardInterrupt):
                 print(t("db.import_rules_aborted"), file=sys.stderr)
                 return 1
-        payload = replace_rules_from_markdown(args.db, args.rules_dir)
+        payload = replace_rules_from_seed(args.db, args.seed_file)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
@@ -242,34 +254,20 @@ def main() -> int:
             print_upsert_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
-    if args.command == "export-mirror":
-        payload = export_markdown_mirror_from_db(args.db, args.rules_dir)
+    if args.command == "delete-rule":
+        payload = delete_rule(
+            args.db,
+            args.term,
+        )
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
-            print_export_text(payload)
+            print_delete_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
     if args.command == "export-html":
         lang = detect_lang()
-        ui = {
-            "lang": lang.replace("_", "-"),
-            "title": t("html.title"),
-            "search_placeholder": t("html.search_placeholder"),
-            "instruction": t("html.instruction"),
-            "col_term": t("html.col_term"),
-            "col_preferred": t("html.col_preferred"),
-            "col_alt2": t("html.col_alt2"),
-            "col_alt3": t("html.col_alt3"),
-            "copy_btn": t("html.copy_btn"),
-            "copy_done": t("html.copy_done"),
-            "copy_manual": t("html.copy_manual"),
-            "copy_manual_done": t("html.copy_manual_done"),
-            "copy_failed": t("html.copy_failed"),
-            "count_registered": t("html.count_registered"),
-            "count_matching": t("html.count_matching"),
-            "copy_instruction": t("html.copy_instruction"),
-        }
+        ui = get_html_ui_for_lang(lang)
         payload = export_html_from_db(args.db, args.html_path, ui=ui)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))

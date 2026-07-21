@@ -9,7 +9,7 @@ Usage:
   python shared/runtime/veil-lint.py --json
 
 Default authority:
-  ~/.veil/rules/*.md
+  ~/.veil/veil.db
 """
 
 from __future__ import annotations
@@ -29,20 +29,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from shared.tools.veil_rule_store import (
+    DEFAULT_DB_PATH,
     RULE_LINE_RE,
-    first_preferred,
     load_rules_for_lint_from_db,
-    normalize_term,
     simple_singularize_token,
 )
 from shared.tools.veil_locale import t
 
-CONFIG_DIR = os.path.expanduser("~/.veil")
-DEFAULT_RULES_DIR = os.path.join(CONFIG_DIR, "rules")
-
 FENCED_CODE_RE = re.compile(r"(?ms)(^|\n)(?P<fence>`{3,}|~{3,})[^\n]*\n.*?\n[ \t]*(?P=fence)[ \t]*(?=\n|$)")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
-INDENTED_CODE_RE = re.compile(r"(?m)(?:^(?: {4}|\t).*(?:\n|$))+")
+LIST_MARKER_RE = re.compile(r"^(?:[-+*]|\d+[.)])\s+")
 
 
 def parse_args() -> argparse.Namespace:
@@ -52,84 +48,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text", help=t("lint.text_help"))
     parser.add_argument("--json", action="store_true", help=t("lint.json_help"))
     parser.add_argument(
-        "--rules-dir",
-        default=DEFAULT_RULES_DIR,
-        help=t("lint.rules_dir_help"),
-    )
-    parser.add_argument(
         "--db",
+        default=DEFAULT_DB_PATH,
         help=t("lint.db_help"),
     )
     return parser.parse_args()
-
-
-def load_rules(rules_dir: str) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
-    if not os.path.isdir(rules_dir):
-        return [], []
-
-    by_original: dict[str, dict[str, str]] = {}
-    conflicts_by_key: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for fname in sorted(os.listdir(rules_dir)):
-        if not fname.endswith(".md"):
-            continue
-        path = os.path.join(rules_dir, fname)
-        try:
-            with open(path, encoding="utf-8") as f:
-                lines = f.readlines()
-        except OSError:
-            continue
-
-        for line in lines:
-            match = RULE_LINE_RE.match(line)
-            if not match:
-                continue
-            original = match.group("original").strip()
-            preferred = first_preferred(match.group("preferred"))
-            if not original or not preferred:
-                continue
-            key = normalize_term(original)
-            entry = {
-                "original": original,
-                "preferred": preferred,
-                "source_file": fname,
-            }
-            if key not in by_original:
-                by_original[key] = entry
-            elif (
-                by_original[key]["original"] != original
-                or by_original[key]["preferred"] != preferred
-            ):
-                conflicts_by_key[key].append(entry)
-
-    conflicts = []
-    for key, entries in conflicts_by_key.items():
-        conflicts.append(
-            {
-                "normalized": key,
-                "selected": by_original[key],
-                "ignored": entries,
-            }
-        )
-
-    rules = [
-        {
-            "original": entry["original"],
-            "preferred": entry["preferred"],
-        }
-        for entry in by_original.values()
-    ]
-    return rules, conflicts
-
-
-def load_rules_for_source(
-    rules_dir: str,
-    db_path: str | None,
-) -> tuple[str, str, list[dict[str, str]], list[dict[str, Any]], dict[str, Any] | None]:
-    if db_path:
-        status, rules, payload = load_rules_for_lint_from_db(db_path)
-        return "db", db_path, rules, [], payload if status == "error" else None
-    rules, conflicts = load_rules(rules_dir)
-    return "rules-dir", rules_dir, rules, conflicts, None
 
 
 def build_original_pattern(original: str) -> re.Pattern[str]:
@@ -167,9 +90,47 @@ def mask_ranges(text: str, pattern: re.Pattern[str]) -> str:
     return "".join(chars)
 
 
+def _looks_like_indented_code_line(line: str) -> bool:
+    if line.startswith("\t"):
+        remainder = line[1:]
+    elif line.startswith("    "):
+        remainder = line[4:]
+    else:
+        return False
+    if not remainder.strip():
+        return True
+    return LIST_MARKER_RE.match(remainder) is None
+
+
+def mask_indented_code_blocks(text: str) -> str:
+    chars = list(text)
+    lines = text.splitlines(keepends=True)
+    offset = 0
+    in_block = False
+    previous_blank = True
+
+    for raw_line in lines:
+        line = raw_line.rstrip("\r\n")
+        candidate = _looks_like_indented_code_line(line)
+        current_blank = not line.strip()
+
+        if candidate and (in_block or previous_blank):
+            for idx in range(offset, offset + len(line)):
+                if chars[idx] not in {"\n", "\r"}:
+                    chars[idx] = " "
+            in_block = True
+        elif not current_blank:
+            in_block = False
+
+        previous_blank = current_blank
+        offset += len(raw_line)
+
+    return "".join(chars)
+
+
 def mask_protected_segments(text: str) -> str:
     masked = mask_ranges(text, FENCED_CODE_RE)
-    masked = mask_ranges(masked, INDENTED_CODE_RE)
+    masked = mask_indented_code_blocks(masked)
     masked = mask_ranges(masked, INLINE_CODE_RE)
     return masked
 
@@ -302,14 +263,17 @@ def main() -> int:
         print(t("lint.read_error", exc=exc), file=sys.stderr)
         return 2
 
-    source_type, source_label, rules, conflicts, source_error = load_rules_for_source(args.rules_dir, args.db)
+    status, rules, source_payload = load_rules_for_lint_from_db(args.db)
+    source_type = "db"
+    source_label = args.db
+    conflicts: list[dict[str, Any]] = []
+    source_error = source_payload if status == "error" else None
     if source_error is not None:
         payload = {
             "status": "error",
             "reason": t(str(source_error.get("reason"))),
             "source_type": source_type,
             "source": source_label,
-            "rules_dir": args.rules_dir,
             "db_path": args.db,
             "conflicts": conflicts,
             "error": source_error.get("error"),
@@ -328,7 +292,6 @@ def main() -> int:
             "reason": t("lint.no_rules_reason"),
             "source_type": source_type,
             "source": source_label,
-            "rules_dir": args.rules_dir,
             "db_path": args.db,
             "conflicts": conflicts,
         }
@@ -345,7 +308,6 @@ def main() -> int:
             "status": status,
             "source_type": source_type,
             "source": source_label,
-            "rules_dir": args.rules_dir,
             "db_path": args.db,
             "conflicts": conflicts,
             "violations": violations,

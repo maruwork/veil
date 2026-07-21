@@ -1,0 +1,32 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "root clutter を減らす設計見直し"
+    },
+    {
+      "role": "user",
+      "content": "maintainer-only files を公開 repo には残すが、ユーザー配布からは外す"
+    },
+    {
+      "role": "user",
+      "content": "本当に不要な tracked file が後から増えないよう review ルールを固定"
+    },
+    {
+      "role": "user",
+      "content": "README と CI も確認対象"
+    },
+    {
+      "role": "user",
+      "content": "/veil-capture で処理されること"
+    },
+    {
+      "role": "user",
+      "content": "mirror export の都合に引っ張られているのも問題"
+    },
+    {
+      "role": "user",
+      "content": "GitHub standard と REPO_CONTENT_CLASSIFICATION.md を確認"
+    }
+  ]
+}

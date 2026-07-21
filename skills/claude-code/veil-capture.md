@@ -1,3 +1,8 @@
+---
+name: veil-capture
+description: Detect terms from AI conversation; present candidates with locale-appropriate preferred forms; record the selected form to SQLite canonical; regenerate the HTML; sync.
+---
+
 # veil-capture
 
 ## Output format
@@ -5,17 +10,17 @@
 Output only the following template.
 
 ```
-- {term} (current) → {candidate1} (candidate 1) | {candidate2} (candidate 2)
+- {term} (current) -> {candidate1} (candidate 1) | {candidate2} (candidate 2)
 ```
 
 - One line per adopted term
 - If candidate 3 exists, append `| {candidate3} (candidate 3)` at the end
 - If there are no terms to adopt, output only `Nothing to adopt.` and stop
 - After the list, output exactly one of:
-  - en: `Candidate 1 will be registered for each. To override, reply with the term and your choice (e.g. "current state → keep current"). Reply OK to proceed.`
-  - ja: `各語の候補1を登録します。変更したい場合は語と選択肢を返信してください（例: "current state → 現状のまま"）。そのまま進む場合はOKと返信してください。`
+  - en: `Candidate 1 will be registered for each. To override, reply with the term and your choice (e.g. "current state -> keep current"). Reply OK to proceed.`
+  - ja: `各候補の「候補 1」を登録します。変更したい場合は、用語と選択肢を指定してください（例: "current state -> 現状維持"）。そのままでよければ OK と返信してください。`
 
-**Locale override (ja):** Use `（現状）`, `（候補1）`, `（候補2）` labels instead of English equivalents.
+**Locale override (ja):** Use `（現在）`, `（候補 1）`, `（候補 2）`, `（候補 3）`, and `現状維持` instead of English labels.
 
 ---
 
@@ -36,13 +41,13 @@ Output only the following template.
 - Proper nouns: product names, service names, tool names, organization names, official feature names
 - Terms inside backticks or double quotes
 - `key=value` patterns, identifiers, spec names, command names, paths
-- Terms already registered in `~/.veil/veil.db` or `~/.veil/rules/*.md` (case-insensitive)
+- Terms already registered in `~/.veil/veil.db` (case-insensitive)
 - Bare general verbs such as close / closed / update
 - Terms where a preferred form cannot be decided
 
 **Preferred form guidance**
 - Industry-standard technical terms: candidate 1 = katakana (ja) or kept as-is (en)
-- Terms with established Japanese translations: candidate 1 = Japanese (e.g., false positive → 誤検知)
+- Terms with established Japanese translations: candidate 1 = Japanese (e.g. false positive -> 誤検知)
 - English-only terms: identifiers, official names, spec names, command names
 - Candidate 2 is required; candidate 3 is optional (omit if none)
 - One concept, one preferred form
@@ -57,8 +62,8 @@ Read `~/.veil/config.json` to get `veil_root` (the absolute path to the veil rep
 
 For each term in the output list:
 - If the user replied OK or did not specify an override, use candidate 1.
-- If the user specified an override (e.g. "current state → current status"), use the specified form.
-- If the user said "skip" or "keep current" for a term, skip that term — do not call upsert-rule for it.
+- If the user specified an override (e.g. "current state -> current status"), use the specified form.
+- If the user said "skip" or "keep current" for a term, skip that term and do not call `upsert-rule` for it.
 
 1. For each adopted term, record the preferred form:
    ```
@@ -66,18 +71,17 @@ For each term in the output list:
      --term "{term}" --preferred "{candidate1}" \
      [--preferred-alt-2 "{candidate2}"] [--preferred-alt-3 "{candidate3}"]
    ```
-   Pass each candidate as a separate flag. Do NOT pass `|`-separated strings as `--preferred`.
+   Pass each candidate as a separate flag. Do not pass `|`-separated strings as `--preferred`.
    If `~/.veil/veil.db` does not exist, first run `python {veil_root}/shared/tools/veil-db.py init-db --db ~/.veil/veil.db`.
-2. Regenerate the mirror using `python {veil_root}/shared/tools/veil-db.py export-mirror`.
-3. Regenerate the HTML using `python {veil_root}/shared/tools/veil-db.py export-html`.
-4. Read `sync_script` from `~/.veil/config.json`.
+2. Regenerate the HTML using `python {veil_root}/shared/tools/veil-db.py export-html`.
+3. Read `sync_script` from `~/.veil/config.json`.
    Check if any sync targets are registered with `python {sync_script} --list`.
    If no targets are listed, scan the current working directory for AI config files
-   (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, .aider.conf.yml, .github/copilot-instructions.md)
+   (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursorrules`, `.aider.conf.yml`, `.github/copilot-instructions.md`)
    and register the first found with `python {sync_script} --add <path>` (siblings auto-register).
    Then run `python {sync_script}`.
-5. Output confirmation (expand `~` to the actual absolute home directory path):
+4. Output confirmation (expand `~` to the actual absolute home directory path):
    - en: `{selected} registered. To review or modify terms, see [veil.html](file://<home>/.veil/veil.html).`
-   - ja: `{selected}で登録しました。登録語句を閲覧や修正したい場合は、[veil.html](file://<home>/.veil/veil.html)で確認してください。`
+   - ja: `{selected} を登録しました。見直しや修正は [veil.html](file://<home>/.veil/veil.html) を確認してください。`
 
-Report failure in one line and stop only if steps 1–4 fail.
+Report failure in one line and stop only if steps 1-3 fail.

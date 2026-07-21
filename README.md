@@ -9,6 +9,13 @@
 
 **For developers and technical writers** who use AI tools (Claude Code, Codex, Cursor, Copilot, Gemini CLI, Aider) and need vocabulary to stay consistent across sessions.
 
+## Developer Route
+
+1. `common/README.md`
+2. `docs/governance/ai-agent-runtime-token-optimization.md`
+3. `docs/veil-design.md`
+4. the exact runtime or tool file under change
+
 ## What is VEIL
 
 AI tools invent English terms, coin abbreviations, and use inconsistent phrasing. You correct it once, but the next session starts fresh and the same terms drift again.
@@ -19,9 +26,17 @@ AI tools invent English terms, coin abbreviations, and use inconsistent phrasing
 
 **Success condition:** once a term is registered, it does not require re-explanation or correction across sessions or AI tools.
 
+VEIL mainline is complete when all of the following stay true:
+
+- capture classification is fixed
+- a registered rule propagates to sync targets from `~/.veil/veil.db`
+- `shared/runtime/veil-lint.py` rejects the registered source term and accepts the preferred form
+- `shared/runtime/veil-status.py --check` reports no setup errors for a healthy install
+- `shared/tools/veil-db.py export-html` regenerates `~/.veil/veil.html` as the review surface
+
 The more AI is in your workflow, the worse this gets. VEIL is not a static style guide — it runs a `capture → normalize → sync → lint` loop to enforce vocabulary consistency. Zero dependencies, fully local.
 
-**The canonical source of truth is `~/.veil/veil.db`. `~/.veil/rules/` is the AI-readable markdown surface and mirror. `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` are sync targets, not storage.**
+**The canonical source of truth is `~/.veil/veil.db`. `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / `.github/copilot-instructions.md` / `GEMINI.md` / `.aider.conf.yml` are sync targets, not storage.**
 
 ---
 
@@ -40,7 +55,6 @@ task close / conversation boundary
         ↓
   record to ~/.veil/veil.db  ← canonical source of truth
         ↓
-  generate ~/.veil/rules/{letter}.md  ← mirror / AI-readable surface
         ↓
   shared/runtime/veil-sync.py pushes rules to AI tool config files
         ↓
@@ -57,20 +71,22 @@ next session: AI outputs with consistent vocabulary
 
 | Component | Role |
 |-----------|------|
-| `/veil-capture` skill | At task close / conversation boundary: extract problem terms, record to SQLite canonical, generate mirror, run sync |
+| `/veil-capture` skill | At task close / conversation boundary: extract problem terms, record to SQLite canonical, regenerate HTML, run sync |
 | `~/.veil/veil.db` | SQLite canonical source of truth |
-| `~/.veil/rules/{letter}.md` | AI-readable markdown surface / mirror |
+| `shared/runtime/veil-classify.py` | First-pass classifier for free-form capture text or chat transcript JSON; label likely candidates as industry term / coined-or-shortened / file-config-identifier / other / unknown |
 | `shared/runtime/veil-normalize.py` | Normalize candidate terms after capture; return existing matches and new candidates |
 | `shared/runtime/veil-sync.py` | Push vocabulary rules to AI tool configuration files |
 | `shared/runtime/veil-lint.py` | Check final text for registered source terms before sending |
-| `shared/runtime/veil-status.py` | Show canonical / mirror / sync target / skill status and setup diagnostics |
+| `shared/runtime/veil-status.py` | Show canonical / HTML / sync target / skill status and setup diagnostics |
 | `shared/tools/veil-profile-audit.py` | Audit rule count and legacy flat rule presence in current profile |
 | `shared/tools/veil-profile-export.py` | Export current profile as a domain profile pack |
-| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-rules / readback / upsert-rule / export-mirror / export-html` |
+| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-seed / readback / upsert-rule / delete-rule / export-html` |
 
-The Python scripts (veil-sync, veil-lint, veil-normalize, etc.) are CLI tools invoked from the terminal or by the skill. The `/veil-capture` skill installs as 2 files — one for Claude Code (`~/.claude/commands/veil-capture.md`) and one for Codex (`~/.agents/skills/veil-capture/SKILL.md`).
+The Python scripts (veil-sync, veil-lint, veil-normalize, veil-classify, etc.) are CLI tools invoked from the terminal or by the skill. The `/veil-capture` skill installs as 2 files — one for Claude Code (`~/.claude/commands/veil-capture.md`) and one for Codex (`~/.agents/skills/veil-capture/SKILL.md`).
 
-`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert, generates the markdown mirror, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
+`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert and deletion, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
+
+The bundled technical-writing default profile lives at `shared/default-profile/technical-writing-default.json`.
 
 ### AI behavior rules
 
@@ -83,7 +99,7 @@ Do not use compound English words mixed into Japanese sentences.
 Respond to Japanese prompts in Japanese.
 ```
 
-Create the file manually — VEIL reads it automatically during sync. Vocabulary rules in `~/.veil/rules/` and behavior rules in `~/.veil/behavior.md` are kept separate so each can evolve independently.
+Create the file manually — VEIL reads it automatically during sync. Vocabulary rules stay in `~/.veil/veil.db` and behavior rules stay in `~/.veil/behavior.md`.
 
 ---
 
@@ -95,10 +111,10 @@ Create the file manually — VEIL reads it automatically during sync. Vocabulary
   - `sync`
   - `lint`
   - `status`
-  - classification order skeleton
+  - fixed classification order
 
 - **Domain profile**
-  - `~/.veil/rules/`
+  - `~/.veil/veil.db`
   - prohibited term set
   - high-demand term set
   - how to handle defined terms
@@ -154,7 +170,11 @@ git clone https://github.com/maruwork/veil.git $env:USERPROFILE\tools\veil
 & "$env:USERPROFILE\tools\veil\install.ps1"
 ```
 
+On a brand-new install, VEIL seeds `~/.veil/veil.db` from the bundled technical-writing default profile. Re-running the installer does not overwrite an existing DB.
+
 The installer copies skill files to the tool directories, writes `sync_script`, `veil_root`, and `lang` to `~/.veil/config.json`, initializes `~/.veil/veil.db`, and auto-registers AI config files found in `~/.claude/` and the current directory as sync targets.
+
+If `~/.claude/CLAUDE.md` already exists, the installer registers it as a sync target and writes or updates a VEIL block inside that file.
 
 To install skill files only without the installer:
 
@@ -182,13 +202,15 @@ cp -r skills/codex/veil-capture ~/.agents/skills/veil-capture
 Copy-Item -Recurse skills\codex\veil-capture $env:USERPROFILE\.agents\skills\veil-capture
 ```
 
-### 2. Register sync target files
+### Register sync target files
 
 `install.sh` automatically registers AI config files found in `~/.claude/` and the directory it is run from. To register additional files:
 
 ```bash
 python shared/runtime/veil-sync.py --add /path/to/CLAUDE.md
 ```
+
+Do not register sync targets under this repo's `common/` or `archive/` directories. Those trees are treated as protected areas, not VEIL output locations.
 
 Siblings in the same directory (AGENTS.md, GEMINI.md, .cursorrules, etc.) are auto-registered alongside the given file. The rules are applied immediately on registration. Supported tools:
 
@@ -201,7 +223,7 @@ Siblings in the same directory (AGENTS.md, GEMINI.md, .cursorrules, etc.) are au
 | Gemini CLI | `GEMINI.md` | `<!-- VEIL_START -->` |
 | Aider | `.aider.conf.yml` | `# VEIL_START` |
 
-Files with `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` extensions use `# VEIL_START` / `# VEIL_END` markers.
+Files with `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` extensions use `# VEIL_START` / `# VEIL_END` markers, and VEIL comments every injected line so the host config syntax stays valid.
 ---
 
 ## Usage
@@ -224,10 +246,10 @@ Example output:
 Select current or a candidate.
 ```
 
-The selected candidate is recorded as `preferred` in the canonical route. `~/.veil/rules/` is regenerated and rules are synced to AI tool config files. Candidates 2 and 3 are stored as alternatives in the DB.
+The selected candidate is recorded as `preferred` in the canonical DB. Rules are synced to AI tool config files from the DB. Candidates 2 and 3 are stored as alternatives in the DB.
 
-- **Candidate 1**: recommended adopted term
-- **Candidate 2**: required alternative displayed alongside
+- **Candidate 1**: adopted term
+- **Candidate 2**: alternative displayed alongside
 - **Candidate 3**: optional additional candidate
 
 Adoption priority order:
@@ -258,8 +280,8 @@ This helper:
 
 - Collapses case, hyphen, underscore, and light singular/plural variants
 - Groups each normalized cluster with its variants and occurrence count
-- Cross-checks against existing SQLite canonical / mirror (`Existing matches:` group)
-- Suggests mirror target file for terms with no existing match (`New candidates:` group)
+- Cross-checks against existing SQLite canonical (`Existing matches:` group)
+- Returns terms with no existing match as `New candidates:`
 
 Example output:
 
@@ -270,7 +292,7 @@ Existing matches:
 - current state → present state
 
 New candidates:
-- implementation plan x3 → i.md
+- implementation plan x3
 ```
 
 The `Existing matches:` group is treated as already cross-checked — confirm the preferred term. In the `New candidates:` group, review terms with higher `x{N}` counts first. Final adoption decisions rest with the owner.
@@ -289,7 +311,9 @@ Generate a browser-based vocabulary list to see all registered terms and their c
 python shared/tools/veil-db.py export-html   # write ~/.veil/veil.html
 ```
 
-Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates (preferred form, candidate 2, candidate 3). Use the search box to filter. Re-run `export-html` any time the DB changes to keep the list current.
+Keep generated outputs out of this repo's `common/` and `archive/` directories. Use the default `~/.veil/` paths, and use `workspace/` for repo-local temporary verification artifacts when needed.
+
+Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates (preferred form, candidate 2, candidate 3). Use the search box to filter. The HTML switches its UI at view time based on the viewer's browser language (currently English, Japanese, Korean, Simplified Chinese, Traditional Chinese, and Arabic). It also includes an on-screen registration form that copies a chat-ready registration request, plus an optional command-copy fallback and per-row delete action. Re-run `export-html` any time the DB changes to keep the list current.
 
 ### Modify a registered term
 
@@ -298,47 +322,32 @@ To change the preferred form, use the HTML list:
 1. Open `~/.veil/veil.html` (run `export-html` first if needed)
 2. Find the term and click **Copy** on the target candidate
 3. This copies a ready-to-paste instruction (`Change '{term}' to '{candidate}'`) to the clipboard. If clipboard access is blocked, VEIL opens a manual copy prompt instead
-4. Paste into the AI chat — this triggers a new capture cycle that records the updated preferred form
-5. After capture: run `export-mirror`, `export-html`, and `veil-sync.py` to propagate the change
+4. Paste into the AI chat so the updated preferred form is recorded
+5. After registration: run `export-html` and `veil-sync.py` to propagate the change
+
+### Register a new term from HTML
+
+1. Open `~/.veil/veil.html`
+2. Paste the source sentence into **Draft Capture** and run **Analyze Draft**
+3. Click a preview line to load the registration form
+4. Use **Copy Registration Request** and paste that request into the AI chat
+5. Use **Copy Commands** only when you need the manual CLI fallback
 
 To update directly without AI:
 
 ```bash
-python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state" --level required
-python shared/tools/veil-db.py export-mirror   # regenerate markdown mirror
+python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
 python shared/tools/veil-db.py export-html     # regenerate HTML list
 python shared/runtime/veil-sync.py             # push to sync targets
 ```
 
-### Inspect raw rule files
+### Delete a registered term
 
-The markdown mirror under `~/.veil/rules/` can also be read or edited directly:
-
+```bash
+python shared/tools/veil-db.py delete-rule --term "current state"
+python shared/tools/veil-db.py export-html     # regenerate HTML list
+python shared/runtime/veil-sync.py             # push to sync targets
 ```
-~/.veil/rules/
-├── m.md    # rules for terms starting with m
-├── u.md    # rules for terms starting with u
-└── ...
-```
-
-```markdown
-# u
-
-## 必須
-
-- uncommitted → uncommitted (keep)
-- untracked → untracked (keep)
-
-## 推奨
-
-- unstable wording → inconsistent phrasing
-
-## 観察
-
-- update path → update path (keep)
-```
-
-After editing a mirror file directly, run `import-rules` to reload it into the canonical DB, then `export-html` and `veil-sync.py` to propagate. **`import-rules` replaces all existing rules in the DB** — a warning is printed before execution.
 
 ### Update sync targets manually
 
@@ -362,7 +371,7 @@ python shared/runtime/veil-lint.py --text "I organized the current state"  # che
 
 - `CLEAN`: no registered source terms found in the text
 - violation: registered source terms remain in the text — check the preferred term and fix
-- `SKIP`: no rules in `~/.veil/rules/` — does not exit with error
+- `SKIP`: no rules in `~/.veil/veil.db` — does not exit with error
 
 On a violation, `shared/runtime/veil-lint.py` returns the suggested fix and a line preview. Follow that guidance first; then revise the full sentence if needed.
 
@@ -372,7 +381,7 @@ On a violation, `shared/runtime/veil-lint.py` returns the suggested fix and a li
 
 ### Check VEIL status
 
-Check canonical DB rule count, mirror last-updated timestamp, and sync target state:
+Check canonical DB rule count, HTML last-updated timestamp, and sync target state:
 
 ```bash
 python shared/runtime/veil-status.py
@@ -384,11 +393,14 @@ Run setup diagnostics when something seems wrong:
 python shared/runtime/veil-status.py --check
 ```
 
-`[ERROR]` exits with code 1. `[WARN]` only exits with code 0 and is safe to continue.
+For required delivery members, `--check` reports `OK`, `STALE`, `MISSING`, or
+`ERROR`. `STALE`, `MISSING`, and `ERROR` exit with code 1; only non-required
+sync-target diagnostics may report `WARN` without failing the check. The same
+stable state values appear in `--json` under `items[].level`.
 
 ### Audit the current profile
 
-Check rule count and any remaining legacy flat rules in `~/.veil/rules/` using `shared/tools/veil-profile-audit.py`:
+Check rule count and any remaining legacy flat rules using `shared/tools/veil-profile-audit.py`:
 
 ```bash
 python shared/tools/veil-profile-audit.py
@@ -396,7 +408,7 @@ python shared/tools/veil-profile-audit.py --json
 python shared/tools/veil-profile-audit.py --db ~/.veil/veil.db
 ```
 
-`audit`, `normalize`, and `lint` all accept `--db` to read from a SQLite source. `veil-normalize.py` maintains the existing-match return format and allows distinguishing the source via `source_type` and `source` in JSON output. `veil-lint.py` keeps `rules-dir` compatibility and maintains the `violation / clean / skip / error` return contract and exit codes. If the DB file exists but is unreadable, the CLI returns a structured error instead of a traceback.
+`audit`, `normalize`, and `lint` read from the SQLite source. `veil-normalize.py` maintains the existing-match return format and exposes `source_type` and `source` in JSON output. `veil-lint.py` keeps the `violation / clean / skip / error` return contract and exit codes. If the DB file exists but is unreadable, the CLI returns a structured error instead of a traceback.
 
 ### SQLite support route
 
@@ -404,9 +416,16 @@ The SQLite canonical support CLI is `shared/tools/veil-db.py`. Common operations
 
 ```bash
 python shared/tools/veil-db.py init-db                        # initialize ~/.veil/veil.db
-python shared/tools/veil-db.py upsert-rule --term "foo" --preferred "bar" --level required
+python shared/tools/veil-db.py upsert-rule --term "foo" --preferred "bar"
+python shared/tools/veil-db.py delete-rule --term "foo"
 python shared/tools/veil-db.py readback --json
-python shared/tools/veil-db.py export-mirror                  # regenerate ~/.veil/rules/
+python shared/tools/veil-db.py export-html                    # regenerate ~/.veil/veil.html
+```
+
+To rebuild the bundled default profile into the current DB:
+
+```bash
+python shared/tools/veil-db.py import-seed --db ~/.veil/veil.db --seed-file shared/default-profile/technical-writing-default.json --yes
 python shared/tools/veil-db.py export-html                    # regenerate ~/.veil/veil.html
 ```
 
@@ -422,10 +441,10 @@ python shared/tools/veil-profile-export.py --profile-name technical-writing-defa
 
 By default, output goes to `~/.veil/profile-exports/<profile-name>/`:
 
-- `*.md` rule files
+- `rules.json`
 - `manifest.json`
 
-This is a read-only export — it does not modify the canonical route or `~/.veil/rules/` mirror. `manifest.json` includes `domain`, `intended_use`, and `base_profile` to preserve the branching contract.
+This is a read-only export — it does not modify the canonical DB. `manifest.json` includes `domain`, `intended_use`, and `base_profile` to preserve the branching contract.
 
 To branch from an existing pack:
 
@@ -476,13 +495,13 @@ veil/
 │   │   ├── veil-normalize.py             # candidate term normalization and cross-check
 │   │   ├── veil-sync.py                  # rule sync script (core tool)
 │   │   ├── veil-lint.py                  # pre-response vocabulary check (core tool)
-│   │   └── veil-status.py               # canonical / mirror / sync target status
+│   │   └── veil-status.py               # canonical / HTML / sync target status
 │   └── tools/
 │       ├── veil-profile-audit.py         # profile audit helper
 │       ├── veil-profile-export.py        # profile export helper
 │       ├── veil-db.py                    # SQLite canonical support CLI
 │       ├── veil_locale.py                # locale detection and t() lookup
-│       └── veil_rule_store.py            # SQLite schema / upsert / mirror export shared helper
+│       └── veil_rule_store.py            # SQLite schema / upsert / support serialization helper
 ├── skills/                              # skill templates
 │   ├── claude-code/
 │   │   └── veil-capture.md              # Claude Code slash command

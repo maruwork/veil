@@ -55,6 +55,21 @@ def test_lint_protected_indented_code_block(seeded):
     assert not payload["violations"], "Indented code block should be protected"
 
 
+def test_lint_detects_nested_markdown_list_item(seeded):
+    text = "- item one\n    - the current state is bad\n"
+    result = lint_cmd("--db", seeded["db"], "--text", text, "--json", check=False)
+    payload = json.loads(result.stdout)
+    assert payload["violations"], "Nested markdown list item should not be masked as code"
+    assert payload["violations"][0]["original"] == "current state"
+
+
+def test_lint_protects_indented_code_block_after_blank_line(seeded):
+    text = "Example:\n\n    current state\n"
+    result = lint_cmd("--db", seeded["db"], "--text", text, "--json")
+    payload = json.loads(result.stdout)
+    assert not payload["violations"], "Indented code block after a blank line should be protected"
+
+
 def test_lint_protected_tilde_fence(seeded):
     text = "~~~text\ncurrent state\n~~~"
     result = lint_cmd("--db", seeded["db"], "--text", text, "--json")
