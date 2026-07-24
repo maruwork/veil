@@ -7,6 +7,7 @@ Usage:
   python shared/runtime/veil-classify.py --stdin
   python shared/runtime/veil-classify.py <file>
   python shared/runtime/veil-classify.py --json
+  python shared/runtime/veil-classify.py --stdin --outcomes --semantic-frames <agent-generated-path> --json
 """
 
 from __future__ import annotations
@@ -28,7 +29,16 @@ from shared.tools.veil_capture_classifier import (
     extract_investigation_terms,
     extract_preview_terms,
 )
+from shared.tools.veil_capture_outcomes import analyze_capture_outcomes
+from shared.tools.veil_decision_frames import (
+    CONTRACT_VERSION as SEMANTIC_CONTRACT_VERSION,
+    FrameValidationError,
+    analyze_decision_frames,
+)
 from shared.tools.veil_rule_store import DEFAULT_DB_PATH, load_rule_index_from_db
+
+
+MAX_SEMANTIC_PAYLOAD_BYTES = 1024 * 1024
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,6 +66,16 @@ def parse_args() -> argparse.Namespace:
         "--investigation-only",
         action="store_true",
         help="Return broader draft-investigation terms for HTML review, including suspicious mixed-language singles.",
+    )
+    mode_group.add_argument(
+        "--outcomes",
+        action="store_true",
+        help="Return exclusion-first outcomes. Raw-text mode is diagnostic unless --semantic-frames is supplied.",
+    )
+    parser.add_argument(
+        "--semantic-frames",
+        metavar="PATH",
+        help="Read an AI-authored semantic-frame contract v2 JSON file. Requires --outcomes.",
     )
     parser.add_argument("--db", default=DEFAULT_DB_PATH, help="DB path used to mark already registered terms.")
     parser.add_argument("--json", action="store_true", help="Output JSON.")
@@ -117,8 +137,81 @@ def extract_text_from_chat_json(raw: str) -> str:
     return "\n".join(segments)
 
 
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def read_semantic_frames(path_value: str) -> Any:
+    path = Path(path_value)
+    if not path.is_file():
+        raise ValueError(f"Semantic frame payload is not a file: {path}")
+    size = path.stat().st_size
+    if size > MAX_SEMANTIC_PAYLOAD_BYTES:
+        raise ValueError(
+            f"Semantic frame payload exceeds {MAX_SEMANTIC_PAYLOAD_BYTES} bytes: {size}"
+        )
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"Semantic frame payload is not valid UTF-8: {exc}") from exc
+    try:
+        return json.loads(raw, object_pairs_hook=_unique_json_object)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid semantic frame JSON: {exc}") from exc
+
+
+def semantic_error_payload(errors: list[str]) -> dict[str, Any]:
+    return {
+        "contract_version": SEMANTIC_CONTRACT_VERSION,
+        "analysis_mode": "semantic-frames",
+        "diagnostic_only": False,
+        "write_allowed": False,
+        "status": "error",
+        "summary": {
+            "user_action_required": False,
+            "question_count": 0,
+            "counts": {
+                "exclude": 0,
+                "observe": 0,
+                "existing-match": 0,
+                "exception": 0,
+            },
+            "automatic_processed": 0,
+            "validated_frame_count": 0,
+            "critic_status": "invalid",
+        },
+        "exceptions": [],
+        "results": [],
+        "errors": errors,
+    }
+
+
+def print_outcome_payload(payload: dict[str, Any], *, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+    summary = payload["summary"]
+    if not summary["user_action_required"]:
+        counts = summary["counts"]
+        print(
+            "NO-ACTION "
+            f"existing={counts['existing-match']} observed={counts['observe']} excluded={counts['exclude']}"
+        )
+        return
+    terms = ", ".join(item["term"] for item in payload["exceptions"])
+    print(f"ACTION-REQUIRED {terms}")
+
+
 def main() -> int:
     args = parse_args()
+    if args.semantic_frames and not args.outcomes:
+        print("ERROR: --semantic-frames requires --outcomes.", file=sys.stderr)
+        return 2
     try:
         text = read_input(args)
         if args.chat_json:
@@ -131,6 +224,24 @@ def main() -> int:
         return 1
 
     registered_terms = load_registered_terms(args.db)
+    if args.outcomes:
+        if args.semantic_frames:
+            try:
+                semantic_payload = read_semantic_frames(args.semantic_frames)
+                analysis = analyze_decision_frames(text, semantic_payload, registered_terms)
+            except (OSError, ValueError, FrameValidationError) as exc:
+                errors = list(exc.errors) if isinstance(exc, FrameValidationError) else [str(exc)]
+                payload = semantic_error_payload(errors)
+                if args.json:
+                    print(json.dumps(payload, ensure_ascii=False, indent=2))
+                else:
+                    print(f"ERROR: semantic frame validation failed: {'; '.join(errors)}", file=sys.stderr)
+                return 2
+        else:
+            analysis = analyze_capture_outcomes(text, registered_terms)
+        print_outcome_payload(analysis.to_dict(), as_json=args.json)
+        return 0
+
     if args.adoptable_only:
         extract_terms = extract_adoptable_terms
     elif args.investigation_only:

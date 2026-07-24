@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import sys
 from typing import Any
 
@@ -20,6 +21,7 @@ try:
         readback_rules,
         replace_rules_from_seed,
         upsert_rule,
+        upsert_rules_atomic,
     )
     from shared.tools.veil_locale import detect_lang, t
 except ModuleNotFoundError:
@@ -36,6 +38,7 @@ except ModuleNotFoundError:
         readback_rules,
         replace_rules_from_seed,
         upsert_rule,
+        upsert_rules_atomic,
     )
     from veil_locale import detect_lang, t  # type: ignore[no-redef]
 
@@ -74,6 +77,11 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_parser.add_argument("--note", help=t("db.note_help"))
     upsert_parser.add_argument("--source-context", help=t("db.source_context_help"))
     upsert_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+
+    upsert_batch_parser = subparsers.add_parser("upsert-batch", help=t("db.upsert_batch_help"))
+    upsert_batch_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    upsert_batch_parser.add_argument("--input-json", required=True, help=t("db.upsert_batch_file_help"))
+    upsert_batch_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
     delete_parser = subparsers.add_parser("delete-rule", help=t("db.delete_rule_help"))
     delete_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
@@ -141,6 +149,82 @@ def print_upsert_text(payload: dict[str, Any]) -> None:
         f"UPSERT: {payload['action']} db={payload['db_path']}"
         f" {row['term_original']} -> {row['preferred']}"
     )
+
+
+_BATCH_ALLOWED_FIELDS = {
+    "term",
+    "preferred",
+    "preferred_alt_2",
+    "preferred_alt_3",
+    "status",
+    "level",
+    "category_hint",
+    "note",
+    "source_context",
+}
+
+
+def load_upsert_batch(path: str) -> list[dict[str, str | None]]:
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read batch JSON: {exc}") from exc
+    if not isinstance(raw, dict) or raw.get("contract_version") != "1":
+        raise ValueError("batch JSON must be an object with contract_version '1'")
+    rules = raw.get("rules")
+    if not isinstance(rules, list) or not rules:
+        raise ValueError("batch JSON rules must be a non-empty array")
+    if len(rules) > 100:
+        raise ValueError("batch JSON may contain at most 100 rules")
+
+    validated: list[dict[str, str | None]] = []
+    for index, item in enumerate(rules):
+        if not isinstance(item, dict):
+            raise ValueError(f"rules[{index}] must be an object")
+        unknown = sorted(set(item) - _BATCH_ALLOWED_FIELDS)
+        if unknown:
+            raise ValueError(f"rules[{index}] has unsupported fields: {', '.join(unknown)}")
+        normalized: dict[str, str | None] = {}
+        for key in _BATCH_ALLOWED_FIELDS:
+            value = item.get(key)
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"rules[{index}].{key} must be a string or null")
+            normalized[key] = value.strip() if isinstance(value, str) else None
+        for required in ("term", "preferred"):
+            if not normalized[required]:
+                raise ValueError(f"rules[{index}].{required} must be a non-empty string")
+        if "|" in str(normalized["preferred"]):
+            raise ValueError(f"rules[{index}].preferred must contain one preferred form")
+        validated.append(normalized)
+    return validated
+
+
+def upsert_batch(db_path: str, input_json: str) -> dict[str, Any]:
+    try:
+        rules = load_upsert_batch(input_json)
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "reason": "invalid_batch_payload",
+            "db_path": db_path,
+            "input_json": input_json,
+            "error": str(exc),
+            "processed_count": 0,
+            "results": [],
+        }
+
+    payload = upsert_rules_atomic(db_path, rules)
+    payload["input_json"] = input_json
+    payload["atomic"] = True
+    return payload
+
+
+def print_upsert_batch_text(payload: dict[str, Any]) -> None:
+    if payload["status"] != "ok":
+        reason = str(payload.get("reason") or "store.batch_write_failed")
+        print(f"ERROR: {t(reason)} ({payload.get('error', 'batch write failed')})")
+        return
+    print(f"UPSERT-BATCH: db={payload['db_path']} rows={payload['processed_count']}")
 
 
 def print_delete_text(payload: dict[str, Any]) -> None:
@@ -252,6 +336,14 @@ def main() -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
             print_upsert_text(payload)
+        return 0 if payload["status"] == "ok" else 1
+
+    if args.command == "upsert-batch":
+        payload = upsert_batch(args.db, args.input_json)
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print_upsert_batch_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
     if args.command == "delete-rule":

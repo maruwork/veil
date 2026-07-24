@@ -85,6 +85,20 @@
     gap: 8px;
     margin-top: 14px;
   }
+  .advanced-options {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid #d8e1ee;
+    border-radius: 8px;
+    background: #fbfcfe;
+  }
+  .advanced-options summary {
+    cursor: pointer;
+    color: #5a6472;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .advanced-options .composer-grid { margin-top: 12px; }
   .capture-panel {
     max-width: 900px;
     margin-bottom: 20px;
@@ -247,9 +261,8 @@
   <p id="capture-description">__UI_CAPTURE_DESCRIPTION__</p>
   <textarea id="capture-input" placeholder="__UI_CAPTURE_PLACEHOLDER__"></textarea>
   <div class="composer-actions">
-    <button type="button" class="copy-btn primary-btn" id="capture-analyze-btn" onclick="analyzeCaptureInput()">__UI_CAPTURE_BTN__</button>
-    <button type="button" class="copy-btn" id="capture-copy-output-btn" onclick="copyCaptureOutput()">__UI_CAPTURE_COPY_OUTPUT_BTN__</button>
-    <button type="button" class="copy-btn" id="capture-copy-prompt-btn" onclick="copyCapturePrompt()">__UI_CAPTURE_COPY_PROMPT_BTN__</button>
+    <button type="button" class="copy-btn primary-btn" id="capture-copy-exceptions-btn" onclick="copyCaptureReviewRequest()">__UI_CAPTURE_EXCEPTIONS_COPY_BTN__</button>
+    <button type="button" class="copy-btn" id="capture-analyze-btn" onclick="analyzeCaptureInput()">__UI_CAPTURE_BTN__</button>
   </div>
   <div class="capture-output">
     <h3 id="capture-result-title">__UI_CAPTURE_RESULT_TITLE__</h3>
@@ -268,18 +281,25 @@
       <span id="label-preferred">__UI_FIELD_PREFERRED__</span>
       <input type="text" id="new-preferred" placeholder="__UI_REGISTER_PREFERRED_PLACEHOLDER__">
     </label>
-    <label class="composer-field">
-      <span id="label-alt2">__UI_FIELD_ALT2__</span>
-      <input type="text" id="new-alt2" placeholder="__UI_REGISTER_ALT2_PLACEHOLDER__">
-    </label>
-    <label class="composer-field">
-      <span id="label-alt3">__UI_FIELD_ALT3__</span>
-      <input type="text" id="new-alt3" placeholder="__UI_REGISTER_ALT3_PLACEHOLDER__">
-    </label>
   </div>
+  <details class="advanced-options">
+    <summary id="advanced-options-title">__UI_ADVANCED_OPTIONS__</summary>
+    <div class="composer-grid">
+      <label class="composer-field">
+        <span id="label-alt2">__UI_FIELD_ALT2__</span>
+        <input type="text" id="new-alt2" placeholder="__UI_REGISTER_ALT2_PLACEHOLDER__">
+      </label>
+      <label class="composer-field">
+        <span id="label-alt3">__UI_FIELD_ALT3__</span>
+        <input type="text" id="new-alt3" placeholder="__UI_REGISTER_ALT3_PLACEHOLDER__">
+      </label>
+    </div>
+    <div class="composer-actions">
+      <button type="button" class="copy-btn" id="register-commands-btn" onclick="copyRegisterInstruction()">__UI_REGISTER_COMMANDS_BTN__</button>
+    </div>
+  </details>
   <div class="composer-actions">
     <button type="button" class="copy-btn primary-btn" id="register-btn" onclick="copyRegisterPrompt()">__UI_REGISTER_BTN__</button>
-    <button type="button" class="copy-btn" id="register-commands-btn" onclick="copyRegisterInstruction()">__UI_REGISTER_COMMANDS_BTN__</button>
   </div>
 </section>
 <p id="instruction" style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
@@ -376,6 +396,7 @@ __ROWS__
         btn.id !== 'register-btn' &&
         btn.id !== 'register-commands-btn' &&
         btn.id !== 'capture-analyze-btn' &&
+        btn.id !== 'capture-copy-exceptions-btn' &&
         btn.id !== 'capture-copy-output-btn' &&
         btn.id !== 'capture-copy-prompt-btn'
       ) {
@@ -397,6 +418,10 @@ __ROWS__
         btn.textContent = message('capture_btn');
         btn.title = message('capture_btn');
         btn.setAttribute('aria-label', message('capture_btn'));
+      } else if (btn.id === 'capture-copy-exceptions-btn') {
+        btn.textContent = message('capture_exceptions_copy_btn');
+        btn.title = message('capture_exceptions_copy_btn');
+        btn.setAttribute('aria-label', message('capture_exceptions_copy_btn'));
       } else if (btn.id === 'capture-copy-output-btn') {
         btn.textContent = message('capture_copy_output_btn');
         btn.title = message('capture_copy_output_btn');
@@ -425,6 +450,7 @@ __ROWS__
     document.getElementById('capture-result-title').textContent = message('capture_result_title');
     document.getElementById('capture-note').textContent = message('capture_note');
     document.getElementById('register-title').textContent = message('register_title');
+    document.getElementById('advanced-options-title').textContent = message('advanced_options');
     document.getElementById('label-term').textContent = message('field_term');
     document.getElementById('label-preferred').textContent = message('field_preferred');
     document.getElementById('label-alt2').textContent = message('field_alt2');
@@ -443,7 +469,9 @@ __ROWS__
     if (!_captureResults.length) {
       const output = document.getElementById('capture-output');
       output.className = 'capture-result-empty';
-      output.textContent = message('capture_empty');
+      output.textContent = document.getElementById('capture-input').value.trim()
+        ? message('capture_none')
+        : message('capture_empty');
     } else {
       renderCaptureOutput(_captureResults);
     }
@@ -683,14 +711,23 @@ __ROWS__
       : message('capture_none');
   }
 
+  function copyCaptureReviewRequest() {
+    const text = capturePromptText();
+    if (!text) {
+      setStatus(message('capture_empty'), 'error');
+      return;
+    }
+    copyText(text, message('capture_exceptions_copied'));
+  }
+
   function loadCaptureResult(index) {
     const item = _captureResults[index];
     if (!item) return;
     document.getElementById('new-term').value = item.term;
-    document.getElementById('new-preferred').value = item.candidate1;
-    document.getElementById('new-alt2').value = item.candidate2 === message('capture_keep_current') ? '' : item.candidate2;
+    document.getElementById('new-preferred').value = item.requested_preferred || item.term;
+    document.getElementById('new-alt2').value = '';
     document.getElementById('new-alt3').value = '';
-    document.getElementById('new-term').focus();
+    document.getElementById('new-preferred').focus();
     setStatus(message('capture_loaded', { term: item.term }), 'success');
   }
 
@@ -708,7 +745,8 @@ __ROWS__
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'capture-result-line';
-      btn.textContent = formatCaptureLine(item);
+      btn.textContent = item.term;
+      btn.setAttribute('aria-label', message('capture_loaded', { term: item.term }));
       btn.onclick = () => loadCaptureResult(index);
       output.appendChild(btn);
     });
@@ -918,19 +956,333 @@ __ROWS__
       .slice(0, limit);
   }
 
+  const CAPTURE_OUTCOME_EXCLUDE = 'exclude';
+  const CAPTURE_OUTCOME_OBSERVE = 'observe';
+  const CAPTURE_OUTCOME_EXISTING_MATCH = 'existing-match';
+  const CAPTURE_OUTCOME_EXCEPTION = 'exception';
+  const CAPTURE_REPEATED_EDGE_STOPWORDS = new Set([
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'from', 'has', 'have',
+    'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'were', 'with'
+  ]);
+  const CAPTURE_NON_INTENT_RE = /\b(?:did not|do not|does not|nobody asked|not an instruction|test fixture|sample text|rejected proposal|under discussion|no action|explains how|log recorded)\b|(?:提案は却下|却下した|指示ではない|登録しない|変更しない|統一しない|検討中|例文|テスト用)/i;
+  const CAPTURE_QUOTED_META_TERMS = new Set([
+    'quoted phrase', 'quoted term', 'quoted wording', 'the phrase', 'the term',
+    'というフレーズ', 'という表記', '引用語'
+  ]);
+  const CAPTURE_REPEATED_DESCRIPTION_RE = /(?:\b(?:two|three|four|five|multiple|repeated|monthly|weekly|twice|\d+\s+times?)\b[^.!?\r\n]{0,140}\b(?:describe|described|call|called|refer(?:red)?\s+to|label(?:led)?|name(?:d)?)\b)|(?:(?:二|三|四|五|[2-9])(?:回|件|週|か月|ヶ月)|月次|週次|毎週|繰り返し)[^。！？\r\n]{0,140}(?:説明|呼|記載|表現)/i;
+  const CAPTURE_DURABLE_CONFLICT_RE = /\b(?:competing|conflicting)\s+(?:durable\s+)?(?:forms?|terms?|wording)\b|\b(?:first|earlier).{0,100}\bprefers?\b.{0,100}\b(?:later|while)\b|競合(?:する)?(?:永続)?候補|同じ[^。！？\r\n]{0,80}(?:前半|先).{0,80}(?:後半|後).{0,80}優先/i;
+  const CAPTURE_DURABLE_DEFINITION_RE = /\b(?:durable|persistent|permanent|canonical)\s+definitions?\b|永続的な定義|永続(?:化)?する定義|正本(?:の)?定義/i;
+  const CAPTURE_DURABLE_INVENTORY_RE = /\b(?:complete|exactly|only)\b[^.!?\r\n]{0,80}\b(?:durable|persist(?:ed|ence|ent)?)\b|\b(?:durable|persistent)\b[^.!?\r\n]{0,80}\b(?:inventory|terms?\s+intended)\b|永続化?(?:を意図)?する(?:用語|語|候補)[^。！？\r\n]{0,40}(?:二つ|2つ|だけ)|永続(?:候補|語)[^。！？\r\n]{0,40}(?:二つ|2つ|だけ)/i;
+  const CAPTURE_TEMPORARY_SCOPE_RE = /\b(?:for|in)\s+this\s+(?:single|one-off|temporary|classroom|workshop|exercise)\b|\b(?:this|one)\s+(?:single|one-off|temporary)\b|(?:今回|この一回|一回限り|一度限り)[^。！？\r\n]{0,30}(?:に限り|だけ|のみ)|この(?:工作教室|勉強会|演習|例|図)(?:に限り|だけ|では)/i;
+
+  function captureSentenceBounds(text, position) {
+    const source = String(text || '');
+    const previousStops = [source.lastIndexOf('\n', position), source.lastIndexOf('.', position), source.lastIndexOf('。', position)];
+    const start = Math.max(...previousStops) + 1;
+    const nextStops = [source.indexOf('\n', position), source.indexOf('.', position), source.indexOf('。', position)].filter(value => value >= 0);
+    return { start, end: nextStops.length ? Math.min(...nextStops) : source.length };
+  }
+
+  function captureSignalEvidence(text, position) {
+    const source = String(text || '');
+    const { start, end } = captureSentenceBounds(source, position);
+    return source.slice(start, end).replace(/\s+/g, ' ').trim().slice(0, 240);
+  }
+
+  function captureSignalImpact(kind, evidence) {
+    if (kind === 'repeat_observation' || kind === 'descriptive_definition' || kind === 'non_target') return 'low';
+    if (kind === 'consistency_request' || kind === 'registration_request' || kind === 'change_request') return 'high';
+    const highImpact = /\b(?:always|must|required|every|block(?:s|ed|ing)?|control(?:s|led|ling)?|release|distribution|canonical|external|security|delete|write|commit|push|production|destructive|rollback|irreversible|removal|authority|approve)\b|必ず|常に|全(?:て|部)|阻止|制御|配布|正本|外部|安全|削除|書(?:き)?込|コミット|プッシュ/i;
+    return highImpact.test(evidence) ? 'high' : 'medium';
+  }
+
+  function cleanCaptureSignalTerm(term) {
+    let value = String(term || '').replace(/\s+/g, ' ').replace(/^[\s,.;:!?、。・]+|[\s,.;:!?、。・]+$/g, '');
+    const leading = /^(?:in this project|in this repository|in this repo|in this team|in this context|the|a|an|our|this)\s+/i;
+    let previous = null;
+    while (value && value !== previous) {
+      previous = value;
+      value = value.replace(leading, '').trim();
+    }
+    return value.replace(/\s+(?:consistently|everywhere|always)$/i, '').trim();
+  }
+
+  function maskNonAuthoritativeCaptureText(text) {
+    const spaces = value => ' '.repeat(value.length);
+    return String(text || '')
+      .replace(/```[\s\S]*?```/g, spaces)
+      .replace(/`[^`\r\n]*`/g, spaces)
+      .replace(/"[^"\r\n]{8,}"/g, spaces)
+      .replace(/'[^'\r\n]{8,}'/g, spaces);
+  }
+
+  function captureQuotedSignalSpec(source, match) {
+    const matchStart = match.index || 0;
+    const matchEnd = matchStart + match[0].length;
+    const position = matchStart + 1;
+    const { start: sentenceStart, end: sentenceEnd } = captureSentenceBounds(source, position);
+    const evidence = source.slice(sentenceStart, sentenceEnd);
+    const previousEnd = Math.max(0, sentenceStart - 1);
+    const previousStart = Math.max(
+      source.lastIndexOf('\n', previousEnd - 1),
+      source.lastIndexOf('.', previousEnd - 1),
+      source.lastIndexOf('。', previousEnd - 1),
+    ) + 1;
+    const scopedEvidence = source.slice(previousStart, sentenceEnd);
+    const before = source.slice(Math.max(sentenceStart, matchStart - 80), matchStart);
+    const after = source.slice(matchEnd, Math.min(sentenceEnd, matchEnd + 120));
+    const term = String(match.groups && match.groups.term || '');
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const englishNegation = new RegExp("\\b(?:do\\s+not|don't|never)\\s+(?:register|save|record|remember|persist)[^.!?\\r\\n]{0,50}[\"']" + escaped + "[\"']", 'i').test(evidence);
+    const japaneseNegation = new RegExp('[「『]' + escaped + '[」』][^。！？\\r\\n]{0,30}(?:登録|保存|記録|永続化|規則化)(?:は)?しない').test(evidence);
+    if (englishNegation || japaneseNegation) return null;
+
+    if (/["'「『][^"'」』\r\n]{2,60}["'」』]\s*(?:を|から|ではなく)\s*$/.test(before)) return null;
+    if (CAPTURE_REPEATED_DESCRIPTION_RE.test(scopedEvidence)) return ['repeat_observation', 'natural_language_repetition'];
+    if (CAPTURE_DURABLE_CONFLICT_RE.test(scopedEvidence)) return ['change_request', 'explicit_inventoried_conflict'];
+    if (CAPTURE_DURABLE_DEFINITION_RE.test(scopedEvidence)) return ['registration_request', 'explicit_durable_definition'];
+
+    const englishAction = /\b(?:register|save|record|remember|persist)\s+(?:(?:the\s+)?(?:quoted\s+)?(?:phrase|term|wording)\s+)?$/i.test(before);
+    const japaneseAction = /^\s*(?:という(?:フレーズ|表記|呼称)|という語|を)?[^、。！？\r\n]{0,70}(?:として|で)?\s*(?:登録|保存|記録)(?:して|する|してください|します)/i.test(after);
+    if (englishAction || japaneseAction) return ['registration_request', 'explicit_quoted_registration_request'];
+
+    const hasChangeMapping = /\b(?:change|replace|rename)\b|変更|置き換え|差し替え/i.test(evidence);
+    if (CAPTURE_DURABLE_INVENTORY_RE.test(scopedEvidence) && !hasChangeMapping) return ['registration_request', 'explicit_durable_inventory'];
+
+    const quotedDefinition = /^\s*(?:means|is\s+defined\s+as)\b|^\s*(?:とは|は)\s*[^。！？\r\n]{0,100}(?:意味|定義|指)/i.test(after);
+    if (quotedDefinition && CAPTURE_TEMPORARY_SCOPE_RE.test(evidence)) return ['descriptive_definition', 'descriptive_local_definition'];
+    if (quotedDefinition) return ['local_definition', 'explicit_quoted_local_definition'];
+    return null;
+  }
+
+  function extractCaptureContextSignals(text) {
+    const source = String(text || '');
+    const masked = maskNonAuthoritativeCaptureText(source);
+    const latinTerm = '[A-Za-z][A-Za-z0-9_-]*(?:[ \\t]+[A-Za-z][A-Za-z0-9_-]*){0,3}';
+    const latinTermLazy = '[A-Za-z][A-Za-z0-9_-]*(?:[ \\t]+[A-Za-z][A-Za-z0-9_-]*){0,5}?';
+    const jaTerm = '[\\u3040-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fffー]{2,30}?';
+    const mixedTerm = '(?:' + latinTerm + '|' + jaTerm + ')';
+    const jaSentencePrefix = '(?:^|[。！？\\r\\n]\\s*)(?:(?:この(?:プロジェクト|リポジトリ|チーム|文脈)では|今後(?:は)?|これから(?:は)?|VEILでは)\\s*)?';
+    const specs = [
+      [new RegExp('\\bchange\\s+(?:the\\s+)?preferred\\s+(?:wording|term|form)\\s+from\\s+(?<term>' + latinTermLazy + ')\\s+to\\s+(?<preferred>' + latinTermLazy + ')(?=\\s+(?:in|for)\\s+(?:the\\s+)?(?:registered\\s+)?vocabulary\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
+      [new RegExp('\\bregister\\s+(?<term>' + latinTerm + ')\\s+as\\s+(?<preferred>' + latinTerm + ')\\s+in\\s+VEIL\\b', 'gi'), 'registration_request', 'explicit_registration_mapping'],
+      [new RegExp('\\b(?:change|rename)\\s+(?<term>' + latinTerm + ')\\s+(?:to|as)\\s+(?<preferred>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
+      [new RegExp('\\breplace\\s+(?<term>' + latinTermLazy + ')\\s+with\\s+(?<preferred>' + latinTermLazy + ')(?=\\s+(?:in|for)\\s+(?:the\\s+)?(?:registered\\s+)?vocabulary\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
+      [new RegExp('\\buse\\s+(?<preferred>' + latinTerm + ')\\s+instead\\s+of\\s+(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_conflict_request'],
+      [new RegExp('\\buse\\s+(?<term>' + latinTermLazy + ')\\s+as\\s+(?:the\\s+)?preferred\\s+(?:form|wording|term)(?:\\s+instead)?(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_conflict_request'],
+      [new RegExp('(?<term>' + mixedTerm + ')\\s*(?:を|から)\\s*(?<preferred>' + mixedTerm + ')\\s*(?:に|へ)(?:変更|統一|置き換え|差し替え)', 'gi'), 'change_request', 'explicit_change_request'],
+      [new RegExp('(?<term>' + mixedTerm + ')\\s*ではなく\\s*(?<preferred>' + mixedTerm + ')\\s*(?:を)?(?:使|採用)', 'gi'), 'change_request', 'explicit_conflict_request'],
+      [new RegExp('(?<term>' + mixedTerm + ')\\s*を\\s*(?<preferred>' + mixedTerm + ')\\s*として登録', 'gi'), 'registration_request', 'explicit_registration_mapping'],
+      [new RegExp('\\b(?:please\\s+)?(?:also\\s+)?(?:register|remember|record|save)[ \\t]{1,2}(?:(?:the[ \\t]+)?(?:phrase|term|wording)[ \\t]{1,2})?(?<term>(?!(?:it|this|that|them|(?:the[ \\t]+)?quoted[ \\t]+wording|the[ \\t]+(?:phrase|term|wording))\\b)' + latinTermLazy + ')(?=\\s+(?:as|for|in\\s+VEIL)\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'registration_request', 'explicit_registration_request'],
+      [new RegExp('\\b(?:use|call|refer to)\\s+(?:the\\s+(?:phrase|term)\\s+)?(?<term>' + latinTerm + ')\\s+(?:consistently|everywhere|from now on)\\b', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp('\\balways\\s+(?:use|call|refer to)\\s+(?:the\\s+(?:phrase|term)\\s+)?(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp('\\b(?:standardize on|standardise on)\\s+(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp('\\bmake\\s+(?<term>' + latinTerm + ')\\s+the\\s+standard\\s+term\\b', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?:(?:in|for) this [A-Za-z][A-Za-z0-9_-]*(?:\\s+[A-Za-z][A-Za-z0-9_-]*){0,2},?\\s+|here,?\\s+)?(?<term>' + latinTerm + ')\\s+means\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
+      [new RegExp('\\b(?<term>' + latinTerm + ')\\s+is\\s+defined\\s+as\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
+      [new RegExp('\\b(?:we\\s+)?define\\s+(?<term>' + latinTerm + ')\\s+as\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
+      [new RegExp('\\b(?:register|remember|record)\\s+(?<term>' + latinTerm + ')\\s+(?:as|in VEIL\\b)', 'gi'), 'registration_request', 'explicit_registration_request'],
+      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?<term>[A-Z][a-z]{2,})\\s+(?=(?:will|would|has|had|is|was|reviewed|joined|said)\\b)', 'g'), 'non_target', 'proper_name_non_target'],
+      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?<term>' + latinTermLazy + ')\\s+(?:appears?|appeared|was\\s+used|is\\s+used|stayed|remained|shows?|showed)\\b[^.!?\\r\\n]{0,80}\\b(?:both|multiple|repeated(?:ly)?|consecutive|weekly|twice)\\b', 'gi'), 'repeat_observation', 'natural_language_repetition'],
+      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?:across\\s+)?(?:two|three|four|five|multiple|\\d+)\\s+(?:[A-Za-z][A-Za-z0-9_-]*\\s+){0,2}(?:notes|records|reports|messages|documents|sessions|weeks|months)\\b[^.!?\\r\\n]{0,100}\\b(?:describe|described|call|called|label(?:led)?|name(?:d)?)\\b[^.!?\\r\\n]{0,80}\\bas\\s+(?:the\\s+)?(?<term>' + latinTermLazy + ')(?=[.!?\\r\\n]|$)', 'gi'), 'repeat_observation', 'natural_language_repetition'],
+      [new RegExp('(?<term>' + latinTerm + ')\\s*(?:という表記)?\\s*(?:を)?(?:一貫して使|必ず使|に統一(?:して|する)|と呼(?:ぶ(?:ことにする)?|んでください)|を標準表記にする|として登録する)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp('(?<term>' + latinTerm + ')\\s*(?:とは|は)\\s*[^。\\r\\n]{0,80}(?:意味|定義|指す)', 'gi'), 'local_definition', 'explicit_local_definition'],
+      [new RegExp(jaSentencePrefix + '(?<term>' + jaTerm + ')\\s*(?:という表記)?\\s*(?:を)?(?:一貫して使|必ず使|に統一(?:して|する)|と呼(?:ぶ(?:ことにする)?|んでください)|を標準表記にする|として登録する)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
+      [new RegExp(jaSentencePrefix + '(?<term>' + jaTerm + ')\\s*(?:とは|は)\\s*[^。\\r\\n]{0,80}(?:意味|定義|指す)', 'gi'), 'local_definition', 'explicit_local_definition'],
+      [new RegExp('(?:^|[。！？\\r\\n]\\s*)(?:この[^。！？\\r\\n]{1,24}では、?\\s*)?(?<term>' + jaTerm + ')\\s*を\\s*[^。！？\\r\\n]{1,80}と呼(?:びます|んでいます|ぶ)', 'gi'), 'descriptive_definition', 'descriptive_local_definition'],
+      [new RegExp('(?:^|[。！？\\r\\n]\\s*)(?:今回|この一回|一回限り|一度限り)[^。！？\\r\\n]{0,30}(?:に限り|だけ|のみ)[、,]?\\s*(?<term>' + jaTerm + ')\\s*(?:とは|は)\\s*[^。！？\\r\\n]{1,100}(?:を指(?:す|します)|を意味(?:する|します))', 'gi'), 'descriptive_definition', 'descriptive_local_definition'],
+      [new RegExp('(?:二|2)週続けて[^。！？\\r\\n]{0,60}を\\s*(?<term>' + jaTerm + ')\\s*と呼んで', 'gi'), 'repeat_observation', 'natural_language_repetition'],
+    ];
+    const quotedSpecs = [
+      [/\b(?:please\s+)?(?:also\s+)?(?:register|remember|record|save)\s+(?:(?:the\s+)?(?:phrase|term|quoted\s+wording)\s+)?["'「『](?<term>[^"'」』\r\n]{2,60})["'」』](?=\s+(?:as|for|in\s+VEIL)\b|[,.;:!?\r\n]|$)/gi, 'registration_request', 'explicit_quoted_registration_request'],
+      [/\buse\s+(?:the\s+)?(?:phrase|term)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+as\b[^.!?\r\n]{0,120}\b(?:save|register|record)\s+it\b/gi, 'registration_request', 'explicit_quoted_registration_request'],
+      [/\bregister\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+as\s+["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s+in\s+VEIL\b/gi, 'registration_request', 'explicit_registration_mapping'],
+      [/\b(?:change|rename)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+(?:to|as)\s+["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]/gi, 'change_request', 'explicit_change_request'],
+      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:を|から)\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*(?:に|へ)(?:変更|統一|置き換え|差し替え)/gi, 'change_request', 'explicit_change_request'],
+      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*ではなく\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*(?:を)?(?:使|採用)/gi, 'change_request', 'explicit_conflict_request'],
+      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*を\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*として登録/gi, 'registration_request', 'explicit_registration_mapping'],
+      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:は|を)?使わず[^。！？\r\n]{0,80}["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』][^。！？\r\n]{0,60}(?:変更|統一|優先|正式な表記)/gi, 'change_request', 'explicit_conflict_request'],
+      [/\b(?:use|call|refer to)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+(?:consistently|everywhere|from now on)\b/gi, 'consistency_request', 'explicit_quoted_consistency_request'],
+      [/\balways\s+(?:use|call|refer to)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』](?=[,.;:!?\r\n]|$)/gi, 'consistency_request', 'explicit_quoted_consistency_request'],
+      [/(?:ただし|一方|同じ決定(?:文)?で)[^。！？\r\n]{0,80}["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:を)?(?:優先|採用)/gi, 'change_request', 'explicit_conflict_request'],
+      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』][^。！？\r\n]{0,100}(?:名称|表記|呼称)?(?:として|で)?\s*(?:登録|保存|記録)(?:して|する|してください|します)/gi, 'registration_request', 'explicit_quoted_registration_request'],
+      [/[\"'「『](?<term>[^\"'」』\r\n]{2,60})[\"'」』]\s*(?:という呼称)?(?:を)?(?:一貫して使|必ず使|に統一|と呼ぶことにする|と呼んでください|として記録|に登録)/g, 'consistency_request', 'explicit_quoted_consistency_request'],
+      [/[\"'「『](?<term>[^\"'」』\r\n]{2,60})[\"'」』]\s*(?:とは|は)\s*[^。\r\n]{0,80}(?:意味|定義|指す)/g, 'local_definition', 'explicit_quoted_local_definition'],
+    ];
+    const signals = new Map();
+    function recordMatch(match, kind, reason) {
+        const term = cleanCaptureSignalTerm(match.groups && match.groups.term);
+        const normalized = normalizeTermForCapture(term);
+        if (!normalized || normalized.length < 2) return;
+        if (CAPTURE_QUOTED_META_TERMS.has(normalized)) return;
+        const position = match.index || 0;
+        const evidence = captureSignalEvidence(source, position);
+        if (CAPTURE_NON_INTENT_RE.test(evidence)) return;
+        const requestedPreferred = cleanCaptureSignalTerm(match.groups && match.groups.preferred) || null;
+        const signal = { term, normalized, kind, reason, impact: captureSignalImpact(kind, evidence), position, evidence, requested_preferred: requestedPreferred };
+        const current = signals.get(normalized);
+        const priority = { non_target: 0, repeat_observation: 0, descriptive_definition: 1, consistency_request: 1, local_definition: 2, registration_request: 3, change_request: 4 };
+        if (
+          !current ||
+          (priority[signal.kind] || 0) > (priority[current.kind] || 0) ||
+          (current.impact !== 'high' && signal.impact === 'high') ||
+          (!current.requested_preferred && signal.requested_preferred)
+        ) signals.set(normalized, signal);
+    }
+    function collect(pattern, kind, reason, target) {
+      for (const match of target.matchAll(pattern)) {
+        recordMatch(match, kind, reason);
+      }
+    }
+    specs.forEach(([pattern, kind, reason]) => collect(pattern, kind, reason, masked));
+    quotedSpecs.forEach(([pattern, kind, reason]) => collect(pattern, kind, reason, source));
+    for (const match of source.matchAll(/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]/g)) {
+      const spec = captureQuotedSignalSpec(source, match);
+      if (spec) recordMatch(match, spec[0], spec[1]);
+    }
+    return Array.from(signals.values()).sort((a, b) => a.position - b.position);
+  }
+
+  function captureExistingMatches(text) {
+    const normalized = normalizeTermForCapture(String(text || '').replace(/[^A-Za-z0-9_\-一-鿿ぁ-ヿ]+/g, ' '));
+    const normalizedText = ` ${normalized} `;
+    const matches = [];
+    registeredTermSet().forEach(term => {
+      let count = 0;
+      if (/[一-鿿ぁ-ヿ]/.test(term)) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp('(^|[^A-Za-z0-9_\\-ァ-ヿ一-鿿])' + escaped + '(?=$|[^A-Za-z0-9_\\-ァ-ヿ一-鿿])', 'g');
+        count = Array.from(normalized.matchAll(pattern)).length;
+      } else {
+        const needle = ` ${term} `;
+        count = normalizedText.split(needle).length - 1;
+      }
+      if (count) matches.push({ term, count });
+    });
+    return matches;
+  }
+
+  function extractCaptureRepeatedObservations(text) {
+    const tokens = String(sanitizeCaptureText(text) || '').match(/[A-Za-z][A-Za-z0-9_-]*/g) || [];
+    const counts = new Map();
+    for (const width of [3, 2]) {
+      for (let index = 0; index <= tokens.length - width; index += 1) {
+        const words = tokens.slice(index, index + width);
+        const normalizedWords = words.map(normalizeTermForCapture);
+        if (CAPTURE_REPEATED_EDGE_STOPWORDS.has(normalizedWords[0]) || CAPTURE_REPEATED_EDGE_STOPWORDS.has(normalizedWords[normalizedWords.length - 1])) continue;
+        if (new Set(normalizedWords).size === 1) continue;
+        const term = words.join(' ');
+        const normalized = normalizeTermForCapture(term);
+        const current = counts.get(normalized) || { term, normalized, count: 0 };
+        current.count += 1;
+        counts.set(normalized, current);
+      }
+    }
+    return Array.from(counts.values())
+      .filter(item => item.count >= 2)
+      .sort((a, b) => {
+        const tokenDelta = captureWordTokens(b.normalized).length - captureWordTokens(a.normalized).length;
+        if (tokenDelta) return tokenDelta;
+        const countDelta = b.count - a.count;
+        if (countDelta) return countDelta;
+        return a.normalized.localeCompare(b.normalized);
+      });
+  }
+
+  function captureOutcomeFromClassified(item) {
+    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return CAPTURE_OUTCOME_OBSERVE;
+    if (item.label === CAPTURE_LABEL_UNKNOWN) return CAPTURE_OUTCOME_OBSERVE;
+    if (item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER || item.label === CAPTURE_LABEL_INDUSTRY_TERM) return CAPTURE_OUTCOME_EXCLUDE;
+    if (item.reason === 'proper_noun_non_target') return CAPTURE_OUTCOME_EXCLUDE;
+    if ((item.count || 0) >= 2) return CAPTURE_OUTCOME_OBSERVE;
+    return CAPTURE_OUTCOME_EXCLUDE;
+  }
+
+  function analyzeCaptureOutcomes(text) {
+    const source = String(text || '');
+    const registered = registeredTermSet();
+    const signals = extractCaptureContextSignals(source);
+    const consumed = new Set();
+    const results = [];
+    signals.forEach(signal => {
+      const isRegistered = registered.has(signal.normalized);
+      let outcome = CAPTURE_OUTCOME_OBSERVE;
+      if (signal.kind === 'non_target') outcome = CAPTURE_OUTCOME_EXCLUDE;
+      else if (signal.kind === 'repeat_observation' || signal.kind === 'descriptive_definition') outcome = CAPTURE_OUTCOME_OBSERVE;
+      else if (isRegistered && signal.kind === 'consistency_request') outcome = CAPTURE_OUTCOME_EXISTING_MATCH;
+      else if (signal.kind === 'consistency_request' || signal.kind === 'registration_request' || signal.kind === 'change_request' || signal.impact === 'high') outcome = CAPTURE_OUTCOME_EXCEPTION;
+      results.push({
+        term: signal.term,
+        normalized: signal.normalized,
+        outcome,
+        reason: outcome === CAPTURE_OUTCOME_EXISTING_MATCH ? 'explicit_request_already_registered' : signal.reason,
+        impact: signal.impact,
+        registered: isRegistered,
+        signal: signal.kind,
+        requested_preferred: signal.requested_preferred,
+      });
+      consumed.add(signal.normalized);
+    });
+
+    captureExistingMatches(source).forEach(item => {
+      if (consumed.has(item.term)) return;
+      results.push({ term: item.term, normalized: item.term, outcome: CAPTURE_OUTCOME_EXISTING_MATCH, reason: 'registered_term_match', impact: 'medium', registered: true, signal: null });
+      consumed.add(item.term);
+    });
+
+    extractCaptureRepeatedObservations(source).forEach(item => {
+      if (consumed.has(item.normalized) || registered.has(item.normalized)) return;
+      results.push({ term: item.term, normalized: item.normalized, outcome: CAPTURE_OUTCOME_OBSERVE, reason: 'repeated_unconfirmed_wording', impact: 'low', registered: false, signal: null });
+      consumed.add(item.normalized);
+    });
+
+    collectCaptureTerms(source).forEach(item => {
+      if (consumed.has(item.normalized)) return;
+      results.push({
+        term: item.term,
+        normalized: item.normalized,
+        outcome: captureOutcomeFromClassified(item),
+        reason: item.reason,
+        impact: 'low',
+        registered: false,
+        signal: null,
+      });
+      consumed.add(item.normalized);
+    });
+
+    const counts = { exclude: 0, observe: 0, 'existing-match': 0, exception: 0 };
+    results.forEach(item => { counts[item.outcome] += 1; });
+    const exceptions = results.filter(item => item.outcome === CAPTURE_OUTCOME_EXCEPTION);
+    return {
+      contract_version: '1',
+      analysis_mode: 'raw-text-diagnostic',
+      diagnostic_only: true,
+      write_allowed: false,
+      summary: {
+        user_action_required: exceptions.length > 0,
+        question_count: exceptions.length > 0 ? 1 : 0,
+        counts,
+        automatic_processed: counts.exclude + counts.observe + counts['existing-match'],
+      },
+      exceptions,
+      results,
+    };
+  }
+
   function analyzeCaptureInput() {
     const text = document.getElementById('capture-input').value.trim();
     if (!text) {
       _captureResults = [];
       const output = document.getElementById('capture-output');
-      output.className = 'capture-result-empty';
+      renderCaptureOutput([]);
       output.textContent = message('capture_empty');
       setStatus(message('capture_empty'), 'error');
       return;
     }
-    _captureResults = extractCaptureInvestigationTerms(text);
+    const analysis = analyzeCaptureOutcomes(text);
+    _captureResults = analysis.exceptions;
     renderCaptureOutput(_captureResults);
-    setStatus(_captureResults.length ? message('capture_ready') : message('capture_none'), _captureResults.length ? 'success' : '');
+    setStatus(analysis.summary.user_action_required ? message('capture_ready') : message('capture_none'), 'success');
   }
 
   function copyCaptureOutput() {
@@ -948,6 +1300,7 @@ __ROWS__
     return [
       message('capture_prompt_header'),
       text,
+      message('capture_prompt_footer'),
     ].join('\n\n');
   }
 

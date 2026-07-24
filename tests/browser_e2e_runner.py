@@ -74,13 +74,27 @@ def harness_script() -> str:
 <script id="veil-e2e-harness">
 (async () => {
   const result = {
-    capture_count: 0,
-    form_loaded: false,
-    success_copy: false,
-    manual_fallback: false,
+    ordinary_diagnostic_empty: false,
+    existing_match_diagnostic_empty: false,
+    diagnostic_item_count: 0,
+    full_review_action_visible: false,
+    diagnostic_contract_marked: false,
+    locale_english: false,
+    locale_japanese: false,
+    full_review_copy_success: false,
+    full_review_copy_fallback: false,
+    explicit_change_exception: false,
+    fine_tune_form_loaded: false,
     direct_write_attempts: []
   };
-  const pause = () => new Promise(resolve => setTimeout(resolve, 40));
+  const pause = () => new Promise(resolve => setTimeout(resolve, 60));
+  const analyze = async text => {
+    const input = document.getElementById('capture-input');
+    input.value = text;
+    document.getElementById('capture-analyze-btn').click();
+    await pause();
+    return [...document.querySelectorAll('.capture-result-line')];
+  };
 
   window.fetch = (...args) => {
     result.direct_write_attempts.push('fetch');
@@ -100,52 +114,113 @@ def harness_script() -> str:
   }
 
   try {
-    const input = document.getElementById('capture-input');
-    input.value = 'root clutter root clutter';
-    document.getElementById('capture-analyze-btn').click();
-    await pause();
-
-    const previewRows = [...document.querySelectorAll('.capture-result-line')];
-    result.capture_count = previewRows.length;
-    if (previewRows.length) previewRows[0].click();
-    await pause();
-    result.form_loaded = Boolean(
-      document.getElementById('new-term').value &&
-      document.getElementById('new-preferred').value
+    let previewRows = await analyze('root clutter root clutter should be reviewed later.');
+    result.ordinary_diagnostic_empty = Boolean(
+      previewRows.length === 0 &&
+      !document.getElementById('capture-copy-exceptions-btn').classList.contains('hidden')
     );
 
+    previewRows = await analyze('Use current state consistently in every handoff.');
+    result.existing_match_diagnostic_empty = Boolean(
+      previewRows.length === 0 &&
+      !document.getElementById('capture-copy-exceptions-btn').classList.contains('hidden')
+    );
+
+    const fullReviewText = 'Use decision boundary consistently. Always use release boundary.';
+    previewRows = await analyze(fullReviewText);
+    const exceptionTerms = previewRows.map(row => row.textContent.trim());
+    result.diagnostic_item_count = previewRows.length;
+    result.full_review_action_visible = Boolean(
+      previewRows.length === 2 &&
+      exceptionTerms.includes('decision boundary') &&
+      exceptionTerms.includes('release boundary') &&
+      !document.getElementById('capture-copy-exceptions-btn').classList.contains('hidden')
+    );
+    const diagnosticContract = analyzeCaptureOutcomes(fullReviewText);
+    result.diagnostic_contract_marked = Boolean(
+      diagnosticContract.contract_version === '1' &&
+      diagnosticContract.analysis_mode === 'raw-text-diagnostic' &&
+      diagnosticContract.diagnostic_only === true &&
+      diagnosticContract.write_allowed === false
+    );
+
+    applyLocale('ja');
+    result.locale_japanese = Boolean(
+      document.documentElement.lang === 'ja' &&
+      document.getElementById('capture-copy-exceptions-btn').textContent === '完全なAI確認依頼をコピー'
+    );
+    applyLocale('en');
+    result.locale_english = Boolean(
+      document.documentElement.lang === 'en' &&
+      document.getElementById('capture-copy-exceptions-btn').textContent === 'Copy complete AI review request'
+    );
+
+    let copiedText = '';
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
         writeText: async text => {
-          result.success_copy = text.includes('root clutter');
+          copiedText = text;
         }
       }
     });
-    document.getElementById('register-btn').click();
+    document.getElementById('capture-copy-exceptions-btn').click();
     await pause();
+    result.full_review_copy_success = Boolean(
+      copiedText.includes('decision boundary') &&
+      copiedText.includes('release boundary') &&
+      copiedText.includes('contract v2') &&
+      copiedText.includes('separate critic pass') &&
+      copiedText.includes(fullReviewText) &&
+      !copiedText.includes('upsert-rule')
+    );
 
-    document.getElementById('new-term').value = 'root clutter';
-    document.getElementById('new-preferred').value = 'root clutter';
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: async () => { throw new Error('clipboard denied'); } }
     });
     window.prompt = (message, text) => {
-      result.manual_fallback = Boolean(message && text && text.includes('upsert-rule'));
+      result.full_review_copy_fallback = Boolean(
+        message &&
+        text &&
+        text.includes('decision boundary') &&
+        text.includes('release boundary') &&
+        text.includes('contract v2') &&
+        text.includes('separate critic pass') &&
+        !text.includes('upsert-rule')
+      );
       return null;
     };
-    document.getElementById('register-commands-btn').click();
+    document.getElementById('capture-copy-exceptions-btn').click();
     await pause();
+
+    previewRows = await analyze('Change current state to present condition.');
+    result.explicit_change_exception = Boolean(
+      previewRows.length === 1 &&
+      previewRows[0].textContent.trim() === 'current state'
+    );
+    if (previewRows.length) previewRows[0].click();
+    await pause();
+    result.fine_tune_form_loaded = Boolean(
+      document.getElementById('new-term').value === 'current state' &&
+      document.getElementById('new-preferred').value === 'present condition'
+    );
   } catch (error) {
     result.error = String(error && error.stack ? error.stack : error);
   }
 
   result.ok = Boolean(
-    result.capture_count > 0 &&
-    result.form_loaded &&
-    result.success_copy &&
-    result.manual_fallback &&
+    result.ordinary_diagnostic_empty &&
+    result.existing_match_diagnostic_empty &&
+    result.diagnostic_item_count === 2 &&
+    result.full_review_action_visible &&
+    result.diagnostic_contract_marked &&
+    result.locale_english &&
+    result.locale_japanese &&
+    result.full_review_copy_success &&
+    result.full_review_copy_fallback &&
+    result.explicit_change_exception &&
+    result.fine_tune_form_loaded &&
     result.direct_write_attempts.length === 0 &&
     !result.error
   );
@@ -216,7 +291,7 @@ def run_browser(browser: Path, url: str, profile_dir: Path) -> tuple[dict[str, o
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=30,
+        timeout=60,
     )
     if completed.returncode != 0:
         raise RuntimeError(f"browser failed ({completed.returncode}): {completed.stderr}")

@@ -34,7 +34,7 @@ jobs:
         run: bash -n install.sh
 
       - name: Capture syntax check
-        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
 
       - name: pytest
         run: python -m pytest tests/ -q
@@ -131,7 +131,7 @@ jobs:
           }
 
       - name: Capture syntax check
-        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
 
       - name: pytest
         run: python -m pytest tests/ -q

@@ -171,14 +171,14 @@ def prepare_base_rules(paths, quiet=False):
 def do_sync(paths, base="", quiet=False, targets=None):
     if targets is None:
         targets = load_targets(paths)
-    combined = ""
+    sections = [t("sync.runtime_instruction")]
     if base:
-        combined = t("sync.rules_section_header") + base
+        sections.append(t("sync.rules_section_header") + base)
     behavior = load_behavior(paths)
     if behavior:
-        sep = "\n\n" if combined else ""
-        combined = combined + sep + behavior
-    if not targets or not combined:
+        sections.append(behavior)
+    combined = "\n\n".join(section for section in sections if section.strip())
+    if not targets:
         return
     for path in targets:
         protected_root = get_protected_repo_dir_name(path)
@@ -234,11 +234,6 @@ def cmd_sync(paths, quiet=False):
             detail = f" ({source_error['error']})" if source_error.get("error") else ""
             print(t("sync.source_error", reason=t(str(source_error.get("reason")))) + detail)
         return 1
-    behavior = load_behavior(paths)
-    if not base and not behavior:
-        if not quiet:
-            print(t("sync.no_rules"))
-        return 0
     if not quiet:
         print(t("sync.sync_start", count=len(targets)))
     do_sync(paths, base, quiet=quiet, targets=targets)

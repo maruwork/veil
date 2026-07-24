@@ -104,6 +104,162 @@ def test_upsert_with_level_alias(tmp_db):
     assert payload["row"]["profile_level"] == "recommended"
 
 
+def test_upsert_batch_uses_validated_json_without_shell_interpolation(tmp_db, tmp_path: Path):
+    batch_path = tmp_path / "accepted-rules.json"
+    batch_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "rules": [
+                    {
+                        "term": "current state",
+                        "preferred": "present state",
+                        "source_context": "veil-capture batch",
+                    },
+                    {
+                        "term": "literal $(not-executed); value",
+                        "preferred": "literal preferred && unchanged",
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "upsert-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(batch_path),
+        "--json",
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert payload["status"] == "ok"
+    assert payload["atomic"] is True
+    assert payload["processed_count"] == 2
+    assert {(row["term_original"], row["preferred"]) for row in rows} == {
+        ("current state", "present state"),
+        ("literal $(not-executed); value", "literal preferred && unchanged"),
+    }
+
+
+def test_upsert_batch_validates_every_rule_before_any_write(tmp_db, tmp_path: Path):
+    batch_path = tmp_path / "invalid-rules.json"
+    batch_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "rules": [
+                    {"term": "would write", "preferred": "must not write"},
+                    {"term": "broken", "preferred": "value", "shell": "forbidden"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "upsert-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(batch_path),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert result.returncode == 1
+    assert payload["reason"] == "invalid_batch_payload"
+    assert payload["processed_count"] == 0
+    assert rows == []
+
+
+def test_upsert_batch_rejects_invalid_rule_semantics_before_any_write(tmp_db, tmp_path: Path):
+    batch_path = tmp_path / "invalid-level-rules.json"
+    batch_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "rules": [
+                    {"term": "would write", "preferred": "must not write"},
+                    {"term": "broken", "preferred": "value", "level": "typo"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "upsert-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(batch_path),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert result.returncode == 1
+    assert payload["reason"] == "store.batch_validation_failed"
+    assert payload["failed_index"] == 1
+    assert payload["processed_count"] == 0
+    assert rows == []
+
+
+def test_upsert_batch_rolls_back_all_rules_after_sqlite_failure(tmp_db, tmp_path: Path):
+    with sqlite3.connect(tmp_db) as conn:
+        conn.execute(
+            """
+            CREATE TRIGGER reject_second_rule
+            BEFORE INSERT ON rules
+            WHEN NEW.term_normalized = 'second term'
+            BEGIN
+                SELECT RAISE(ABORT, 'forced batch failure');
+            END
+            """
+        )
+
+    batch_path = tmp_path / "rollback-rules.json"
+    batch_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "rules": [
+                    {"term": "first term", "preferred": "first preferred"},
+                    {"term": "second term", "preferred": "second preferred"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "upsert-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(batch_path),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert result.returncode == 1
+    assert payload["reason"] == "store.batch_write_failed"
+    assert payload["atomic"] is True
+    assert payload["processed_count"] == 0
+    assert rows == []
+
+
 def test_delete_rule_removes_row(tmp_db):
     db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
     result = db_cmd("delete-rule", "--db", tmp_db, "--term", "current state", "--json")
@@ -160,16 +316,30 @@ def test_export_html(tmp_db, tmp_path):
     assert "Manual copy prompt opened." in content
     assert "Clipboard access is unavailable. Copy this text manually:" in content
     assert "opacity: 0" not in content
-    assert "Register a new rule" in content
-    assert "Draft Capture" in content
+    assert "Register or change a rule" in content
+    assert "AI review recovery" in content
     assert 'id="capture-input"' in content
     assert 'id="capture-analyze-btn"' in content
+    assert 'id="capture-copy-exceptions-btn"' in content
     assert "analyzeCaptureInput()" in content
+    assert "function copyCaptureReviewRequest()" in content
+    assert "Copy complete AI review request" in content
+    assert "evidence-backed semantic decision frames (contract v2)" in content
+    assert "separate critic pass" in content
+    assert "diagnostic_only: true" in content
+    assert "write_allowed: false" in content
+    assert content.index('id="capture-copy-exceptions-btn"') < content.index('id="capture-analyze-btn"')
+    assert "__UI_CAPTURE_EXCEPTIONS_COPY_BTN__" not in content
+    assert "Select a term to continue" not in content
+    assert "用語を選んで続け" not in content
+    assert "function analyzeCaptureOutcomes(text)" in content
+    assert "existing-match" in content
     assert "loadCaptureResult(" in content
     assert "capture-result-line" in content
     assert "coined_or_shortened" in content
-    assert "copyCapturePrompt()" in content
-    assert "No preview candidates." in content
+    assert 'id="capture-copy-prompt-btn"' not in content
+    assert "The local preview found no possible exception." in content
+    assert "No vocabulary decision is needed." not in content
     assert 'id="register-btn"' in content
     assert 'id="register-commands-btn"' in content
     assert 'id="col-actions"' in content
@@ -182,8 +352,8 @@ def test_export_html(tmp_db, tmp_path):
     assert 'id="new-level"' not in content
     assert "Run these commands to delete this rule:" in content
     assert "Run these commands to register this rule:" in content
-    assert "Copy Registration Request" in content
-    assert "Copy Commands" in content
+    assert "Copy save request" in content
+    assert "Advanced: copy commands" in content
     assert "Register this VEIL rule in the current repository:" in content
     assert "Update the SQLite canonical, then regenerate the mirror and veil.html." in content
     assert "navigator.clipboard.writeText" in content

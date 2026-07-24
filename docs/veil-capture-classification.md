@@ -1,11 +1,47 @@
 # VEIL Capture Classification
 
-This document defines the first-pass question for free-form capture text:
+This document defines three separate layers:
 
-`What kind of term is this?`
+1. first-pass labels answer `What kind of string is this?`;
+2. contract v1 raw-text outcomes provide lexical diagnostics; and
+3. contract v2 semantic decision frames answer `Does the user need to decide anything?`.
 
-It does **not** decide yet whether VEIL should register the term.
-Candidate adoption is a second gate layered on top of this classification.
+Labels and raw-text outcomes never authorize registration. The primary UX
+contract is `analyze_decision_frames()` / `veil-classify.py --outcomes
+--semantic-frames <path>`. The host AI extracts evidence-backed frames and runs
+a separate critic pass; local VEIL validates the untrusted payload and applies
+the deterministic outcome policy.
+
+## Outcome contract
+
+- `exclude`: validated negated, reported, non-authoritative, or critic-rejected wording. Silent and non-persistent.
+- `observe`: validated temporary, one-off, or low-impact unclear wording. Silent and non-persistent.
+- `existing-match`: exact canonical coverage. Automatic success; never count it as exclusion.
+- `exception`: affirmed durable adoption, rename, definition, conflict,
+  high-impact uncertainty, or material extractor/critic disagreement. The only
+  user-visible state.
+
+Every run exposes `user_action_required` and `question_count`. Normal runs have `question_count=0`; any number of exceptions is batched into `question_count=1`. No outcome writes to the canonical DB. The Skill writes only after an explicit exception is accepted or the invoking request already supplied an exact preferred form and explicit registration instruction.
+
+Fail-closed rules for the normal semantic route:
+
+- raw repetition or taxonomy membership -> no durable semantic frame
+- negated/reported/non-authoritative evidence -> `exclude`
+- temporary/one-off or low-impact unclear evidence -> `observe`
+- exact registered term -> `existing-match`
+- affirmed durable or high-impact unresolved evidence -> `exception`
+- invalid semantic payload -> structured analysis failure, no raw-text fallback,
+  no DB/HTML/sync write
+- never auto-register a new rule from a frame, taxonomy, fixture, or repetition
+
+### Primary lexical target
+
+For a definition, correction, or contrast, the frame term is the primary
+lexical target: the wording whose meaning, allowed use, or preferred form is
+being decided. A generic predicate or explanatory phrase is cited as evidence,
+not emitted as another frame, unless the source independently decides that
+wording. A session can contain several independent primary targets, but not
+several labels for one definition.
 
 ## Labels
 
@@ -45,24 +81,13 @@ Candidate adoption is a second gate layered on top of this classification.
 - Use `other` for trailing utility prose such as `validate` and `static` when they appear as plain wording rather than product labels or config keys.
 - Treat obvious proper nouns such as `GitHub` or `PowerShell` as `other` when they are clearly outside the target categories.
 - Use `unknown` only when the first pass still cannot tell what kind of term it is.
-- In candidate extraction, require repeated signal before proposing a term. The current default gate is:
-  - at least 2 occurrences
-  - never propose `file_config_identifier`
-  - never propose `industry_term`
-  - propose `coined_or_shortened` only for multiword phrases
-  - preserve some ordinary multiword `other` phrases for classification, but propose only a smaller allowlist of repeated state or judgment phrases such as `repo hygiene`
-
-- `Draft Capture` investigation is intentionally different from the adoptable gate.
-  It is for checking which wording inside a difficult sentence feels suspicious,
-  even when the answer may turn out to be “this is a specialist term” or
-  “this is just a UI/config label.”
-  The current HTML investigation route:
-  - can surface single-occurrence coined or internal phrases
-  - can surface known multiword UI/config labels such as `Analyze Draft` or `Draft Output`
-  - can surface a small allowlist of ambiguous generic singles such as `status`, `preview`, `candidate`, `adoptable`, and `passed`
-  - can surface mixed-language unknown singles such as `polishing` when they appear inside Japanese text
-  - does not surface single-word specialist terms just because they are known `industry_term` items
-  - does not show classification labels to the user in the HTML output
+- Legacy candidate extraction remains available for regression and compatibility. Its repeated-term allowlists do not define the user interaction and do not authorize registration.
+- The HTML review panel is an optional recovery surface. Its regex preview is
+  contract v1 `raw-text-diagnostic` and cannot prove semantic coverage. The
+  primary action copies the complete text for the installed AI Skill; preview
+  entries may be loaded only for manual fine-tuning after AI review.
+- Python and HTML/JS raw-text diagnostics remain in lockstep only as regression
+  evidence. They are not evidence that arbitrary conversations are understood.
 
 ## Chat seed input
 
@@ -75,8 +100,25 @@ content from keys such as `text`, `content`, `value`, `message`, and `body`.
 Blank segments are dropped, but textual segments remain in input order and keep
 their repeated occurrences before classification.
 
-The same CLI also exposes narrower modes:
+The primary mode is `--outcomes --semantic-frames <path>`. The source text is
+passed separately through stdin, a file, or `--text`; the semantic-frame JSON
+path is agent-generated and passed as a separate argument. The CLI also retains
+diagnostic modes:
 
+For a frozen blind evaluation, the generator's JSONL output has one additional
+public envelope: every runtime-input session produces exactly one object with
+only `session_id` (copied verbatim from runtime input) and `payload` (the
+contract-v2 semantic-frame object). `BLIND_GENERATOR_JSONL_CONTRACT` and
+`build_blind_generated_row()` in `shared/tools/veil_decision_frames.py` are the
+single source for that envelope; evaluation code must import its field set
+rather than duplicate it.
+
+- `--outcomes --semantic-frames <path>`
+  - validates contract v2 evidence and returns the authoritative four-state
+    read-only policy result with a zero-or-one question summary
+- `--outcomes` without `--semantic-frames`
+  - returns contract v1 with `analysis_mode=raw-text-diagnostic`,
+    `diagnostic_only=true`, and `write_allowed=false`
 - `--preview-only`
   - returns local undefined-wording preview results, including single-occurrence internal labels
 - `--investigation-only`
@@ -88,26 +130,32 @@ The same CLI also exposes narrower modes:
 `tests/fixtures/veil_capture_attachment_candidates.txt` is the compact candidate-gate corpus for attachment-derived wording that should keep only the current high-signal adoptable set while excluding repeated noise such as proper nouns, file identifiers, and generic phrases.
 `tests/fixtures/veil_capture_chat_transcript.json` is the chat-shaped regression corpus for transcript ingestion. It should keep the expected coined / industry / file-config boundaries without leaking any adoptable candidates.
 
-## Classification Fixed
+## Classification and outcome release gates
 
-VEIL can treat capture classification as fixed when all of the following stay true:
+The 100-case stratified fixture and frozen v1-v3 sets are development corpora.
+Each v1-v3 first eligible run failed, so none is release evidence. The capture
+boundary is release-ready only while all of the following stay true:
 
-- The attachment long-tail regression corpus produces no `unknown` terms.
-- Python classification, HTML/JS classification, and CLI output stay in lockstep.
-- Known taxonomy sets remain normalization-unique and free of accidental cross-category overlap.
-- Candidate extraction boundaries are explicit:
-  - known coined phrases that survive prefix suppression remain candidates
-  - industry terms do not become candidates even if they repeat
-  - only the allowlisted `other` multiword phrases become repeated `other` candidates
-  - file/config terms, repo-directory terms, and proper nouns do not become candidates just because they repeat
+- attachment long-tail regression produces no accidental unknown leakage;
+- Python label classification and HTML/JS label classification remain in lockstep;
+- Python and HTML/JS raw-text diagnostics match on their bounded regression contract;
+- semantic schema, exact evidence, rename, conflict, critic disagreement, and
+  no-write behavior pass invariant-focused tests;
+- a new unseen, independently authored and reviewed end-to-end synthetic
+  holdout requires the host AI to produce frames and records provenance, impact,
+  reason, source class, reviewer, and required second-review metadata;
+- high-impact false exclusions are zero in that independent holdout;
+- exception precision and existing-match precision are at least 99%;
+- normal sessions require zero questions and exception sessions at most one combined question;
+- Skill and HTML normal output contain no candidate table or numbered-candidate instruction;
+- accepted multi-result registration uses one validated all-or-nothing JSON batch; and
+- the formal browser runner proves recovery wording, diagnostic labeling,
+  complete-text AI prompt copy, locale behavior, fine-tuning, clipboard
+  fallback, and zero direct writes; and
+- a separately approved, anonymized, two-reviewer real-conversation evaluation
+  passes before claiming VEIL's overall UX is usable.
 
-At that point, new edge words should no longer drive routine rule expansion.
-Anything still outside the boundary should default to `other` or remain intentionally unresolved rather than reopening broad taxonomy growth.
-
-The fixed-state regression loop is:
-
-- `rtk python -m pytest tests -q`
-- `rtk python shared\tools\veil-db.py export-html --db $HOME\.veil\veil.db --html-path workspace\veil.html --json`
+Legacy candidate tests remain regression evidence for the old helper APIs. Passing them is not evidence that arbitrary conversations are handled correctly.
 
 ## Seed examples
 

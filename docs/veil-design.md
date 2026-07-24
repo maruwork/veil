@@ -40,7 +40,7 @@ VEIL mainline is complete when all of the following stay true:
 
 ### 3-1. veil-capture skill
 
-Detects English terms, coined terms, and abbreviations from AI conversation. At task close / conversation boundary, records to the SQLite canonical as the close operation for the current phase, then updates the HTML and sync targets.
+Resolves vocabulary consistency at task close or a conversation boundary while keeping routine analysis off the user's critical path.
 
 **Installation paths**
 
@@ -51,15 +51,33 @@ Detects English terms, coined terms, and abbreviations from AI conversation. At 
 
 **Behavior**
 
-1. Extract candidate terms from conversation or target text
-2. Prefer state terms, judgment terms, structural terms, operational labels over bare verbs
-3. Use `shared/runtime/veil-normalize.py` as needed to collapse variants and cross-check existing rules
-4. Classify each term: keep as proper noun / translate as common term / fix as defined term / drop as prohibited / skip
-5. Adopt high-demand, high-impact, and VEIL-core terms first
-6. Skip low-frequency, context-dependent, and unresolved project-specific terms
-7. On user confirmation of adopted terms, record to `~/.veil/veil.db` canonical in the current phase
-8. Regenerate `~/.veil/veil.html` via `shared/tools/veil-db.py export-html`
-9. Run `shared/runtime/veil-sync.py` for immediate sync
+1. The runtime instruction in each registered sync target starts the installed capture workflow automatically once at a substantive task close or conversation boundary. Manual invocation remains an on-demand check and recovery route.
+2. The host AI extracts evidence-backed semantic decision frames from the
+   supplied text or current conversation, then performs a separate critic pass
+   for missed durable decisions, spurious frames, unsupported evidence, and
+   unresolved mappings.
+3. Pass the exact source text and an isolated contract v2 frame JSON file to
+   `veil-classify.py --outcomes --semantic-frames <path> --json`. Local VEIL
+   validates the untrusted evidence and classifies each validated frame into
+   exactly one of `exclude`, `observe`, `existing-match`, or `exception`.
+4. Keep `exclude`, `observe`, and `existing-match` in the background. An automatically triggered normal session adds no VEIL-specific output and requires zero user judgments.
+5. Batch every `exception` into one short question. Never ask one question per term and never show a numbered candidate table.
+6. If the invoking request already supplies an exact preferred form and explicit registration instruction, do not ask the same question again.
+7. Never create a canonical rule from repetition alone.
+8. After acceptance, record only accepted exceptions to `~/.veil/veil.db` as one atomic batch, regenerate `~/.veil/veil.html`, and run `veil-sync.py`.
+9. If the atomic write, export, or sync fails, report the exact incomplete stage and never claim completion.
+
+**Decision boundary**
+
+- `exclude`: validated negated, reported, non-authoritative, or critic-rejected wording.
+- `observe`: validated temporary, one-off, or low-impact unclear wording; retained only for analysis.
+- `existing-match`: an exact canonical match; this is an automatic successful result and is not an exclusion.
+- `exception`: an affirmed durable adoption, rename, definition, conflict,
+  high-impact uncertainty, or material extractor/critic disagreement.
+
+The host AI uses `unclear` rather than guessing. Validated low-impact unclear
+recurrence stays `observe`; unresolved durable or high-impact evidence becomes
+one combined `exception`, never a silent exclusion.
 
 Guardrail: VEIL-generated outputs and sync targets must not live under this repo's `common/` or `archive/` directories. Use `~/.veil/` as the canonical output area and `workspace/` only for repo-local temporary verification artifacts.
 
@@ -75,7 +93,7 @@ Prioritizes the SQLite canonical and applies rules directly to AI tool configura
 **Behavior**
 
 1. Read active rules from DB canonical
-2. Combine vocabulary rules and behavior description
+2. Combine the background-capture runtime instruction, vocabulary rules, and behavior description
 3. Write the `VEIL_START` / `VEIL_END` block to each registered sync target
 
 **Commands**
@@ -108,38 +126,55 @@ Read-only helper that normalizes a candidate term list after capture and returns
 
 ### 3-4. shared/runtime/veil-classify.py
 
-First-pass helper for free-form capture text or chat transcript JSON before `/veil-capture` commits to candidate selection.
+Read-only analyzer for free-form text or chat transcript JSON.
 
 **Authority**
 
-- reads: optional `~/.veil/veil.db` to downgrade already registered terms
-- non-authority: provisional term labels and reasons
+- reads: optional `~/.veil/veil.db` for existing matches
+- writes: none
+- non-authority: classification labels, outcome analysis, and diagnostic candidate modes
 
-**Behavior**
+**Primary behavior**
 
-1. Extract likely terms from free-form text
-2. Label each as `industry_term / coined_or_shortened / file_config_identifier / other / unknown`
-3. Prefer dropping false positives over over-registering
+`--outcomes --semantic-frames <path>` returns contract version `2` with:
 
-```
-Reference rules: rules
+- `analysis_mode=semantic-frames`, `diagnostic_only=false`, and
+  `write_allowed=false`;
+- `summary.user_action_required`: whether any exception exists
+- `summary.question_count`: `0` for normal sessions, otherwise `1` for the combined exception question
+- counts for `exclude`, `observe`, `existing-match`, and `exception`
+- `exceptions`: the only terms allowed onto the user decision path
+- `results`: deterministic policy results traceable to the validated frames
 
-Existing matches:
-- current state → present state
+Semantic frames are untrusted input. Local validation requires allowed fields
+and enums, exact evidence substrings and occurrence numbers, complete critic
+classification, supported rename mappings, unique frame IDs, and conflict
+groups with at least two distinct forms. Invalid input returns a structured
+error and never falls back to regex for a production decision.
 
-New candidates:
-- implementation plan x3 → i.md
-```
+For definitions, corrections, and contrasts, the host frames the primary
+lexical target: the wording whose meaning, allowed use, or preferred form is
+being decided. Generic predicates and explanatory phrases remain evidence
+unless the source independently decides them. Several independent targets may
+appear in one session; one definition is not split into a target plus its
+explanatory category.
+
+`--outcomes` without `--semantic-frames` remains contract version `1`, marked
+`analysis_mode=raw-text-diagnostic`, `diagnostic_only=true`, and
+`write_allowed=false`. The label classifier (`industry_term /
+coined_or_shortened / file_config_identifier / other / unknown`),
+`--preview-only`, `--investigation-only`, and `--adoptable-only` are
+compatibility diagnostics, not user-facing adoption semantics.
 
 **Commands**
 
 ```bash
-python shared/runtime/veil-normalize.py --stdin
-python shared/runtime/veil-normalize.py --text "current state"
-python shared/runtime/veil-normalize.py --json
+python shared/runtime/veil-classify.py --stdin --outcomes --semantic-frames <agent-generated-frame-path> --json
+python shared/runtime/veil-classify.py transcript.json --chat-json --outcomes --semantic-frames <agent-generated-frame-path> --json
+python shared/runtime/veil-classify.py --text "Use decision boundary consistently." --outcomes --json  # diagnostic only
 ```
 
-### 3-4. shared/runtime/veil-lint.py
+### 3-5. shared/runtime/veil-lint.py
 
 Checks whether registered source terms remain in final text, acting as a pre-response gate.
 
@@ -166,7 +201,7 @@ python shared/runtime/veil-lint.py --text "I reviewed the current state"
 python shared/runtime/veil-lint.py --json
 ```
 
-### 3-5. shared/runtime/veil-status.py
+### 3-6. shared/runtime/veil-status.py
 
 Returns VEIL status and setup diagnostics. Without arguments: status summary. With `--check`: setup diagnostics.
 
@@ -207,7 +242,7 @@ python shared/runtime/veil-status.py --check
 python shared/runtime/veil-status.py --json
 ```
 
-### 3-6. Profile support tools
+### 3-7. Profile support tools
 
 `shared/tools/veil-profile-audit.py`, `shared/tools/veil-profile-export.py`, `shared/tools/veil-db.py`, and `shared/tools/veil_rule_store.py` are support runtime, not mainline runtime. `veil-db.py` and `veil_rule_store.py` assist with SQLite canonical schema / import / readback / upsert / HTML export. `veil-profile-audit.py`, `veil-normalize.py`, and `veil-lint.py` read from a SQLite source.
 
@@ -235,24 +270,31 @@ python shared/runtime/veil-status.py --json
    - Handle SQLite canonical `init-db / import-seed / readback / upsert-rule / export-html`
    - `export-html` writes `~/.veil/veil.html`: a searchable browser list of all registered terms with copy buttons
 
-**Modifying a registered term via HTML**
+**Review and modification via HTML**
 
-`export-html` is the recommended route for reviewing terms and preparing chat-side updates without touching raw files:
+`export-html` is the browser review route:
 
-1. Run `python shared/tools/veil-db.py export-html` to regenerate `~/.veil/veil.html`
-2. Open `~/.veil/veil.html` in a browser
-3. The HTML localizes its UI at view time from the viewer's browser language (currently English, Japanese, Korean, Simplified Chinese, Traditional Chinese, and Arabic)
-4. Click **Copy** on a candidate cell (label is locale-aware) — this copies a locale-aware AI instruction to the clipboard (e.g. `Change '{term}' to '{candidate}'`)
-5. Paste into the AI chat so the updated preferred form is recorded
-6. After registration: run `export-html` and `veil-sync.py` to propagate the change
+1. Regenerate `~/.veil/veil.html`.
+2. Open it in a browser; the UI localizes to English, Japanese, Korean, Simplified Chinese, Traditional Chinese, or Arabic.
+3. Normal task-close review runs in the installed Skill. The HTML is an
+   optional recovery surface, not the semantic decision engine.
+4. Paste the exact text and use **Copy complete AI review request** as the main
+   route. It sends the complete text to the installed semantic-frame workflow
+   and remains one user action regardless of term count.
+5. **Run local diagnostic preview** is optional. It is contract v1 regex output
+   and may miss or misclassify decisions. Zero preview entries must never be
+   presented as proof that no vocabulary decision exists.
+6. The copied request requires contract v2 frames, a separate critic pass,
+   exact evidence, at most one combined question, and no write before acceptance.
+7. After the user accepts the combined proposal, the chat-side Skill records
+   all accepted mappings through one validated JSON batch. User text is data
+   and must not be interpolated into shell commands.
+8. Selecting an individual diagnostic item is an optional fine-tuning route;
+   it must be verified through AI review before saving.
+9. Registered rows use `Preferred`, `Alternative 1`, and `Alternative 2`. Alternatives are optional.
+10. **Advanced: copy commands** is a recovery route, not the normal workflow.
 
-**Registering a new term via HTML**
-
-1. Paste the source sentence into the `Draft Capture` panel
-2. Run `Analyze Draft`
-3. Click a preview line to load the registration form
-4. Use `Copy Registration Request` for the normal chat-side workflow
-5. Use `Copy Commands` only when a manual CLI fallback is needed
+The static browser file never writes directly to the canonical DB. Accepted chat-side registration must regenerate HTML and sync before it is called complete.
 
 **Commands**
 
@@ -269,7 +311,7 @@ python shared/tools/veil-db.py upsert-rule --db /tmp/veil_smoke.db --term "curre
 python shared/tools/veil-db.py export-html
 ```
 
-### 3-7. Package import structure
+### 3-8. Package import structure
 
 `shared/__init__.py`, `shared/runtime/__init__.py`, and `shared/tools/__init__.py` are empty but intentionally present. They enable the `from shared.tools.veil_rule_store import ...` package import path. With project root added to `sys.path`, the `try: from shared.tools... except ModuleNotFoundError: from veil_rule_store...` fallback pattern depends on them. Do not delete these files.
 
@@ -279,38 +321,43 @@ python shared/tools/veil-db.py export-html
 
 Rules are stored in SQLite canonical rows and may be exported as `rules.json` for profile packs.
 
-On new entry: confirm preferred, record to canonical DB, then regenerate HTML.
+On a new entry, confirm one preferred form, record it to the canonical DB, then regenerate HTML.
 
-Candidate semantics:
+Stored wording fields:
 
 | Field | Meaning |
 |-------|---------|
-| p1 | Adopted term. Enters the canonical DB and is synced to sync targets |
-| p2 | Candidate 2. Retained but not synced |
-| p3 | Candidate 3. Retained but not synced |
+| `preferred` | The enforced form synced to targets |
+| `preferred_alt_2` | Optional alternative retained for review, not synced |
+| `preferred_alt_3` | Optional second alternative retained for review, not synced |
 
-Only candidate 1 is synced to AI tool configuration files.
+Alternatives are optional. VEIL must not invent alternatives or expose numbered candidate slots merely to fill the schema. Only `preferred` is synced to AI tool configuration files.
 
 ---
 
-## 5. Classification order
+## 5. Exclusion-first outcome order
 
-After capture, classify each candidate in at least this order:
+After exact evidence and the critic result have been validated, assign outcomes
+in this order:
 
-1. Keep as a proper noun
-2. Translate as a common term
-3. Fix as a defined term
-4. Drop as a prohibited term
-5. Skip
+1. Material critic disagreement -> `exception`.
+2. Negated, reported, or non-authoritative frame -> `exclude`.
+3. Exact canonical use without rename, conflict, or a requested wording change -> `existing-match`.
+4. Temporary or one-off frame -> `observe`.
+5. Affirmed durable adoption, rename, definition, or conflict -> `exception`.
+6. Low-impact unclear recurrence -> `observe`.
 
-This classification order is a guide for what to check first — it is not a final decision gate.
+The order is fail-closed for writes: only an accepted `exception` may create a
+rule. Repetition, fixture membership, label classification, or a raw-text regex
+match is never sufficient authorization to register.
 
-Terms to enforce loosely:
+Success gates:
 
-- Low-frequency terms
-- Highly context-dependent terms
-- Unresolved project-specific terms
-- Machine-processed terms: code identifiers, file names, paths, CLI options
+- normal session: zero user judgments
+- exception session: at most one combined judgment
+- high-impact false exclusion: zero in the release evaluation set
+- `existing-match` precision: at least 99%
+- no candidate table, candidate numbering, or manual command sequence in the normal flow
 
 ---
 
@@ -348,40 +395,25 @@ The export manifest carries `domain`, `intended_use`, and `base_profile` as the 
 
 ## 7. Operational loop
 
-- Capture at every task close / conversation boundary
-- Sync after recording
-- Lint before every final response
-- Fix and re-check on lint violation
-- If a source term must remain intentionally, note the reason explicitly
+- Have the AI produce evidence-backed semantic frames and run its critic pass
+  automatically at every substantive task close or conversation boundary; do
+  not require the user to start the normal flow.
+- Keep a no-decision automatic run silent.
+- Keep `exclude`, `observe`, and `existing-match` automatic and invisible in normal output.
+- Ask once only when one or more `exception` results exist.
+- Sync only after accepted wording is recorded.
+- Lint before every final response; fix and re-check violations.
+- If a registered source term must remain intentionally, record the reason.
 
-In capture, present adoption options as `- term (current) → candidate1 (candidate 1) | candidate2 (candidate 2)` and complete `sync` after the user selects.
+`veil-normalize.py` remains a read-only diagnostic for variants. Its `Existing matches` and `New candidates` groups do not authorize registration and do not define the user interaction.
 
-In normalize output, treat the `Existing matches:` group as already cross-checked — confirm the preferred term. In the `New candidates:` group, review terms with higher `x{N}` counts first.
-
-Use `shared/runtime/veil-status.py` for current state. Run `--check` if setup issues are suspected.
-
-Use `shared/tools/veil-profile-audit.py` for auditing the current default profile. It is read-only and visualizes level distribution and remaining legacy flat rules.
-
-To distribute a domain profile as a separate unit, use `shared/tools/veil-profile-export.py` to pack the current default profile before tuning or branching.
+Use `shared/runtime/veil-status.py --check` for delivery health. Use `veil-profile-audit.py` for read-only profile auditing. Use `veil-profile-export.py` only for explicitly authorized profile distribution.
 
 ---
 
-## 8. Current migration design lock
+## 8. Delivery freshness contract
 
-**Status:** conditionally design locked. M1 foundation implementation may
-proceed only after all of the following are decided and recorded:
-
-- M1/M2 ownership for every mixed hunk;
-- the release treatment of the G/C/R categories; and
-- the exact exporter-owned HTML freshness manifest inputs and fields.
-
-The dated migration ledger records the current decisions. The contracts in
-sections 8-2 through 8-5 remain the decision frame and prevent M2 or deferred
-UX work from being folded into M1 foundation implementation.
-
-This section owns the completion boundary for the current SQLite-canonical and
-capture-classification migration. It does not change VEIL's normal operational
-loop or authorize unrelated UX work.
+The SQLite-canonical and delivery-reliability migration completed on 2026-07-20. The following requirements are permanent runtime and release contracts, not an active migration lock.
 
 ### 8-1. Canonical and delivery contract
 
@@ -453,66 +485,14 @@ The SHA-256 encoding and canonical serialization above are the freshness
 contract. Implementations may add diagnostic fields, but must not treat file
 existence as freshness or weaken the required comparisons.
 
-### 8-3. Migration work boundaries
+### 8-3. Release gates
 
-The current worktree must be classified before implementation resumes:
+A UX release is complete only when all of the following are true in the same source state:
 
-- `M1 - canonical and delivery migration`: SQLite store, DB CLI, sync, lint,
-  normalize, status, installer, profile import/export/audit, and their tests.
-- `M2 - capture classification and review`: classifier, taxonomy, capture
-  preview, generated HTML review behavior, capture skills, fixtures, and their
-  tests.
-- M2 depends on M1. M1 exposes canonical read, export, and delivery contracts;
-  M2 must not define a second canonical, installer, freshness, or sync path.
-- `G - active governance and entry surfaces`: project routing, authority, and
-  operating configuration are not M1 or M2 release content and require their
-  own release decision.
-- `C - excluded PJ Framework material`: PJ Framework-derived content requires
-  its own owner and release boundary.
-- `R - retained residue`: archives and migration residue are neither runtime
-  release content nor current governance.
+1. classifier, outcome, locale, DB, Skill, and HTML tests pass;
+2. stratified evaluation meets the outcome success gates in section 5;
+3. browser E2E confirms the normal no-decision route, existing-match auto-resolution, the one-combined-decision route for multiple exceptions, locale switching, and optional registration-form handoff;
+4. `veil-status --check --json` reports every required delivery member `OK` after installation;
+5. hosted checks pass for the merged source revision.
 
-Every tracked changed hunk and every untracked file must be assigned to exactly
-one of M1, M2, G, C, R, or a separately recorded proposal before a commit,
-installer run, generated-output refresh, or new UX feature. Mixed M1/M2 files
-require a hunk ledger and cannot be assigned by filename alone.
-
-### 8-4. Completion conditions
-
-The migration is complete only when all of the following are true:
-
-1. Every worktree change is owned by M1, M2, G, C, R, or a separately recorded
-   proposal; no unclassified files remain in the release scope.
-2. M1 and M2 have an explicit dependency boundary; a change is not split into
-   a separately released unit if it cannot pass its declared verification.
-3. The full test suite and compilation checks pass in an isolated temporary
-   directory.
-4. A clean installation or update verifies the delivery set, and `veil-status`
-   reports the appropriate freshness state for every member.
-5. The review HTML, both installed skills, source documentation, and the
-   current runtime describe the same supported flow.
-
-Mixed-line-ending cleanup in a mixed implementation file is a hunk-review
-condition, not a standalone formatting pass. It must be assigned to the M1 or
-M2 owner of each affected hunk before normalization; do not apply a broad
-mechanical rewrite while ownership remains unresolved.
-
-### 8-5. Deferred work
-
-The following are not part of M1 or M2:
-
-- making Candidate 2 optional;
-- adding a semantic-generation or referent-table gate;
-- direct browser writes to the canonical DB;
-- visual simplification beyond work needed to complete the current migration.
-
-These remain follow-up proposals after the migration delivery set is fixed.
-
-### 8-6. Lock exit
-
-This is a temporary migration section. On completion, retain the permanent
-canonical, delivery, and freshness requirements by integrating them into the
-ordinary component sections of this document. Move M1/M2/G/C/R classification
-and the completion snapshot to a dated audit record, then remove this temporary
-section. Do not leave an open-ended "current migration" rule in the design
-authority.
+Generating or detecting a delivery member is not enough: source, generated HTML, installed Skills, and declared inputs must be fresh as one delivery set. Installation, distribution, commit, merge, and push remain explicit release actions and are not implied by read-only UX evaluation.

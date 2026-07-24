@@ -60,33 +60,48 @@ def test_t_returns_localized_japanese_help_text(monkeypatch: pytest.MonkeyPatch)
 
 def test_t_returns_localized_japanese_capture_text(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("VEIL_LANG", "ja")
-    assert veil_locale.t("html.capture_none") == "プレビュー候補はありません。"
+    assert veil_locale.t("html.capture_title") == "AI確認の復旧"
+    assert veil_locale.t("html.capture_none") == (
+        "ローカル診断では例外候補が見つかりませんでした。意味を扱うAI確認は完了していません。"
+    )
+    assert "AIが1回だけ自動実行" in veil_locale.t("sync.runtime_instruction")
+    assert "1件も確定されていません" in veil_locale.t("store.batch_write_failed")
+    assert veil_locale.t("html.capture_exceptions_copy_btn") == "完全なAI確認依頼をコピー"
+    assert veil_locale.t("html.capture_exceptions_prompt_header") == (
+        "次の原文にインストール済みVEIL captureを実行してください。"
+    )
+    assert veil_locale.t("html.capture_exceptions_propose_marker") == "［推奨表現を提案］"
+    assert veil_locale.t("html.capture_exceptions_prompt_footer") == (
+        "意味フレームcontract v2と独立criticを使い、HTML診断を意味理解の証拠にせず、"
+        "承認前は書き込まないでください。"
+    )
     assert veil_locale.t("html.capture_description") == (
-        "原文を貼り付けると、専門用語より会話内の未定義語を優先するローカル草案プレビューを生成します。"
-        "完全な AI 判定ではありません。"
+        "原文を貼り付け、完全なAI確認依頼を1回コピーします。任意のローカル診断は正規表現ベースで、"
+        "判断の見落としや誤分類があり得ます。"
     )
     assert veil_locale.t("html.capture_current_label") == "（現在）"
-    assert veil_locale.t("html.capture_candidate1_label") == "（候補 1）"
-    assert veil_locale.t("html.capture_candidate2_label") == "（候補 2）"
-    assert veil_locale.t("html.capture_keep_current") == "現状維持"
-    assert veil_locale.t("html.capture_copy_prompt_btn") == "AI 用プロンプトをコピー"
-    assert veil_locale.t("html.capture_copy_prompt_copied") == "AI 用プロンプトをコピーしました。"
+    assert veil_locale.t("html.capture_candidate1_label") == "（推奨）"
+    assert veil_locale.t("html.capture_candidate2_label") == "（代替）"
+    assert veil_locale.t("html.capture_keep_current") == "現在の表記を維持"
     assert veil_locale.t("html.capture_note") == (
-        "これは未定義語向けのローカルプレビューです。より厳密な判断が必要な場合は"
-        "「AI 用プロンプトをコピー」を使ってチャット側で確認してください。"
+        "復旧専用です。ローカル診断は会話を理解できた証拠ではありません。"
+        "書込み前に全文をAIへ渡してください。"
     )
-    assert veil_locale.t("html.capture_ready") == "草案プレビューを生成しました。行を押すと登録フォームへ反映されます。"
-    assert veil_locale.t("html.capture_loaded", term="status") == "「status」を登録フォームへ反映しました。まだ登録は完了していません。"
+    assert veil_locale.t("html.capture_ready") == (
+        "ローカル診断で確認候補が見つかりました。書込み前に全文をAIへ渡してください。"
+    )
+    assert veil_locale.t("html.capture_loaded", term="status") == (
+        "「status」は診断プレビュー由来です。保存前にAIで確認してください。"
+    )
     assert veil_locale.t("html.capture_footer") == (
-        "候補 1 は現在のローカル草案プレビューです。チャット側で見直したい場合は"
-        "「AI 用プロンプトをコピー」を使ってください。"
+        "ローカルプレビューは診断専用です。通常フローの判断は意味を扱うAI確認が担当します。"
     )
     assert veil_locale.t("html.field_term") == "用語"
     assert veil_locale.t("html.field_preferred") == "推奨表現"
+    assert veil_locale.t("html.field_alt2") == "代替表現 1"
     assert veil_locale.t("html.copy_btn") == "コピー"
     assert veil_locale.t("html.delete_btn") == "削除"
     assert veil_locale.t("html.copy_manual_done") == "手動コピー用プロンプトを開きました。"
-
 
 def test_t_missing_key_returns_key(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("VEIL_LANG", "en")

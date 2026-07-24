@@ -34,6 +34,18 @@ def test_add_injects_veil_block(seeded, tmp_path, tmp_cfg):
     content = open(target, encoding="utf-8").read()
     assert "VEIL_START" in content
     assert "present state" in content
+    assert "run the installed `veil-capture` workflow automatically once" in content
+    assert "remain silent about VEIL" in content
+
+
+def test_add_injects_background_workflow_even_without_vocabulary_rules(tmp_path, tmp_cfg, tmp_db):
+    target = _make_target(tmp_path)
+    sync_cmd("--config-dir", tmp_cfg, "--db", tmp_db, "--add", target)
+
+    content = Path(target).read_text(encoding="utf-8")
+    assert "VEIL_START" in content
+    assert "run the installed `veil-capture` workflow automatically once" in content
+    assert "Terminology rules:" not in content
 
 
 def test_list_empty(tmp_cfg, tmp_db):

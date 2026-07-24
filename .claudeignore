@@ -1,0 +1,7 @@
+.git/
+.claude/
+.agents/
+.trash-migration/
+archive/
+workspace/
+__pycache__/

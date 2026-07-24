@@ -433,20 +433,19 @@ def replace_rules_from_seed(db_path: str, seed_file: str) -> dict[str, Any]:
     return payload
 
 
-def upsert_rule(
+def _prepare_upsert_rule(
     db_path: str,
+    *,
     term_original: str,
     preferred: str,
-    preferred_alt_2: str | None = None,
-    preferred_alt_3: str | None = None,
-    status: str = "active",
-    profile_level: str = PROFILE_LEVEL_DEFAULT,
-    category_hint: str | None = None,
-    note: str | None = None,
-    source_context: str | None = None,
+    preferred_alt_2: str | None,
+    preferred_alt_3: str | None,
+    status: str,
+    profile_level: str,
+    category_hint: str | None,
+    note: str | None,
+    source_context: str | None,
 ) -> dict[str, Any]:
-    if get_protected_repo_dir_name(db_path) is not None:
-        return build_protected_output_payload("db_path", db_path)
     original = term_original.strip()
     preferred_1 = preferred.strip()
     if not original or not preferred_1:
@@ -457,7 +456,6 @@ def upsert_rule(
         }
 
     normalized = normalize_term(original)
-    now = now_utc_iso()
     canonical_level = canonicalize_profile_level(profile_level, default=None)
     if canonical_level is None:
         return {
@@ -466,92 +464,121 @@ def upsert_rule(
             "db_path": db_path,
             "input_level": profile_level,
         }
-    try:
-        init_db(db_path)
-        with closing(open_db(db_path)) as conn:
-            row = conn.execute(
-                """
-                SELECT id, created_at
-                FROM rules
-                WHERE term_normalized = ?
-                ORDER BY id
-                LIMIT 1
-                """,
-                (normalized,),
-            ).fetchone()
-            if row:
-                conn.execute(
-                    """
-                    UPDATE rules
-                    SET
-                        term_original = ?,
-                        preferred = ?,
-                        preferred_alt_2 = ?,
-                        preferred_alt_3 = ?,
-                        status = ?,
-                        profile_level = ?,
-                        category_hint = ?,
-                        note = ?,
-                        source_context = ?,
-                        updated_at = ?
-                    WHERE id = ?
-                    """,
-                    (
-                        original,
-                        preferred_1,
-                        preferred_alt_2,
-                        preferred_alt_3,
-                        status,
-                        canonical_level,
-                        category_hint,
-                        note,
-                        source_context,
-                        now,
-                        row["id"],
-                    ),
-                )
-                rule_id = row["id"]
-                action = "updated"
-                created_at = row["created_at"]
-            else:
-                cursor = conn.execute(
-                    """
-                    INSERT INTO rules (
-                        term_original,
-                        term_normalized,
-                        preferred,
-                        preferred_alt_2,
-                        preferred_alt_3,
-                        status,
-                        profile_level,
-                        category_hint,
-                        note,
-                        source_context,
-                        created_at,
-                        updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        original,
-                        normalized,
-                        preferred_1,
-                        preferred_alt_2,
-                        preferred_alt_3,
-                        status,
-                        canonical_level,
-                        category_hint,
-                        note,
-                        source_context,
-                        now,
-                        now,
-                    ),
-                )
-                rule_id = cursor.lastrowid
-                action = "inserted"
-                created_at = now
-            conn.commit()
-    except sqlite3.Error as exc:
-        return db_error_payload(db_path, exc)
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "term_original": original,
+        "term_normalized": normalized,
+        "preferred": preferred_1,
+        "preferred_alt_2": preferred_alt_2,
+        "preferred_alt_3": preferred_alt_3,
+        "rule_status": status,
+        "profile_level": canonical_level,
+        "category_hint": category_hint,
+        "note": note,
+        "source_context": source_context,
+    }
+
+
+def _upsert_prepared_rule(
+    conn: sqlite3.Connection,
+    prepared: dict[str, Any],
+    *,
+    timestamp: str,
+) -> dict[str, Any]:
+    db_path = str(prepared["db_path"])
+    original = str(prepared["term_original"])
+    normalized = str(prepared["term_normalized"])
+    preferred_1 = str(prepared["preferred"])
+    preferred_alt_2 = prepared["preferred_alt_2"]
+    preferred_alt_3 = prepared["preferred_alt_3"]
+    status = str(prepared["rule_status"])
+    canonical_level = str(prepared["profile_level"])
+    category_hint = prepared["category_hint"]
+    note = prepared["note"]
+    source_context = prepared["source_context"]
+
+    row = conn.execute(
+        """
+        SELECT id, created_at
+        FROM rules
+        WHERE term_normalized = ?
+        ORDER BY id
+        LIMIT 1
+        """,
+        (normalized,),
+    ).fetchone()
+    if row:
+        conn.execute(
+            """
+            UPDATE rules
+            SET
+                term_original = ?,
+                preferred = ?,
+                preferred_alt_2 = ?,
+                preferred_alt_3 = ?,
+                status = ?,
+                profile_level = ?,
+                category_hint = ?,
+                note = ?,
+                source_context = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                original,
+                preferred_1,
+                preferred_alt_2,
+                preferred_alt_3,
+                status,
+                canonical_level,
+                category_hint,
+                note,
+                source_context,
+                timestamp,
+                row["id"],
+            ),
+        )
+        rule_id = row["id"]
+        action = "updated"
+        created_at = row["created_at"]
+    else:
+        cursor = conn.execute(
+            """
+            INSERT INTO rules (
+                term_original,
+                term_normalized,
+                preferred,
+                preferred_alt_2,
+                preferred_alt_3,
+                status,
+                profile_level,
+                category_hint,
+                note,
+                source_context,
+                created_at,
+                updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                original,
+                normalized,
+                preferred_1,
+                preferred_alt_2,
+                preferred_alt_3,
+                status,
+                canonical_level,
+                category_hint,
+                note,
+                source_context,
+                timestamp,
+                timestamp,
+            ),
+        )
+        rule_id = cursor.lastrowid
+        action = "inserted"
+        created_at = timestamp
 
     return {
         "status": "ok",
@@ -570,8 +597,119 @@ def upsert_rule(
             "note": note,
             "source_context": source_context,
             "created_at": created_at,
-            "updated_at": now,
+            "updated_at": timestamp,
         },
+    }
+
+
+def upsert_rule(
+    db_path: str,
+    term_original: str,
+    preferred: str,
+    preferred_alt_2: str | None = None,
+    preferred_alt_3: str | None = None,
+    status: str = "active",
+    profile_level: str = PROFILE_LEVEL_DEFAULT,
+    category_hint: str | None = None,
+    note: str | None = None,
+    source_context: str | None = None,
+) -> dict[str, Any]:
+    if get_protected_repo_dir_name(db_path) is not None:
+        return build_protected_output_payload("db_path", db_path)
+    prepared = _prepare_upsert_rule(
+        db_path,
+        term_original=term_original,
+        preferred=preferred,
+        preferred_alt_2=preferred_alt_2,
+        preferred_alt_3=preferred_alt_3,
+        status=status,
+        profile_level=profile_level,
+        category_hint=category_hint,
+        note=note,
+        source_context=source_context,
+    )
+    if prepared["status"] != "ok":
+        return prepared
+
+    try:
+        init_db(db_path)
+        with closing(open_db(db_path)) as conn:
+            payload = _upsert_prepared_rule(conn, prepared, timestamp=now_utc_iso())
+            conn.commit()
+    except sqlite3.Error as exc:
+        return db_error_payload(db_path, exc)
+
+    return payload
+
+
+def upsert_rules_atomic(db_path: str, rules: list[dict[str, Any]]) -> dict[str, Any]:
+    if get_protected_repo_dir_name(db_path) is not None:
+        payload = build_protected_output_payload("db_path", db_path)
+        payload.update({"processed_count": 0, "results": []})
+        return payload
+
+    prepared_rules: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(rules):
+        prepared = _prepare_upsert_rule(
+            db_path,
+            term_original=str(item.get("term") or ""),
+            preferred=str(item.get("preferred") or ""),
+            preferred_alt_2=item.get("preferred_alt_2"),
+            preferred_alt_3=item.get("preferred_alt_3"),
+            status=str(item.get("status") or "active"),
+            profile_level=str(item.get("level") or PROFILE_LEVEL_DEFAULT),
+            category_hint=item.get("category_hint"),
+            note=item.get("note"),
+            source_context=item.get("source_context"),
+        )
+        if prepared["status"] != "ok":
+            return {
+                "status": "error",
+                "reason": "store.batch_validation_failed",
+                "db_path": db_path,
+                "failed_index": index,
+                "processed_count": 0,
+                "results": [prepared],
+            }
+        normalized = str(prepared["term_normalized"])
+        if normalized in seen:
+            return {
+                "status": "error",
+                "reason": "store.batch_duplicate_term",
+                "db_path": db_path,
+                "failed_index": index,
+                "processed_count": 0,
+                "results": [],
+            }
+        seen.add(normalized)
+        prepared_rules.append(prepared)
+
+    try:
+        init_db(db_path)
+        with closing(open_db(db_path)) as conn:
+            conn.execute("BEGIN")
+            timestamp = now_utc_iso()
+            results = [
+                _upsert_prepared_rule(conn, prepared, timestamp=timestamp)
+                for prepared in prepared_rules
+            ]
+            conn.commit()
+    except sqlite3.Error as exc:
+        return {
+            "status": "error",
+            "reason": "store.batch_write_failed",
+            "db_path": db_path,
+            "processed_count": 0,
+            "results": [],
+            "error": str(exc),
+        }
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "processed_count": len(results),
+        "results": results,
     }
 
 

@@ -43,9 +43,9 @@ The more AI is in your workflow, the worse this gets. VEIL is not a static style
 ## How it works
 
 ```
-task close / conversation boundary
+task close / conversation boundary (AI-triggered from a registered sync target)
         ↓
-  /veil-capture (skill)
+  veil-capture (background skill; manual command is optional)
         ↓
   AI extracts problem terms
         ↓
@@ -71,9 +71,9 @@ next session: AI outputs with consistent vocabulary
 
 | Component | Role |
 |-----------|------|
-| `/veil-capture` skill | At task close / conversation boundary: extract problem terms, record to SQLite canonical, regenerate HTML, run sync |
+| `/veil-capture` skill | At task close / conversation boundary: extract evidence-backed semantic decision frames, run a critic pass in the background, ask at most once for durable exceptions, then record accepted wording and sync |
 | `~/.veil/veil.db` | SQLite canonical source of truth |
-| `shared/runtime/veil-classify.py` | First-pass classifier for free-form capture text or chat transcript JSON; label likely candidates as industry term / coined-or-shortened / file-config-identifier / other / unknown |
+| `shared/runtime/veil-classify.py` | Read-only policy engine; `--outcomes --semantic-frames <path>` validates contract v2 AI frames and returns `exclude / observe / existing-match / exception` with a zero-or-one question summary; raw-text modes are diagnostic |
 | `shared/runtime/veil-normalize.py` | Normalize candidate terms after capture; return existing matches and new candidates |
 | `shared/runtime/veil-sync.py` | Push vocabulary rules to AI tool configuration files |
 | `shared/runtime/veil-lint.py` | Check final text for registered source terms before sending |
@@ -231,74 +231,51 @@ Files with `.yml` / `.yaml` / `.toml` / `.ini` / `.cfg` extensions use `# VEIL_S
 
 ### Capture AI vocabulary (main workflow)
 
-Run at every task close or conversation boundary in Claude Code:
+After installation and target registration, the VEIL block tells the AI to run capture automatically once at each substantive task close or conversation boundary. The user does not start the normal workflow. If no vocabulary decision is needed, VEIL adds no message and asks no question.
+
+Use the command only for an explicit on-demand check or recovery:
 
 ```
 /veil-capture
 ```
 
-Example output:
+For that explicit invocation, a normal session returns only:
 
 ```
-- common asset (current) → shared asset (candidate 1) | common resource (candidate 2)
-- current state (current) → present state (candidate 1) | current state (keep)
-- validator (current) → validator (keep) | checker (candidate 2)
-
-Select current or a candidate.
+No vocabulary decision is needed.
 ```
 
-The selected candidate is recorded as `preferred` in the canonical DB. Rules are synced to AI tool config files from the DB. Candidates 2 and 3 are stored as alternatives in the DB.
+The host AI first extracts exact-evidence semantic frames and then runs a
+separate critic pass. Local VEIL validates those untrusted frames and applies a
+deterministic policy. Affirmed durable adoptions, renames, definitions,
+conflicts, and material critic disagreements become `exception`. All exceptions
+in one session are combined into one short question. There is no candidate
+table, candidate numbering, or separate `OK` step.
 
-- **Candidate 1**: adopted term
-- **Candidate 2**: alternative displayed alongside
-- **Candidate 3**: optional additional candidate
+The four outcomes are:
 
-Adoption priority order:
+- `exclude`: validated negated, reported, non-authoritative, or critic-rejected wording; handled silently
+- `observe`: validated temporary, one-off, or low-impact unclear wording; retained only in analysis
+- `existing-match`: already covered by the canonical DB; automatically resolved and never counted as an exclusion
+- `exception`: a durable choice is required; this is the only outcome shown to the user
 
-1. High-frequency terms causing active problems
-2. Terms core to VEIL operation itself
-3. Project-specific terms
-4. Low-frequency and boundary-ambiguous terms
+Repetition alone never creates a canonical rule. If the user already supplied an exact preferred form and explicitly asked VEIL to record it, the skill uses that instruction without asking the same question again. Otherwise, one reply accepts or adjusts all exceptions. Only accepted exceptions are written to `~/.veil/veil.db`; the skill then regenerates HTML and syncs.
 
-Category 4 does not need to be registered urgently — skip and revisit later.
-
-Classification goes in at least these 5 directions:
-
-1. Keep as a proper noun
-2. Translate as a common term
-3. Fix as a defined term
-4. Drop as a prohibited term
-5. Skip if classification is not yet clear
-
-When candidate terms have variants, use the normalization helper before writing:
+The contract v2 policy result can be inspected without writing. Source text and
+the agent-generated frame file are passed through separate channels:
 
 ```bash
-python shared/runtime/veil-normalize.py --stdin
-python shared/runtime/veil-normalize.py --text "current states\ncurrent_state\nCurrent-State"
+python shared/runtime/veil-classify.py --stdin --outcomes --semantic-frames <agent-generated-frame-path> --json
+python shared/runtime/veil-classify.py transcript.json --chat-json --outcomes --semantic-frames <agent-generated-frame-path> --json
 ```
 
-This helper:
+`--outcomes` without `--semantic-frames` returns contract v1 marked
+`raw-text-diagnostic`; `--preview-only`, `--investigation-only`, and
+`--adoptable-only` are also diagnostic compatibility routes. None is the normal
+user interaction contract or evidence that arbitrary conversation intent was
+understood.
 
-- Collapses case, hyphen, underscore, and light singular/plural variants
-- Groups each normalized cluster with its variants and occurrence count
-- Cross-checks against existing SQLite canonical (`Existing matches:` group)
-- Returns terms with no existing match as `New candidates:`
-
-Example output:
-
-```
-Reference rules: rules
-
-Existing matches:
-- current state → present state
-
-New candidates:
-- implementation plan x3
-```
-
-The `Existing matches:` group is treated as already cross-checked — confirm the preferred term. In the `New candidates:` group, review terms with higher `x{N}` counts first. Final adoption decisions rest with the owner.
-
-To analyze external text (e.g. Codex output):
+To analyze only supplied text:
 
 ```
 /veil-capture <paste target text here>
@@ -306,40 +283,58 @@ To analyze external text (e.g. Codex output):
 
 ### Review registered terms
 
-Generate a browser-based vocabulary list to see all registered terms and their candidates:
+Generate the browser review file:
 
 ```bash
 python shared/tools/veil-db.py export-html   # write ~/.veil/veil.html
 ```
 
-Keep generated outputs out of this repo's `common/` and `archive/` directories. Use the default `~/.veil/` paths, and use `workspace/` for repo-local temporary verification artifacts when needed.
+Keep generated outputs out of this repo's `common/` and `archive/` directories. Use the default `~/.veil/` paths, and use `workspace/` only for repo-local temporary verification artifacts.
 
-Open `~/.veil/veil.html` in a browser. Each row shows a registered term alongside its candidates (preferred form, candidate 2, candidate 3). Use the search box to filter. The HTML switches its UI at view time based on the viewer's browser language (currently English, Japanese, Korean, Simplified Chinese, Traditional Chinese, and Arabic). It also includes an on-screen registration form that copies a chat-ready registration request, plus an optional command-copy fallback and per-row delete action. Re-run `export-html` any time the DB changes to keep the list current.
+Open `~/.veil/veil.html`. Normal task-close review remains the installed Skill's
+job; the page is a recovery and registered-rule review surface. Paste exact text
+and use **Copy complete AI review request** to send the full context through the
+semantic frame and critic workflow. **Run local diagnostic preview** is optional
+regex-based assistance: it may miss or misclassify decisions, and zero preview
+items never means semantic review is complete. Selecting a diagnostic item is
+only a fine-tuning shortcut and must be verified through AI review before
+saving. Registered rows use `Preferred`, `Alternative 1`, and `Alternative 2`;
+alternatives are optional and are not generated merely to fill slots.
+
+The page switches language at view time (English, Japanese, Korean, Simplified
+Chinese, Traditional Chinese, and Arabic). Browser security means the static
+page does not write the canonical DB directly. Its primary action copies the
+complete text in one chat-ready semantic review request. After one user
+confirmation, the Skill records accepted mappings as an atomic JSON batch;
+command copy remains an advanced recovery route.
 
 ### Modify a registered term
 
-To change the preferred form, use the HTML list:
-
-1. Open `~/.veil/veil.html` (run `export-html` first if needed)
-2. Find the term and click **Copy** on the target candidate
-3. This copies a ready-to-paste instruction (`Change '{term}' to '{candidate}'`) to the clipboard. If clipboard access is blocked, VEIL opens a manual copy prompt instead
-4. Paste into the AI chat so the updated preferred form is recorded
-5. After registration: run `export-html` and `veil-sync.py` to propagate the change
+1. Open `~/.veil/veil.html`.
+2. Search for the term.
+3. Copy the desired preferred or alternative form, or edit the simple registration form.
+4. Use **Copy save request** and paste it into the AI chat.
+5. After the accepted update, regenerate HTML and sync. The skill performs both steps automatically.
 
 ### Register a new term from HTML
 
-1. Open `~/.veil/veil.html`
-2. Paste the source sentence into **Draft Capture** and run **Analyze Draft**
-3. Click a preview line to load the registration form
-4. Use **Copy Registration Request** and paste that request into the AI chat
-5. Use **Copy Commands** only when you need the manual CLI fallback
+1. Paste the exact source text into **AI review recovery**.
+2. Select **Copy complete AI review request** and paste it into an AI surface
+   with the installed VEIL Skill.
+3. The Skill produces semantic frames and a separate critic result, validates
+   both locally, and asks at most one combined question only if needed.
+4. Confirm or adjust the combined proposal once. Only accepted mappings are
+   recorded through the structured batch route.
+5. Use **Run local diagnostic preview** or individual loading only as optional
+   recovery/fine-tuning help. A zero-item preview is not a stop condition. Use
+   **Advanced: copy commands** only for manual recovery.
 
 To update directly without AI:
 
 ```bash
 python shared/tools/veil-db.py upsert-rule --term "current state" --preferred "present state"
-python shared/tools/veil-db.py export-html     # regenerate HTML list
-python shared/runtime/veil-sync.py             # push to sync targets
+python shared/tools/veil-db.py export-html
+python shared/runtime/veil-sync.py
 ```
 
 ### Delete a registered term
@@ -457,21 +452,22 @@ python shared/tools/veil-profile-export.py --base-manifest ~/.veil/profile-expor
 
 ## Term adoption strategy
 
-VEIL is not designed to register everything at once. Add high-demand terms first, a few at a time.
+Users do not manually triage a broad candidate set. The host AI performs
+semantic extraction and critic review in the background; local VEIL validates
+the evidence and puts only unresolved durable or high-impact exceptions on the
+decision path.
 
-Basic rules:
+Rules:
 
-- **Classify first.** Do not mix identifiers, proper nouns, descriptive terms, and project-specific terms and rush to a translation decision.
-- **Adopt high-demand terms first.** Lock in frequently troublesome terms and terms that are core to VEIL operation itself.
-- **Skip uncertain terms.** If a term is unclear whether it is a proper noun or common term, if translations conflict, or if the pain level is still low — do not rush to canonicalize.
-- **Do not add too many at once.** Run a small set of adopted terms through `sync` and `lint`, confirm they are working, then add the next batch.
+- Exact canonical coverage is `existing-match` and requires no question.
+- Temporary, one-off, or low-impact unclear wording is `observe`; preserve the signal without registering it.
+- Negated, reported, non-authoritative, and critic-rejected wording is `exclude`.
+- Repetition alone never authorizes a rule.
+- Batch all exceptions from one session into one decision.
+- Record only accepted preferred forms, then regenerate HTML and sync.
+- Lint registered high-impact terms before final output; do not enforce every natural paraphrase.
 
-Enforce tightly only at the key points, not everywhere:
-
-- **Enforce the flow tightly.** Run `capture` at every task close / conversation boundary, and `lint` before every final response.
-- **Enforce high-impact terms tightly.** Prioritize prohibited terms, VEIL core terms, and high-demand terms where drift causes real problems.
-- **Do not rush low-frequency or ambiguous terms.** Skip them.
-- **Do not enforce the full natural text.** Do not put natural paraphrases, machine-processed terms, and context-dependent terms behind hard gates.
+The AI may perform more analysis in the background. The optimization target is fewer and simpler user judgments without reducing safety, quality, or operational evidence.
 
 ---
 

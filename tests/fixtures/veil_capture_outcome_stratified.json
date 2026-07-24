@@ -1,0 +1,897 @@
+[
+  {
+    "case_id": "noise-01",
+    "stratum": "normal-noise",
+    "text": "README.md --html-path config_key abcdef1234567",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-02",
+    "stratum": "normal-noise",
+    "text": "GitHub PowerShell CI JSON API database migration workflow",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-03",
+    "stratum": "normal-noise",
+    "text": "The branch and release workflow completed without errors.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-04",
+    "stratum": "normal-noise",
+    "text": "Run export-html and veil-status from the repository root.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-05",
+    "stratum": "normal-noise",
+    "text": "The user reviewed the current document and closed the task.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-06",
+    "stratum": "normal-noise",
+    "text": "Package metadata and schema validation passed.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-07",
+    "stratum": "normal-noise",
+    "text": "C:/tmp/output.json points to a generated artifact.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-08",
+    "stratum": "normal-noise",
+    "text": "HTTP OAuth token security guidance is unchanged.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-09",
+    "stratum": "normal-noise",
+    "text": "The renderer updated the console and endpoint metadata.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "noise-10",
+    "stratum": "normal-noise",
+    "text": "This ordinary sentence has no local definition or naming request.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "observe-01",
+    "stratum": "background-observation",
+    "text": "root clutter root clutter should be reviewed later.",
+    "expected": {
+      "root clutter": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-02",
+    "stratum": "background-observation",
+    "text": "repo hygiene matters, but repo hygiene is not a durable decision yet.",
+    "expected": {
+      "repo hygiene": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-03",
+    "stratum": "background-observation",
+    "text": "まだ polishing の余地があり、polishing は観察だけにする。",
+    "expected": {
+      "polishing": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-04",
+    "stratum": "background-observation",
+    "text": "draft warmth appeared twice; draft warmth might be useful later.",
+    "expected": {
+      "draft warmth": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-05",
+    "stratum": "background-observation",
+    "text": "review rhythm and review rhythm are descriptive for now.",
+    "expected": {
+      "review rhythm": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-06",
+    "stratum": "background-observation",
+    "text": "handoff shape was mentioned. Handoff shape has no fixed meaning.",
+    "expected": {
+      "handoff shape": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-07",
+    "stratum": "background-observation",
+    "text": "release tone release tone is only a writing observation.",
+    "expected": {
+      "release tone": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-08",
+    "stratum": "background-observation",
+    "text": "owner wording appears twice, but owner wording is still unclear.",
+    "expected": {
+      "owner wording": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-09",
+    "stratum": "background-observation",
+    "text": "briefness level may matter; briefness level is not defined.",
+    "expected": {
+      "briefness level": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-10",
+    "stratum": "background-observation",
+    "text": "check depth check depth is recurring but low impact.",
+    "expected": {
+      "check depth": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-11",
+    "stratum": "background-observation",
+    "text": "review texture is an idea. Review texture needs more evidence.",
+    "expected": {
+      "review texture": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-12",
+    "stratum": "background-observation",
+    "text": "context weight context weight remains ambiguous.",
+    "expected": {
+      "context weight": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-13",
+    "stratum": "background-observation",
+    "text": "answer shape appeared before; answer shape is not standardized.",
+    "expected": {
+      "answer shape": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-14",
+    "stratum": "background-observation",
+    "text": "summary density and summary density are being observed.",
+    "expected": {
+      "summary density": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "observe-15",
+    "stratum": "background-observation",
+    "text": "local cadence local cadence has no downstream effect yet.",
+    "expected": {
+      "local cadence": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "existing-01",
+    "stratum": "existing-match",
+    "text": "Use current state consistently in every handoff.",
+    "expected": {
+      "current state": "existing-match"
+    },
+    "registered": [
+      "current state"
+    ]
+  },
+  {
+    "case_id": "existing-02",
+    "stratum": "existing-match",
+    "text": "Use current issue consistently in every handoff.",
+    "expected": {
+      "current issue": "existing-match"
+    },
+    "registered": [
+      "current issue"
+    ]
+  },
+  {
+    "case_id": "existing-03",
+    "stratum": "existing-match",
+    "text": "Use decision owner consistently in every handoff.",
+    "expected": {
+      "decision owner": "existing-match"
+    },
+    "registered": [
+      "decision owner"
+    ]
+  },
+  {
+    "case_id": "existing-04",
+    "stratum": "existing-match",
+    "text": "Use release boundary consistently in every handoff.",
+    "expected": {
+      "release boundary": "existing-match"
+    },
+    "registered": [
+      "release boundary"
+    ]
+  },
+  {
+    "case_id": "existing-05",
+    "stratum": "existing-match",
+    "text": "Use source term consistently in every handoff.",
+    "expected": {
+      "source term": "existing-match"
+    },
+    "registered": [
+      "source term"
+    ]
+  },
+  {
+    "case_id": "existing-06",
+    "stratum": "existing-match",
+    "text": "Use preferred term consistently in every handoff.",
+    "expected": {
+      "preferred term": "existing-match"
+    },
+    "registered": [
+      "preferred term"
+    ]
+  },
+  {
+    "case_id": "existing-07",
+    "stratum": "existing-match",
+    "text": "Use review status consistently in every handoff.",
+    "expected": {
+      "review status": "existing-match"
+    },
+    "registered": [
+      "review status"
+    ]
+  },
+  {
+    "case_id": "existing-08",
+    "stratum": "existing-match",
+    "text": "Use sync target consistently in every handoff.",
+    "expected": {
+      "sync target": "existing-match"
+    },
+    "registered": [
+      "sync target"
+    ]
+  },
+  {
+    "case_id": "existing-09",
+    "stratum": "existing-match",
+    "text": "Use delivery state consistently in every handoff.",
+    "expected": {
+      "delivery state": "existing-match"
+    },
+    "registered": [
+      "delivery state"
+    ]
+  },
+  {
+    "case_id": "existing-10",
+    "stratum": "existing-match",
+    "text": "Use local rule consistently in every handoff.",
+    "expected": {
+      "local rule": "existing-match"
+    },
+    "registered": [
+      "local rule"
+    ]
+  },
+  {
+    "case_id": "existing-11",
+    "stratum": "existing-match",
+    "text": "Use profile name consistently in every handoff.",
+    "expected": {
+      "profile name": "existing-match"
+    },
+    "registered": [
+      "profile name"
+    ]
+  },
+  {
+    "case_id": "existing-12",
+    "stratum": "existing-match",
+    "text": "Use output path consistently in every handoff.",
+    "expected": {
+      "output path": "existing-match"
+    },
+    "registered": [
+      "output path"
+    ]
+  },
+  {
+    "case_id": "existing-13",
+    "stratum": "existing-match",
+    "text": "Use failure owner consistently in every handoff.",
+    "expected": {
+      "failure owner": "existing-match"
+    },
+    "registered": [
+      "failure owner"
+    ]
+  },
+  {
+    "case_id": "existing-14",
+    "stratum": "existing-match",
+    "text": "Use task state consistently in every handoff.",
+    "expected": {
+      "task state": "existing-match"
+    },
+    "registered": [
+      "task state"
+    ]
+  },
+  {
+    "case_id": "existing-15",
+    "stratum": "existing-match",
+    "text": "Use canonical term consistently in every handoff.",
+    "expected": {
+      "canonical term": "existing-match"
+    },
+    "registered": [
+      "canonical term"
+    ]
+  },
+  {
+    "case_id": "request-en-01",
+    "stratum": "explicit-request-en",
+    "text": "Use decision boundary consistently in every handoff.",
+    "expected": {
+      "decision boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-02",
+    "stratum": "explicit-request-en",
+    "text": "Always use release boundary.",
+    "expected": {
+      "release boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-03",
+    "stratum": "explicit-request-en",
+    "text": "Always call review owner.",
+    "expected": {
+      "review owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-04",
+    "stratum": "explicit-request-en",
+    "text": "Refer to source identity consistently.",
+    "expected": {
+      "source identity": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-05",
+    "stratum": "explicit-request-en",
+    "text": "Standardize on delivery proof.",
+    "expected": {
+      "delivery proof": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-06",
+    "stratum": "explicit-request-en",
+    "text": "Record write boundary in VEIL.",
+    "expected": {
+      "write boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-07",
+    "stratum": "explicit-request-en",
+    "text": "Register audit owner in VEIL.",
+    "expected": {
+      "audit owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-08",
+    "stratum": "explicit-request-en",
+    "text": "Use result state everywhere from now on.",
+    "expected": {
+      "result state": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-09",
+    "stratum": "explicit-request-en",
+    "text": "Always refer to evidence owner.",
+    "expected": {
+      "evidence owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-en-10",
+    "stratum": "explicit-request-en",
+    "text": "Make close state the standard term.",
+    "expected": {
+      "close state": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-01",
+    "stratum": "explicit-request-ja",
+    "text": "decision boundary を一貫して使う。",
+    "expected": {
+      "decision boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-02",
+    "stratum": "explicit-request-ja",
+    "text": "release boundary を必ず使う。",
+    "expected": {
+      "release boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-03",
+    "stratum": "explicit-request-ja",
+    "text": "review owner に統一する。",
+    "expected": {
+      "review owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-04",
+    "stratum": "explicit-request-ja",
+    "text": "今後は source identity と呼んでください。",
+    "expected": {
+      "source identity": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-05",
+    "stratum": "explicit-request-ja",
+    "text": "delivery proof という表記に統一する。",
+    "expected": {
+      "delivery proof": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-06",
+    "stratum": "explicit-request-ja",
+    "text": "write boundary を標準表記にする。",
+    "expected": {
+      "write boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-07",
+    "stratum": "explicit-request-ja",
+    "text": "audit owner として登録する。",
+    "expected": {
+      "audit owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-08",
+    "stratum": "explicit-request-ja",
+    "text": "「結果境界」という呼称に統一する。",
+    "expected": {
+      "結果境界": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-09",
+    "stratum": "explicit-request-ja",
+    "text": "「証跡所有者」を必ず使う。",
+    "expected": {
+      "証跡所有者": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "request-ja-10",
+    "stratum": "explicit-request-ja",
+    "text": "今後は「終了状態」と呼んでください。",
+    "expected": {
+      "終了状態": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-01",
+    "stratum": "high-impact-definition",
+    "text": "In this project, release readiness means every required delivery check is green.",
+    "expected": {
+      "release readiness": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-02",
+    "stratum": "high-impact-definition",
+    "text": "Write clearance means every external write is explicitly authorized.",
+    "expected": {
+      "write clearance": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-03",
+    "stratum": "high-impact-definition",
+    "text": "We define delete safety as requiring verified targets before deletion.",
+    "expected": {
+      "delete safety": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-04",
+    "stratum": "high-impact-definition",
+    "text": "For this project, distribution ready means every release gate passed.",
+    "expected": {
+      "distribution ready": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-05",
+    "stratum": "high-impact-definition",
+    "text": "Here, canonical close means all required evidence is committed.",
+    "expected": {
+      "canonical close": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-06",
+    "stratum": "high-impact-definition",
+    "text": "Security ready is defined as every required security check passing.",
+    "expected": {
+      "security ready": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-07",
+    "stratum": "high-impact-definition",
+    "text": "In this repository, push clearance means push approval is recorded.",
+    "expected": {
+      "push clearance": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-08",
+    "stratum": "high-impact-definition",
+    "text": "External boundary means every external write needs authorization.",
+    "expected": {
+      "external boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-09",
+    "stratum": "high-impact-definition",
+    "text": "We define release proof as the required evidence that blocks distribution.",
+    "expected": {
+      "release proof": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-10",
+    "stratum": "high-impact-definition",
+    "text": "「削除安全」は全ての削除対象を確認済みであることを意味する。",
+    "expected": {
+      "削除安全": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-11",
+    "stratum": "high-impact-definition",
+    "text": "「配布可能」とは全てのリリース検査が成功した状態を指す。",
+    "expected": {
+      "配布可能": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-12",
+    "stratum": "high-impact-definition",
+    "text": "write boundary は外部書込みを必ず承認することを意味する。",
+    "expected": {
+      "write boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-13",
+    "stratum": "high-impact-definition",
+    "text": "In this context, delivery lock means distribution must stop.",
+    "expected": {
+      "delivery lock": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-14",
+    "stratum": "high-impact-definition",
+    "text": "Merge ready means every required review is complete.",
+    "expected": {
+      "merge ready": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-high-15",
+    "stratum": "high-impact-definition",
+    "text": "We define failure close as blocking release until the failure owner signs off.",
+    "expected": {
+      "failure close": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-01",
+    "stratum": "low-impact-definition",
+    "text": "Draft warmth means a slightly friendlier first sentence.",
+    "expected": {
+      "draft warmth": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-02",
+    "stratum": "low-impact-definition",
+    "text": "Summary color means the tone used in a recap.",
+    "expected": {
+      "summary color": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-03",
+    "stratum": "low-impact-definition",
+    "text": "We define review rhythm as the pacing of comments.",
+    "expected": {
+      "review rhythm": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-04",
+    "stratum": "low-impact-definition",
+    "text": "In this context, answer shape means the visual structure of a reply.",
+    "expected": {
+      "answer shape": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-05",
+    "stratum": "low-impact-definition",
+    "text": "Local cadence means a preferred writing tempo.",
+    "expected": {
+      "local cadence": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-06",
+    "stratum": "low-impact-definition",
+    "text": "We define note texture as a descriptive writing quality.",
+    "expected": {
+      "note texture": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-07",
+    "stratum": "low-impact-definition",
+    "text": "「説明密度」は文章の詳しさを意味する。",
+    "expected": {
+      "説明密度": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-08",
+    "stratum": "low-impact-definition",
+    "text": "「回答調子」とは返答の雰囲気を指す。",
+    "expected": {
+      "回答調子": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-09",
+    "stratum": "low-impact-definition",
+    "text": "Review texture means how comments feel to read.",
+    "expected": {
+      "review texture": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "definition-low-10",
+    "stratum": "low-impact-definition",
+    "text": "Briefness level means the approximate answer length.",
+    "expected": {
+      "briefness level": "observe"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-01",
+    "stratum": "non-intent-adversarial",
+    "text": "We did not use decision boundary consistently in the old document.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-02",
+    "stratum": "non-intent-adversarial",
+    "text": "The phrase Use release boundary consistently appears in a test fixture.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-03",
+    "stratum": "non-intent-adversarial",
+    "text": "The example `Use review owner consistently` is documentation, not an instruction.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-04",
+    "stratum": "non-intent-adversarial",
+    "text": "The quoted sentence \"Always use source identity.\" is only sample text.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-05",
+    "stratum": "non-intent-adversarial",
+    "text": "Do not always use delivery proof; the phrase is under discussion.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-06",
+    "stratum": "non-intent-adversarial",
+    "text": "We do not define write clearance as a release gate.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-07",
+    "stratum": "non-intent-adversarial",
+    "text": "Nobody asked to register audit owner in VEIL.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-08",
+    "stratum": "non-intent-adversarial",
+    "text": "The words standardize on result state are part of a rejected proposal.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-09",
+    "stratum": "non-intent-adversarial",
+    "text": "A log recorded: Use close state consistently. No action followed.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "adversarial-10",
+    "stratum": "non-intent-adversarial",
+    "text": "This paragraph explains how to call review owner consistently, but does not request it.",
+    "expected": {},
+    "registered": []
+  },
+  {
+    "case_id": "multi-01",
+    "stratum": "batched-exceptions",
+    "text": "Use decision boundary consistently. Always use release boundary.",
+    "expected": {
+      "decision boundary": "exception",
+      "release boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "multi-02",
+    "stratum": "batched-exceptions",
+    "text": "Standardize on review owner. Record delivery proof in VEIL.",
+    "expected": {
+      "review owner": "exception",
+      "delivery proof": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "multi-03",
+    "stratum": "batched-exceptions",
+    "text": "source identity を一貫して使う。write boundary を必ず使う。",
+    "expected": {
+      "source identity": "exception",
+      "write boundary": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "multi-04",
+    "stratum": "batched-exceptions",
+    "text": "In this project, merge ready means every required review passed. Always use failure owner.",
+    "expected": {
+      "merge ready": "exception",
+      "failure owner": "exception"
+    },
+    "registered": []
+  },
+  {
+    "case_id": "multi-05",
+    "stratum": "batched-exceptions",
+    "text": "「終了状態」という呼称に統一する。「証跡所有者」を必ず使う。",
+    "expected": {
+      "終了状態": "exception",
+      "証跡所有者": "exception"
+    },
+    "registered": []
+  }
+]
