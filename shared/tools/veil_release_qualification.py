@@ -13,6 +13,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_VERSION = "1"
+REQUIRED_HOSTED_CHECKS = {
+    "Analyze (actions)",
+    "Analyze (python)",
+    "CodeQL",
+    "design-methodology",
+    "smoke (3.8)",
+    "smoke (3.11)",
+    "smoke (3.12)",
+    "windows",
+}
 
 
 def load_json(path: Path) -> Any:
@@ -63,6 +73,14 @@ def qualify(
         if record.get("controlled_sources_dirty") is True:
             issue(issues, "release.dirty_source", name)
 
+    fingerprints = {
+        record.get("source_fingerprint_sha256")
+        for record in expected_records.values()
+        if isinstance(record, dict)
+    }
+    if len(fingerprints) != 1 or None in fingerprints:
+        issue(issues, "release.source_fingerprint_mismatch", "all three records must share one fingerprint")
+
     if browser_record.get("status") != "ok":
         issue(issues, "release.browser_status", str(browser_record.get("status")))
     if browser_record.get("functional_startup") != "ok" or browser_record.get("keyboard_startup") != "ok":
@@ -92,9 +110,21 @@ def qualify(
 
     if not hosted_checks:
         issue(issues, "release.hosted_checks_missing", "no hosted checks supplied")
+    seen_checks: set[str] = set()
     for check in hosted_checks:
-        if not isinstance(check, dict) or check.get("bucket") != "pass":
-            issue(issues, "release.hosted_check_failed", str(check.get("name", "unknown")))
+        if not isinstance(check, dict):
+            issue(issues, "release.hosted_check_failed", "invalid check entry")
+            continue
+        name = check.get("name")
+        if not isinstance(name, str):
+            issue(issues, "release.hosted_check_failed", "unnamed check")
+            continue
+        seen_checks.add(name)
+        if check.get("bucket") != "pass":
+            issue(issues, "release.hosted_check_failed", name)
+    missing_checks = sorted(REQUIRED_HOSTED_CHECKS - seen_checks)
+    if missing_checks:
+        issue(issues, "release.hosted_checks_incomplete", ",".join(missing_checks))
 
     return {
         "contract_version": CONTRACT_VERSION,

@@ -4,12 +4,26 @@ from shared.tools.veil_release_qualification import qualify
 
 
 REVISION = "a" * 40
+HOSTED_CHECKS = [
+    {"name": name, "bucket": "pass"}
+    for name in (
+        "Analyze (actions)",
+        "Analyze (python)",
+        "CodeQL",
+        "design-methodology",
+        "smoke (3.8)",
+        "smoke (3.11)",
+        "smoke (3.12)",
+        "windows",
+    )
+]
 
 
 def valid_records():
     browser = {
         "git_head": REVISION,
         "controlled_sources_dirty": False,
+        "source_fingerprint_sha256": "f" * 64,
         "status": "ok",
         "functional_startup": "ok",
         "keyboard_startup": "ok",
@@ -19,6 +33,7 @@ def valid_records():
     integration = {
         "git_head": REVISION,
         "controlled_sources_dirty": False,
+        "source_fingerprint_sha256": "f" * 64,
         "status": "ok",
         "temp_only": True,
         "applied_atomic": True,
@@ -30,6 +45,7 @@ def valid_records():
     }
     delivery = {
         "commit_sha": REVISION,
+        "source_fingerprint_sha256": "f" * 64,
         "status": "ok",
         "veil_status": {"items": [{"level": "OK"}, {"level": "OK"}]},
     }
@@ -42,7 +58,7 @@ def test_operational_release_qualification_passes_without_human_participants() -
         browser_record=browser,
         integration_record=integration,
         delivery_record=delivery,
-        hosted_checks=[{"name": "windows", "bucket": "pass"}],
+        hosted_checks=HOSTED_CHECKS,
         revision=REVISION,
     )
 
@@ -66,4 +82,21 @@ def test_source_mismatch_or_failed_hosted_check_fails_closed() -> None:
     assert {issue["code"] for issue in report["issues"]} >= {
         "release.source_revision_mismatch",
         "release.hosted_check_failed",
+        "release.hosted_checks_incomplete",
     }
+
+
+def test_mixed_source_fingerprints_fail_closed() -> None:
+    browser, integration, delivery = valid_records()
+    integration["source_fingerprint_sha256"] = "e" * 64
+
+    report = qualify(
+        browser_record=browser,
+        integration_record=integration,
+        delivery_record=delivery,
+        hosted_checks=HOSTED_CHECKS,
+        revision=REVISION,
+    )
+
+    assert report["verdict"] == "evidence-incomplete"
+    assert any(issue["code"] == "release.source_fingerprint_mismatch" for issue in report["issues"])
