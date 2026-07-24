@@ -26,7 +26,7 @@ def payload(evidence: str) -> dict[str, object]:
 
 
 def write_jsonl(path: Path, row: dict[str, object]) -> None:
-    path.write_text(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def test_preserves_fullwidth_equals_as_exact_escaped_evidence(tmp_path: Path) -> None:

@@ -254,8 +254,8 @@ def main() -> int:
         raise ValueError("reviewed corpus or report already exists")
     merged, report = validate_reviewed_corpus(source_path=args.source.resolve(), snapshot_path=args.snapshot.resolve(), reviewer_a_path=args.reviewer_a.resolve(), reviewer_b_path=args.reviewer_b.resolve())
     output.mkdir(parents=True, exist_ok=True)
-    corpus_path.write_text("".join(json.dumps(row, ensure_ascii=True, sort_keys=True) + "\n" for row in merged), encoding="utf-8", newline="\n")
-    report_path.write_text(json.dumps(report, ensure_ascii=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+    corpus_path.write_text("".join(json.dumps(row, ensure_ascii=True, sort_keys=True) + "\n" for row in merged), encoding="utf-8")
+    report_path.write_text(json.dumps(report, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=True, sort_keys=True))
     return 0
 

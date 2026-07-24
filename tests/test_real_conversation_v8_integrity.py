@@ -16,7 +16,7 @@ SPEC.loader.exec_module(integrity)
 
 def write(path: Path, value: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(value, encoding="utf-8", newline="\n")
+    path.write_text(value, encoding="utf-8")
     return path
 
 

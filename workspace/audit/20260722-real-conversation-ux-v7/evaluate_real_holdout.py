@@ -75,7 +75,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def finalize_runtime_audit(result_dir: Path, audit: RuntimeAccessAudit, *, error: Exception | None = None) -> int:

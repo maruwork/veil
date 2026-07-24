@@ -235,13 +235,13 @@ def freeze_holdout(*, project_root: Path, reviewed_dir: Path, frozen_dir: Path, 
         nonlocal stage; stage = name
         if failure_hook: failure_hook(name)
     def write(path: Path, value: dict[str, Any]) -> None:
-        path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+        path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
     try:
         checkpoint("before-staging"); staging.mkdir(parents=False); checkpoint("after-staging")
         staged_corpus, staged_snapshot, staged_runtime = staging / "frozen-corpus.jsonl", staging / "canonical-snapshot.json", staging / "runtime-input.jsonl"
         shutil.copyfile(reviewed / "corpus.jsonl", staged_corpus); checkpoint("after-corpus-copy")
         shutil.copyfile(reviewed / "canonical-snapshot.json", staged_snapshot); checkpoint("after-snapshot-copy")
-        staged_runtime.write_text("".join(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n" for row in runtime_from_corpus(reviewed / "corpus.jsonl")), encoding="utf-8", newline="\n"); checkpoint("after-runtime-derive")
+        staged_runtime.write_text("".join(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n" for row in runtime_from_corpus(reviewed / "corpus.jsonl")), encoding="utf-8"); checkpoint("after-runtime-derive")
         final = {"reviewed_corpus": frozen / staged_corpus.name, "canonical_snapshot": frozen / staged_snapshot.name, "runtime_input": frozen / staged_runtime.name}
         records = {**{name: record(root, path) for name, path in sources.items()}, **{name: record(root, staging / path.name, declared_path=path) for name, path in final.items()}}
         state = git_state(root, list(inventory_paths)); now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()

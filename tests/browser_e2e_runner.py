@@ -237,7 +237,7 @@ def inject_harness(path: Path) -> None:
     content = path.read_text(encoding="utf-8")
     if RESULT_ATTRIBUTE in content or "</body>" not in content:
         raise RuntimeError("unexpected generated HTML boundary")
-    path.write_text(content.replace("</body>", harness_script() + "\n</body>", 1), encoding="utf-8", newline="\n")
+    path.write_text(content.replace("</body>", harness_script() + "\n</body>", 1), encoding="utf-8")
 
 
 @contextmanager

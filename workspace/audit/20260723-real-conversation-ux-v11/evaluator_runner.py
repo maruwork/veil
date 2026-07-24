@@ -18,7 +18,7 @@ ALL_GATES = CORE_GATES | {"zero_raw_text_fallback", "no_canonical_db_access", "s
 
 
 def _write(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
 
 
 def run_once(
@@ -49,7 +49,7 @@ def run_once(
         if set(gates) != ALL_GATES:
             raise ValueError("terminal gate set is invalid")
         _write(result_dir / "summary.json", {**scored["summary"], "status": "passed" if all(gates.values()) else "failed", "gates": gates})
-        (result_dir / "case-results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=True) + "\n" for row in scored["case_results"]), encoding="utf-8", newline="\n")
+        (result_dir / "case-results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=True) + "\n" for row in scored["case_results"]), encoding="utf-8")
         _write(result_dir / "result-manifest.json", {**initial, "status": "scored", "completed_at": datetime.now(timezone.utc).isoformat(), "source_state_after": after, "runtime_access": audit.snapshot(), "gates": gates})
         return 0 if all(gates.values()) else 1
     except Exception as exc:

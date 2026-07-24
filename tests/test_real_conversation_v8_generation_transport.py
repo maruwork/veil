@@ -15,7 +15,7 @@ SPEC.loader.exec_module(validator)
 
 
 def write_jsonl(path: Path, row: dict[str, object], *, ensure_ascii: bool) -> None:
-    path.write_text(json.dumps(row, ensure_ascii=ensure_ascii, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(json.dumps(row, ensure_ascii=ensure_ascii, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def valid_payload(*, evidence: str) -> dict[str, object]:

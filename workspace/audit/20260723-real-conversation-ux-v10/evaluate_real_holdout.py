@@ -65,7 +65,7 @@ def require_label_free_runtime(runtime_rows: list[dict[str, Any]], audit: Runtim
 
 
 def write(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(json.dumps(value, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
 
 
 def fixed_args(frozen: Path) -> list[str]:
@@ -94,7 +94,7 @@ def evaluate(frozen: Path) -> int:
         if set(gates) != ALL_GATES:
             raise ValueError("v10 terminal gate set is invalid")
         summary = {**scored["summary"], "status": "passed" if all(gates.values()) else "failed", "gates": gates}
-        (result / "case-results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=True) + "\n" for row in scored["case_results"]), encoding="utf-8", newline="\n")
+        (result / "case-results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=True) + "\n" for row in scored["case_results"]), encoding="utf-8")
         write(result / "summary.json", summary)
         write(result / "result-manifest.json", {**initial, "status": "scored", "completed_at": datetime.now(timezone.utc).isoformat(), "source_state_after": after, "runtime_access": audit.snapshot(), "gates": gates})
         return 0 if all(gates.values()) else 1

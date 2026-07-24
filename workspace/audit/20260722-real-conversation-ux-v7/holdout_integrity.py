@@ -504,7 +504,7 @@ def freeze_holdout(
             failure_hook(name)
 
     def write_json(path: Path, value: dict[str, Any]) -> None:
-        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     try:
         checkpoint("before-staging")

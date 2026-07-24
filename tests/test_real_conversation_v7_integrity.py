@@ -20,7 +20,7 @@ EVALUATOR_PATH = MODULE_PATH.with_name("evaluate_real_holdout.py")
 
 def write(path: Path, content: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8", newline="\n")
+    path.write_text(content, encoding="utf-8")
     return path
 
 
