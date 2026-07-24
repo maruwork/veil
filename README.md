@@ -80,11 +80,13 @@ next session: AI outputs with consistent vocabulary
 | `shared/runtime/veil-status.py` | Show canonical / HTML / sync target / skill status and setup diagnostics |
 | `shared/tools/veil-profile-audit.py` | Audit rule count and legacy flat rule presence in current profile |
 | `shared/tools/veil-profile-export.py` | Export current profile as a domain profile pack |
-| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-seed / readback / upsert-rule / delete-rule / export-html` |
+| `shared/tools/veil-db.py` | SQLite canonical CLI: `init-db / import-seed / readback / upsert-rule / upsert-batch / maintain-batch / delete-rule / export-html` |
 
 The Python scripts (veil-sync, veil-lint, veil-normalize, veil-classify, etc.) are CLI tools invoked from the terminal or by the skill. The `/veil-capture` skill installs as 2 files — one for Claude Code (`~/.claude/commands/veil-capture.md`) and one for Codex (`~/.agents/skills/veil-capture/SKILL.md`).
 
-`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite canonical, handles single-rule upsert and deletion, and generates `~/.veil/veil.html` — a browser-based vocabulary list for reviewing and modifying registered terms.
+`shared/tools/veil-db.py` initializes, imports, and reads back the SQLite
+canonical, handles atomic registration and existing-rule maintenance, and
+generates `~/.veil/veil.html` — the static Rulebook and Recovery page.
 
 The bundled technical-writing default profile lives at `shared/default-profile/technical-writing-default.json`.
 
@@ -291,43 +293,36 @@ python shared/tools/veil-db.py export-html   # write ~/.veil/veil.html
 
 Keep generated outputs out of this repo's `common/` and `archive/` directories. Use the default `~/.veil/` paths, and use `workspace/` only for repo-local temporary verification artifacts.
 
-Open `~/.veil/veil.html`. Normal task-close review remains the installed Skill's
-job; the page is a recovery and registered-rule review surface. Paste exact text
-and use **Copy complete AI review request** to send the full context through the
-semantic frame and critic workflow. **Run local diagnostic preview** is optional
-regex-based assistance: it may miss or misclassify decisions, and zero preview
-items never means semantic review is complete. Selecting a diagnostic item is
-only a fine-tuning shortcut and must be verified through AI review before
-saving. Registered rows use `Preferred`, `Alternative 1`, and `Alternative 2`;
-alternatives are optional and are not generated merely to fill slots.
+Open `~/.veil/veil.html`. The Rulebook is first: search source, preferred, or
+alternative wording. Normal task-close review remains the installed Skill's
+job. For recovery, **Review a conversation** copies the exact pasted
+conversation into one Skill request. The page does not run a local classifier,
+show candidates, or copy commands.
 
-The page switches language at view time (English, Japanese, Korean, Simplified
-Chinese, Traditional Chinese, and Arabic). Browser security means the static
-page does not write the canonical DB directly. Its primary action copies the
-complete text in one chat-ready semantic review request. After one user
-confirmation, the Skill records accepted mappings as an atomic JSON batch;
-command copy remains an advanced recovery route.
+The page has complete English and Japanese UI; other locales fall back to
+English. It never writes the canonical DB, browser storage, or the network.
 
 ### Modify a registered term
 
 1. Open `~/.veil/veil.html`.
 2. Search for the term.
-3. Copy the desired preferred or alternative form, or edit the simple registration form.
-4. Use **Copy save request** and paste it into the AI chat.
-5. After the accepted update, regenerate HTML and sync. The skill performs both steps automatically.
+3. Select **Request change**.
+4. Choose a new preferred form or retirement, then copy the request into an AI
+   chat with VEIL installed.
+5. The Skill checks for a stale request, shows the exact operation once, and
+   applies the confirmed operation atomically before regenerating HTML and sync.
 
 ### Register a new term from HTML
 
-1. Paste the exact source text into **AI review recovery**.
-2. Select **Copy complete AI review request** and paste it into an AI surface
+1. Paste the exact source text into **Review a conversation**.
+2. Select **Copy review request** and paste it into an AI surface
    with the installed VEIL Skill.
 3. The Skill produces semantic frames and a separate critic result, validates
    both locally, and asks at most one combined question only if needed.
 4. Confirm or adjust the combined proposal once. Only accepted mappings are
    recorded through the structured batch route.
-5. Use **Run local diagnostic preview** or individual loading only as optional
-   recovery/fine-tuning help. A zero-item preview is not a stop condition. Use
-   **Advanced: copy commands** only for manual recovery.
+5. The page has no diagnostic or candidate shortcut; the complete conversation
+   remains the review input.
 
 To update directly without AI:
 

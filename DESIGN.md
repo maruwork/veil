@@ -28,6 +28,8 @@ It fixes which VEIL-local files own design truth so runtime, vocabulary-review, 
 
 - main runtime and support design truth:
   - `docs/veil-design.md`
+- implemented HTML recovery UX detail and acceptance contract:
+  - `docs/veil-html-recovery-ux-design.md`
 - capture-classification behavior:
   - `docs/veil-capture-classification.md`
 - developer-facing entry and repo route:

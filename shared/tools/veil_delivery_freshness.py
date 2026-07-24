@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any, Mapping, Sequence
 
-MANIFEST_FORMAT = 1
+MANIFEST_FORMAT = 2
 MANIFEST_ID = "veil-freshness-manifest"
 _MANIFEST_RE = re.compile(
     rf'<script id="{MANIFEST_ID}" type="application/json">(.*?)</script>', re.DOTALL
@@ -30,14 +30,13 @@ def active_rule_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
 
 
 def build_manifest(
-    *, template: str, ui_by_lang: Mapping[str, Any], capture_taxonomy: Mapping[str, Any],
+    *, template: str, ui_by_lang: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]], settings: Mapping[str, str], content_sha256: str = "",
 ) -> dict[str, Any]:
     return {
         "format": MANIFEST_FORMAT,
         "template_sha256": sha256_text(template),
         "i18n_sha256": sha256_text(canonical_json(ui_by_lang)),
-        "capture_taxonomy_sha256": sha256_text(canonical_json(capture_taxonomy)),
         "active_rules_sha256": sha256_text(canonical_json(active_rule_rows(rows))),
         "settings_sha256": sha256_text(canonical_json(dict(settings))),
         "content_sha256": content_sha256,

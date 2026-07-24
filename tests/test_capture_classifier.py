@@ -3,10 +3,8 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 from pathlib import Path
 import shutil
-import subprocess
 import tempfile
 
 from shared.tools.veil_capture_classifier import (
@@ -44,9 +42,7 @@ FIXTURE_PATH = Path(__file__).with_name("fixtures") / "veil_capture_chat_seed.js
 CHAT_JSON_FIXTURE_PATH = Path(__file__).with_name("fixtures") / "veil_capture_chat_transcript.json"
 ATTACHMENT_LONG_TAIL_FIXTURE_PATH = Path(__file__).with_name("fixtures") / "veil_capture_attachment_long_tail.txt"
 ATTACHMENT_CANDIDATES_FIXTURE_PATH = Path(__file__).with_name("fixtures") / "veil_capture_attachment_candidates.txt"
-HTML_TEMPLATE_PATH = PROJECT_ROOT / "shared" / "tools" / "veil_review_template.html"
 CLASSIFY_RUNTIME_PATH = PROJECT_ROOT / "shared" / "runtime" / "veil-classify.py"
-NODE_AUDIT_DIR = PROJECT_ROOT / "workspace" / "audit" / "classifier-node"
 _CLASSIFY_RUNTIME_MODULE = None
 
 
@@ -61,109 +57,16 @@ def _load_classify_runtime_module():
     return _CLASSIFY_RUNTIME_MODULE
 
 
-def _js_capture_runtime() -> str:
-    source = HTML_TEMPLATE_PATH.read_text(encoding="utf-8")
-    start_marker = "  function simpleSingularizeToken(token) {"
-    end_marker = "  function analyzeCaptureInput() {"
-    start = source.index(start_marker)
-    end = source.index(end_marker)
-    return source[start:end]
 
 
-def _run_node_script(script: str) -> str:
-    NODE_AUDIT_DIR.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".js", delete=False, dir=NODE_AUDIT_DIR) as handle:
-        handle.write(script)
-        script_path = handle.name
-    try:
-        result = subprocess.run(
-            ["node", script_path],
-            text=True,
-            encoding="utf-8",
-            capture_output=True,
-            check=True,
-        )
-        return result.stdout
-    finally:
-        try:
-            os.unlink(script_path)
-        except FileNotFoundError:
-            pass
 
 
-def _js_classify_terms(terms: list[str]) -> list[dict[str, str]]:
-    script = f"""
-const _captureConfig = {json.dumps(capture_taxonomy_payload(), ensure_ascii=False)};
-const document = {{ querySelectorAll: () => [] }};
-function message(key) {{ return key; }}
-{_js_capture_runtime()}
-const payload = {json.dumps({"terms": terms}, ensure_ascii=False)};
-const results = payload.terms.map((term) => {{
-  const item = classifyCaptureTerm(term);
-  return {{
-  term: item.term,
-  normalized: item.normalized,
-  label: item.label,
-  reason: item.reason
-  }};
-}});
-process.stdout.write(JSON.stringify(results));
-"""
-    return json.loads(_run_node_script(script))
 
 
-def _js_extract_capture_candidates(text: str, limit: int = 5) -> list[dict[str, str]]:
-    script = f"""
-const _captureConfig = {json.dumps(capture_taxonomy_payload(), ensure_ascii=False)};
-const document = {{ querySelectorAll: () => [] }};
-function message(key) {{ return key; }}
-{_js_capture_runtime()}
-const payload = {json.dumps({"text": text, "limit": limit}, ensure_ascii=False)};
-const results = extractCaptureCandidates(payload.text, payload.limit).map((item) => ({{
-  term: item.term,
-  normalized: item.normalized,
-  label: item.label,
-  reason: item.reason
-}}));
-process.stdout.write(JSON.stringify(results));
-"""
-    return json.loads(_run_node_script(script))
 
 
-def _js_extract_capture_preview_terms(text: str, limit: int = 5) -> list[dict[str, str]]:
-    script = f"""
-const _captureConfig = {json.dumps(capture_taxonomy_payload(), ensure_ascii=False)};
-const document = {{ querySelectorAll: () => [] }};
-function message(key) {{ return key; }}
-{_js_capture_runtime()}
-const payload = {json.dumps({"text": text, "limit": limit}, ensure_ascii=False)};
-const results = extractCapturePreviewTerms(payload.text, payload.limit).map((item) => ({{
-  term: item.term,
-  normalized: item.normalized,
-  label: item.label,
-  reason: item.reason
-}}));
-process.stdout.write(JSON.stringify(results));
-"""
-    return json.loads(_run_node_script(script))
 
 
-def _js_extract_capture_investigation_terms(text: str, limit: int = 8) -> list[dict[str, str]]:
-    script = f"""
-const _captureConfig = {json.dumps(capture_taxonomy_payload(), ensure_ascii=False)};
-const document = {{ querySelectorAll: () => [] }};
-function message(key) {{ return key; }}
-{_js_capture_runtime()}
-const payload = {json.dumps({"text": text, "limit": limit}, ensure_ascii=False)};
-const results = extractCaptureInvestigationTerms(payload.text, payload.limit).map((item) => ({{
-  term: item.term,
-  normalized: item.normalized,
-  label: item.label,
-  reason: item.reason
-}}));
-process.stdout.write(JSON.stringify(results));
-"""
-    return json.loads(_run_node_script(script))
 
 
 def test_classify_term_labels() -> None:
@@ -1596,118 +1499,8 @@ def test_attachment_long_tail_fixture_has_no_unknown_terms() -> None:
     assert all(item.label != LABEL_UNKNOWN for item in term_map.values())
 
 
-def test_python_and_js_capture_classification_stay_in_lockstep() -> None:
-    terms = [
-        "database",
-        "instrumentation",
-        "writeback",
-        "root clutter",
-        "maintainer-only files",
-        "/veil-capture",
-        "README",
-        "CI",
-        "SE",
-        "adop-pytest",
-        "adop-pytest-base2",
-        "adop-pytest-cache",
-        "API",
-        "JSON",
-        "candidate intake note",
-        "decision owner",
-        "project profile",
-        "project local",
-        "project oriented",
-        "compatibility diagnosis",
-        "dashboard common scope summary",
-        "data dashboard endpoint mode",
-        "data dashboard selected environment",
-        "data dashboard selected environment scope",
-        "data dashboard selected project scope",
-        "data dashboard selected tenant scope",
-        "data runtime surface id",
-        "data environment mode",
-        "data selected environment",
-        "data selected project scope",
-        "data selected tenant scope",
-        "data selected environment scope",
-        "judgment reason",
-        "next action",
-        "preventive action",
-        "guided path",
-        "index-local-composed-sample",
-        "use case",
-        "GitHub",
-        "AI",
-        "PROJECT",
-        "FAIL",
-        "BLOCKING",
-        "payload",
-        "localhost",
-        "platform",
-        "compatibility",
-        "fail close",
-        "preventive",
-        "branch protection",
-        "hosted gate",
-        "repo hygiene",
-        "runtime scope readback updated",
-        "carry-forward",
-        "declared-vs-observed",
-        "indexcurrent",
-        "judgment-report",
-        "maintainer-only",
-        "manager-copy",
-        "mojibake",
-        "non-current",
-        "punctuation-triple",
-        "proof-blocker",
-        "quick-compare",
-        "quick-trial",
-        "self-describing",
-        "subagent",
-        "start-trial",
-        "system dev",
-        "trial-result",
-        "trial packet",
-        "writable-shelf",
-        "worktree",
-    ]
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in (classify_term(term) for term in terms)
-    ]
-    js_results = _js_classify_terms(terms)
-
-    assert js_results == py_results
 
 
-def test_python_and_js_taxonomy_known_term_sets_stay_in_lockstep() -> None:
-    terms = (
-        sorted(KNOWN_COINED_TERMS)
-        + sorted(KNOWN_INDUSTRY_TERMS)
-        + [term.upper() for term in sorted(KNOWN_INDUSTRY_ACRONYMS)]
-        + sorted(KNOWN_FILE_CONFIG_TERMS)
-        + sorted(KNOWN_REPO_DIR_TERMS)
-        + sorted(KNOWN_OTHER_MULTIWORD_TERMS)
-        + sorted(PROPER_NOUN_TERMS)
-    )
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in (classify_term(term) for term in terms)
-    ]
-    js_results = _js_classify_terms(terms)
-
-    assert js_results == py_results
 
 
 def test_is_adoptable_classified_term_requires_signal() -> None:
@@ -1774,58 +1567,8 @@ def test_attachment_candidate_fixture_excludes_industry_heavy_terms() -> None:
     assert normalized == []
 
 
-def test_python_and_js_capture_candidates_stay_in_lockstep() -> None:
-    text = "\n".join(
-        [
-            "root clutter root clutter",
-            "workflow workflow workflow",
-            "repo hygiene repo hygiene",
-            "README README README",
-            "stable stable stable",
-            "public public public",
-        ]
-    )
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_adoptable_terms(text)
-    ]
-    js_results = _js_extract_capture_candidates(text)
-
-    assert js_results == py_results
 
 
-def test_python_and_js_candidate_gate_excludes_non_adoptable_other_phrase() -> None:
-    text = "\n".join(
-        [
-            "current issue current issue current issue",
-            "repo hygiene repo hygiene",
-        ]
-    )
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_adoptable_terms(text)
-    ]
-    js_results = _js_extract_capture_candidates(text)
-
-    assert py_results == [
-        {
-            "term": "repo hygiene",
-            "normalized": "repo hygiene",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        }
-    ]
-    assert js_results == py_results
 
 
 def test_other_multiword_phrase_boundary_sets_are_disjoint_from_industry_terms() -> None:
@@ -1836,365 +1579,30 @@ def test_industry_and_file_config_term_sets_are_disjoint() -> None:
     assert KNOWN_INDUSTRY_TERMS.isdisjoint(KNOWN_FILE_CONFIG_TERMS)
 
 
-def test_known_coined_terms_have_stable_candidate_boundaries() -> None:
-    text = "\n".join(f"{term} {term}" for term in sorted(KNOWN_COINED_TERMS))
-    term_map = extract_classified_term_map(text)
-    py_results = {item.normalized for item in extract_adoptable_terms(text, limit=100)}
-    js_results = {item["normalized"] for item in _js_extract_capture_candidates(text, limit=100)}
-    expected_candidates = {
-        term
-        for term in KNOWN_COINED_TERMS
-        if not any(other.startswith(term + " ") for other in KNOWN_COINED_TERMS if other != term)
-    }
-
-    assert {classify_term(term).label for term in KNOWN_COINED_TERMS} == {LABEL_COINED_OR_SHORTENED}
-    assert {term_map[term].label for term in expected_candidates} == {LABEL_COINED_OR_SHORTENED}
-    assert py_results == expected_candidates
-    assert js_results == expected_candidates
 
 
-def test_industry_single_terms_never_become_candidates() -> None:
-    industry_single_terms = {term for term in KNOWN_INDUSTRY_TERMS if " " not in term}
-    text = "\n".join(f"{term} {term}" for term in sorted(industry_single_terms))
-    py_results = {
-        item.normalized
-        for item in extract_adoptable_terms(text, limit=100)
-        if item.label == LABEL_INDUSTRY_TERM and " " not in item.normalized
-    }
-    js_results = {
-        item["normalized"]
-        for item in _js_extract_capture_candidates(text, limit=100)
-        if item["label"] == LABEL_INDUSTRY_TERM and " " not in item["normalized"]
-    }
-
-    assert {classify_term(term).label for term in industry_single_terms} == {LABEL_INDUSTRY_TERM}
-    assert py_results == set()
-    assert js_results == set()
 
 
-def test_known_industry_multiword_terms_have_stable_candidate_boundaries() -> None:
-    multiword_terms = {term for term in KNOWN_INDUSTRY_TERMS if " " in term}
-    text = "\n".join(f"{term} {term}" for term in sorted(multiword_terms))
-    term_map = extract_classified_term_map(text)
-    py_results = {
-        item.normalized
-        for item in extract_adoptable_terms(text, limit=100)
-        if item.label == LABEL_INDUSTRY_TERM and " " in item.normalized
-    }
-    js_results = {
-        item["normalized"]
-        for item in _js_extract_capture_candidates(text, limit=100)
-        if item["label"] == LABEL_INDUSTRY_TERM and " " in item["normalized"]
-    }
-
-    assert {term_map[term].label for term in multiword_terms} == {LABEL_INDUSTRY_TERM}
-    assert py_results == set()
-    assert js_results == set()
 
 
-def test_known_other_multiword_phrases_have_stable_candidate_boundaries() -> None:
-    text = "\n".join(f"{term} {term}" for term in sorted(KNOWN_OTHER_MULTIWORD_TERMS))
-    term_map = extract_classified_term_map(text)
-    py_results = {
-        item.normalized
-        for item in extract_adoptable_terms(text, limit=50)
-        if item.label == LABEL_OTHER
-    }
-    js_results = {
-        item["normalized"]
-        for item in _js_extract_capture_candidates(text, limit=50)
-        if item["label"] == LABEL_OTHER
-    }
-
-    assert {term_map[term].label for term in KNOWN_OTHER_MULTIWORD_TERMS} == {LABEL_OTHER}
-    assert py_results == ADOPTABLE_OTHER_MULTIWORD_TERMS
-    assert js_results == ADOPTABLE_OTHER_MULTIWORD_TERMS
 
 
-def test_file_config_and_repo_dir_terms_never_become_candidates() -> None:
-    terms = sorted(KNOWN_FILE_CONFIG_TERMS | KNOWN_REPO_DIR_TERMS)
-    text = "\n".join(f"{term} {term}" for term in terms)
-    py_results = {
-        item.normalized
-        for item in extract_adoptable_terms(text, limit=200)
-    }
-    js_results = {
-        item["normalized"]
-        for item in _js_extract_capture_candidates(text, limit=200)
-    }
-
-    assert {
-        classify_term(term).label
-        for term in KNOWN_FILE_CONFIG_TERMS | KNOWN_REPO_DIR_TERMS
-    } == {LABEL_FILE_CONFIG_IDENTIFIER}
-    assert py_results & (KNOWN_FILE_CONFIG_TERMS | KNOWN_REPO_DIR_TERMS) == set()
-    assert js_results & (KNOWN_FILE_CONFIG_TERMS | KNOWN_REPO_DIR_TERMS) == set()
 
 
-def test_proper_noun_terms_never_become_candidates() -> None:
-    text = "\n".join(f"{term} {term}" for term in sorted(PROPER_NOUN_TERMS))
-    py_results = {
-        item.normalized
-        for item in extract_adoptable_terms(text, limit=100)
-    }
-    js_results = {
-        item["normalized"]
-        for item in _js_extract_capture_candidates(text, limit=100)
-    }
-
-    assert py_results == set()
-    assert js_results == set()
 
 
-def test_python_and_js_attachment_candidate_fixture_stay_in_lockstep() -> None:
-    text = ATTACHMENT_CANDIDATES_FIXTURE_PATH.read_text(encoding="utf-8")
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_adoptable_terms(text)
-    ]
-    js_results = _js_extract_capture_candidates(text)
-
-    assert js_results == py_results
 
 
-def test_python_and_js_preview_terms_include_single_occurrence_high_signal_terms() -> None:
-    text = "\n".join(
-        [
-            "current state",
-            "github standard",
-            "current issue",
-            "source term",
-            "preferred term",
-            "status",
-            "preview",
-            "candidate",
-            "README",
-            "review",
-        ]
-    )
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_preview_terms(text)
-    ]
-    js_results = _js_extract_capture_preview_terms(text)
-
-    assert py_results == [
-        {
-            "term": "github standard",
-            "normalized": "github standard",
-            "label": LABEL_COINED_OR_SHORTENED,
-            "reason": "known_coined_phrase",
-        },
-        {
-            "term": "current state",
-            "normalized": "current state",
-            "label": LABEL_COINED_OR_SHORTENED,
-            "reason": "known_coined_phrase",
-        },
-        {
-            "term": "preferred term",
-            "normalized": "preferred term",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-        {
-            "term": "current issue",
-            "normalized": "current issue",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-        {
-            "term": "source term",
-            "normalized": "source term",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-    ]
-    assert js_results == py_results
 
 
-def test_python_and_js_preview_terms_pick_ui_labels_from_natural_sentence() -> None:
-    text = "source term と preferred term と status と preview と candidate の意味が曖昧です。"
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_preview_terms(text)
-    ]
-    js_results = _js_extract_capture_preview_terms(text)
-
-    assert py_results == [
-        {
-            "term": "preferred term",
-            "normalized": "preferred term",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-        {
-            "term": "source term",
-            "normalized": "source term",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-        {
-            "term": "candidate",
-            "normalized": "candidate",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-        {
-            "term": "preview",
-            "normalized": "preview",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-        {
-            "term": "status",
-            "normalized": "status",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-    ]
-    assert js_results == py_results
 
 
-def test_python_and_js_preview_terms_pick_status_from_ui_update_sentence() -> None:
-    text = "実行系でも Analyze Draft が Draft Output と status を更新するところまで確認しました。"
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_preview_terms(text)
-    ]
-    js_results = _js_extract_capture_preview_terms(text)
-
-    assert py_results == [
-        {
-            "term": "Analyze Draft",
-            "normalized": "analyze draft",
-            "label": LABEL_FILE_CONFIG_IDENTIFIER,
-            "reason": "config_term",
-        },
-        {
-            "term": "Draft Output",
-            "normalized": "draft output",
-            "label": LABEL_FILE_CONFIG_IDENTIFIER,
-            "reason": "config_term",
-        },
-        {
-            "term": "status",
-            "normalized": "status",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-    ]
-    assert js_results == py_results
 
 
-def test_python_and_js_investigation_terms_pick_ui_labels_without_showing_classification_noise() -> None:
-    text = "実行系でも Analyze Draft が Draft Output と status を更新するところまで確認しました。"
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_investigation_terms(text)
-    ]
-    js_results = _js_extract_capture_investigation_terms(text)
-
-    assert py_results == [
-        {
-            "term": "Analyze Draft",
-            "normalized": "analyze draft",
-            "label": LABEL_FILE_CONFIG_IDENTIFIER,
-            "reason": "config_term",
-        },
-        {
-            "term": "Draft Output",
-            "normalized": "draft output",
-            "label": LABEL_FILE_CONFIG_IDENTIFIER,
-            "reason": "config_term",
-        },
-        {
-            "term": "status",
-            "normalized": "status",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-    ]
-    assert js_results == py_results
 
 
-def test_python_and_js_investigation_terms_pick_mixed_language_unknown_single() -> None:
-    text = "まだ polishing の余地はある"
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_investigation_terms(text)
-    ]
-    js_results = _js_extract_capture_investigation_terms(text)
-
-    assert py_results == [
-        {
-            "term": "polishing",
-            "normalized": "polishing",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        }
-    ]
-    assert js_results == py_results
 
 
-def test_python_and_js_investigation_terms_pick_operational_english_from_japanese_explanation() -> None:
-    text = "こちらで把握している不整合と failing test は解消され、179 passed です。worktree には本件以外の差分もあるので"
-    py_results = [
-        {
-            "term": item.term,
-            "normalized": item.normalized,
-            "label": item.label,
-            "reason": item.reason,
-        }
-        for item in extract_investigation_terms(text)
-    ]
-    js_results = _js_extract_capture_investigation_terms(text)
-
-    assert py_results == [
-        {
-            "term": "failing test",
-            "normalized": "failing test",
-            "label": LABEL_OTHER,
-            "reason": "ordinary_multiword_phrase",
-        },
-        {
-            "term": "passed",
-            "normalized": "passed",
-            "label": LABEL_OTHER,
-            "reason": "generic_single_word",
-        },
-    ]
-    assert js_results == py_results
 
 
 def test_registered_term_keeps_type_and_marks_registered() -> None:

@@ -4,6 +4,21 @@ Detailed specification for the runtime and support components. Entry point: [REA
 
 ---
 
+## HTML Rulebook and Recovery implementation
+
+The binding detailed design is
+[`docs/veil-html-recovery-ux-design.md`](veil-html-recovery-ux-design.md).
+The generated page implements its static Rulebook plus exactly two intentional
+actions: review a complete conversation and request a change or retirement of
+an existing rule. The old raw-text diagnostic, candidate list, multiple prompt
+copies, command copies, registration form, and delete command are not part of
+the page.
+
+Automated source, DB, locale, Skill, freshness, real-browser, integration, and
+delivery acceptance establish operational release readiness. The optional
+five-user protocol in the detailed design is post-release product research; it
+does not block a release and is never simulated by agents.
+
 ## 1. Design principles
 
 - **Local-only**: runs on Python standard library alone
@@ -267,34 +282,33 @@ python shared/runtime/veil-status.py --json
 4. `shared/tools/veil-profile-export.py`
    - Export current default profile as a JSON domain profile pack
 5. `shared/tools/veil-db.py`
-   - Handle SQLite canonical `init-db / import-seed / readback / upsert-rule / export-html`
-   - `export-html` writes `~/.veil/veil.html`: a searchable browser list of all registered terms with copy buttons
+   - Handle SQLite canonical `init-db / import-seed / readback / upsert-rule / upsert-batch / maintain-batch / export-html`
+   - `maintain-batch` changes or retires exact existing rules through one
+     validated atomic JSON operation set.
+   - `export-html` writes `~/.veil/veil.html`: the static Rulebook and Recovery
+     surface.
 
 **Review and modification via HTML**
 
 `export-html` is the browser review route:
 
-1. Regenerate `~/.veil/veil.html`.
-2. Open it in a browser; the UI localizes to English, Japanese, Korean, Simplified Chinese, Traditional Chinese, or Arabic.
-3. Normal task-close review runs in the installed Skill. The HTML is an
-   optional recovery surface, not the semantic decision engine.
-4. Paste the exact text and use **Copy complete AI review request** as the main
-   route. It sends the complete text to the installed semantic-frame workflow
-   and remains one user action regardless of term count.
-5. **Run local diagnostic preview** is optional. It is contract v1 regex output
-   and may miss or misclassify decisions. Zero preview entries must never be
-   presented as proof that no vocabulary decision exists.
-6. The copied request requires contract v2 frames, a separate critic pass,
-   exact evidence, at most one combined question, and no write before acceptance.
-7. After the user accepts the combined proposal, the chat-side Skill records
-   all accepted mappings through one validated JSON batch. User text is data
-   and must not be interpolated into shell commands.
-8. Selecting an individual diagnostic item is an optional fine-tuning route;
-   it must be verified through AI review before saving.
-9. Registered rows use `Preferred`, `Alternative 1`, and `Alternative 2`. Alternatives are optional.
-10. **Advanced: copy commands** is a recovery route, not the normal workflow.
+1. Regenerate `~/.veil/veil.html` and open it in a browser.
+2. The Rulebook is first. Search matches source, preferred, and alternative
+   wording. Retired rules are absent.
+3. English and Japanese have complete embedded UI packs. Other browser locales
+   fall back to English.
+4. Normal task-close review runs in the installed Skill. For recovery, paste
+   the exact conversation under **Review a conversation** and copy one complete
+   request. The page does not classify, reduce, or propose terms.
+5. For an existing rule, choose **Request change**, then request either a new
+   preferred form or retirement. Copying only creates a request; it does not
+   save the change.
+6. The Skill verifies the current canonical row, rejects stale requests, asks
+   for one confirmation, applies all confirmed operations with
+   `maintain-batch`, regenerates HTML, and updates existing sync targets.
 
-The static browser file never writes directly to the canonical DB. Accepted chat-side registration must regenerate HTML and sync before it is called complete.
+The static browser file never writes directly to the canonical DB, browser
+storage, or the network.
 
 **Commands**
 
@@ -455,13 +469,11 @@ result.
   - `template_sha256`: UTF-8 bytes of `_HTML_TEMPLATE`;
   - `i18n_sha256`: canonical JSON of the full embedded `_HTML_UI_BY_LANG`
     payload;
-  - `capture_taxonomy_sha256`: canonical JSON of
-    `capture_taxonomy_payload()`;
   - `active_rules_sha256`: canonical JSON of the normalized, sorted active
     rows rendered into the table. Each row contains only `term_original`,
     `term_normalized`, `preferred`, `preferred_alt_2`, and `preferred_alt_3`;
   - `settings_sha256`: canonical JSON of the embedded `default_lang`,
-    `db_cli_path`, `db_path`, and `html_path`; and
+    `db_path`, and `html_path`; and
   - `content_sha256`: the final document fingerprint with this field's value
     replaced by its empty placeholder.
 
@@ -491,8 +503,17 @@ A UX release is complete only when all of the following are true in the same sou
 
 1. classifier, outcome, locale, DB, Skill, and HTML tests pass;
 2. stratified evaluation meets the outcome success gates in section 5;
-3. browser E2E confirms the normal no-decision route, existing-match auto-resolution, the one-combined-decision route for multiple exceptions, locale switching, and optional registration-form handoff;
-4. `veil-status --check --json` reports every required delivery member `OK` after installation;
+3. browser E2E confirms Rulebook-first order, search and no-result recovery,
+   one complete-conversation action, clipboard fallback, English/Japanese
+   switching, valid change/retire requests, invalid-form blocking, and zero
+   direct writes;
+4. `veil-status --check --json` reports every required delivery member `OK`
+   after installation;
 5. hosted checks pass for the merged source revision.
+
+The operational release claim is bounded: it certifies the delivered Rulebook,
+Recovery, maintenance, and sync behavior. It does not claim general semantic
+accuracy beyond separately recorded bounded semantic evidence, and it never
+uses synthetic agents as human UX participants.
 
 Generating or detecting a delivery member is not enough: source, generated HTML, installed Skills, and declared inputs must be fresh as one delivery set. Installation, distribution, commit, merge, and push remain explicit release actions and are not implied by read-only UX evaluation.

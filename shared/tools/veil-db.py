@@ -18,6 +18,7 @@ try:
         get_html_ui_for_lang,
         get_protected_repo_dir_name,
         init_db,
+        maintain_rules_atomic,
         readback_rules,
         replace_rules_from_seed,
         upsert_rule,
@@ -35,6 +36,7 @@ except ModuleNotFoundError:
         get_html_ui_for_lang,
         get_protected_repo_dir_name,
         init_db,
+        maintain_rules_atomic,
         readback_rules,
         replace_rules_from_seed,
         upsert_rule,
@@ -82,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_batch_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
     upsert_batch_parser.add_argument("--input-json", required=True, help=t("db.upsert_batch_file_help"))
     upsert_batch_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
+
+    maintain_batch_parser = subparsers.add_parser("maintain-batch", help=t("db.maintain_batch_help"))
+    maintain_batch_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
+    maintain_batch_parser.add_argument("--input-json", required=True, help=t("db.maintain_batch_file_help"))
+    maintain_batch_parser.add_argument("--json", action="store_true", help=t("db.json_help"))
 
     delete_parser = subparsers.add_parser("delete-rule", help=t("db.delete_rule_help"))
     delete_parser.add_argument("--db", default=DEFAULT_DB_PATH, help=t("db.db_help"))
@@ -227,6 +234,95 @@ def print_upsert_batch_text(payload: dict[str, Any]) -> None:
     print(f"UPSERT-BATCH: db={payload['db_path']} rows={payload['processed_count']}")
 
 
+_MAINTENANCE_ALLOWED_FIELDS = {
+    "action",
+    "term",
+    "current_preferred",
+    "preferred",
+    "reason",
+}
+
+
+def load_maintenance_batch(path: str) -> list[dict[str, str | None]]:
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read maintenance JSON: {exc}") from exc
+    if not isinstance(raw, dict) or raw.get("contract_version") != "1":
+        raise ValueError("maintenance JSON must be an object with contract_version '1'")
+    operations = raw.get("operations")
+    if not isinstance(operations, list) or not operations:
+        raise ValueError("maintenance JSON operations must be a non-empty array")
+    if len(operations) > 100:
+        raise ValueError("maintenance JSON may contain at most 100 operations")
+
+    validated: list[dict[str, str | None]] = []
+    for index, item in enumerate(operations):
+        if not isinstance(item, dict):
+            raise ValueError(f"operations[{index}] must be an object")
+        unknown = sorted(set(item) - _MAINTENANCE_ALLOWED_FIELDS)
+        if unknown:
+            raise ValueError(f"operations[{index}] has unsupported fields: {', '.join(unknown)}")
+        action = item.get("action")
+        term = item.get("term")
+        current_preferred = item.get("current_preferred")
+        preferred = item.get("preferred")
+        reason = item.get("reason")
+        if action not in {"change", "retire"}:
+            raise ValueError(f"operations[{index}].action must be change or retire")
+        if not isinstance(term, str) or not term.strip():
+            raise ValueError(f"operations[{index}].term must be a non-empty string")
+        if not isinstance(current_preferred, str) or not current_preferred.strip():
+            raise ValueError(
+                f"operations[{index}].current_preferred must be a non-empty string"
+            )
+        if preferred is not None and not isinstance(preferred, str):
+            raise ValueError(f"operations[{index}].preferred must be a string or null")
+        if reason is not None and not isinstance(reason, str):
+            raise ValueError(f"operations[{index}].reason must be a string or null")
+        if action == "change" and (not isinstance(preferred, str) or not preferred.strip()):
+            raise ValueError(f"operations[{index}].preferred is required for change")
+        if action == "retire" and preferred not in (None, ""):
+            raise ValueError(f"operations[{index}].preferred must be null for retire")
+        validated.append(
+            {
+                "action": action,
+                "term": term.strip(),
+                "current_preferred": current_preferred.strip(),
+                "preferred": preferred.strip() if isinstance(preferred, str) else None,
+                "reason": reason.strip() if isinstance(reason, str) else None,
+            }
+        )
+    return validated
+
+
+def maintain_batch(db_path: str, input_json: str) -> dict[str, Any]:
+    try:
+        operations = load_maintenance_batch(input_json)
+    except ValueError as exc:
+        return {
+            "status": "error",
+            "reason": "invalid_maintenance_payload",
+            "db_path": db_path,
+            "input_json": input_json,
+            "error": str(exc),
+            "processed_count": 0,
+            "results": [],
+            "atomic": True,
+        }
+    payload = maintain_rules_atomic(db_path, operations)
+    payload["input_json"] = input_json
+    return payload
+
+
+def print_maintenance_batch_text(payload: dict[str, Any]) -> None:
+    if payload["status"] != "ok":
+        reason = str(payload.get("reason") or "store.maintenance_write_failed")
+        print(f"ERROR: {t(reason)} ({payload.get('error', 'maintenance failed')})")
+        return
+    print(f"MAINTAIN-BATCH: db={payload['db_path']} operations={payload['processed_count']}")
+
+
 def print_delete_text(payload: dict[str, Any]) -> None:
     if payload["status"] != "ok":
         tag = "ERROR" if payload["status"] == "error" else "SKIP"
@@ -344,6 +440,14 @@ def main() -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
             print_upsert_batch_text(payload)
+        return 0 if payload["status"] == "ok" else 1
+
+    if args.command == "maintain-batch":
+        payload = maintain_batch(args.db, args.input_json)
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print_maintenance_batch_text(payload)
         return 0 if payload["status"] == "ok" else 1
 
     if args.command == "delete-rule":

@@ -24,10 +24,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from shared.tools.veil_capture_taxonomy import capture_taxonomy_payload
 from shared.tools.veil_delivery_freshness import read_manifest, verify_manifest
 from shared.tools.veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG
-from shared.tools.veil_rule_store import DB_CLI_PATH, readback_rules
+from shared.tools.veil_rule_store import readback_rules
 from shared.tools.veil_locale import t
 
 CONFIG_DIR = os.path.expanduser("~/.veil")
@@ -113,7 +112,6 @@ def _html_state(db_path: str) -> str:
     # The language is a rendering setting, not canonical data. Its stored value
     # is protected by content_sha256 while the other settings are recomputed.
     settings = {
-        "db_cli_path": DB_CLI_PATH,
         "db_path": Path(db_path).as_posix(),
         "html_path": Path(DEFAULT_HTML_PATH).as_posix(),
         "default_lang": default_lang,
@@ -122,7 +120,6 @@ def _html_state(db_path: str) -> str:
         content,
         template=_HTML_TEMPLATE,
         ui_by_lang=_HTML_UI_BY_LANG,
-        capture_taxonomy=capture_taxonomy_payload(),
         rows=result["rows"],
         settings=settings,
     )

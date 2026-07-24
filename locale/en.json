@@ -97,6 +97,8 @@
     "upsert_rule_help": "Add or update 1 rule in SQLite canonical.",
     "upsert_batch_help": "Add or update accepted rules from validated JSON.",
     "upsert_batch_file_help": "UTF-8 JSON file containing contract_version and a rules array.",
+    "maintain_batch_help": "Change or retire existing rules from validated JSON.",
+    "maintain_batch_file_help": "UTF-8 JSON file containing contract_version and an operations array.",
     "delete_rule_help": "Delete 1 rule from SQLite canonical.",
     "term_help": "Original (source) term.",
     "preferred_help": "Preferred (adopted) term.",
@@ -134,7 +136,10 @@
     "invalid_profile_level": "Invalid profile level. Use required, recommended, or observe.",
     "batch_validation_failed": "Batch validation failed before any rule was written.",
     "batch_duplicate_term": "The batch contains the same normalized term more than once.",
-    "batch_write_failed": "Atomic batch write failed; no rule from the batch was committed."
+    "batch_write_failed": "Atomic batch write failed; no rule from the batch was committed.",
+    "maintenance_validation_failed": "Maintenance validation failed before any rule was changed.",
+    "maintenance_write_failed": "Atomic maintenance failed; no requested operation was committed.",
+    "maintenance_stale": "The rule changed after the request was prepared; no requested operation was committed."
   },
   "html": {
     "title": "VEIL - Vocabulary Rules",

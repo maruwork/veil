@@ -58,6 +58,20 @@ def test_veil_capture_skill_files_keep_safe_registration_contract() -> None:
         assert "--add <path>" not in content
 
 
+def test_veil_capture_skill_files_define_confirmed_atomic_maintenance() -> None:
+    for path in SKILL_PATHS:
+        content = path.read_text(encoding="utf-8")
+        assert "Rule-maintenance requests" in content
+        assert "maintain-batch" in content
+        assert '"action": "change"' in content
+        assert '"action": "retire"' in content
+        assert '"current_preferred": "..."' in content
+        assert "stale" in content.lower()
+        assert "ask for one confirmation" in content
+        assert "`status=ok`, `atomic=true`" in content
+        assert "regenerate HTML" in content
+
+
 def test_veil_capture_skill_files_use_semantic_frames_and_critic() -> None:
     for path in SKILL_PATHS:
         content = path.read_text(encoding="utf-8")

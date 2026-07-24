@@ -5,492 +5,289 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>__UI_TITLE__</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    color-scheme: light;
+    --ink: #172033;
+    --muted: #667085;
+    --line: #dfe3ea;
+    --soft: #f7f8fa;
+    --accent: #2855d9;
+    --accent-hover: #1f46b8;
+    --danger: #b42318;
+  }
+  * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1a1a1a;
-    padding: 32px 24px;
-  }
-  header {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    margin-bottom: 32px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 16px;
-  }
-  header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: #000; }
-  header span { font-size: 12px; color: #666; }
-  .search-bar { margin-bottom: 24px; }
-  .search-bar input {
-    width: 100%;
-    max-width: 360px;
-    padding: 8px 12px;
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    color: #1a1a1a;
-    font-size: 13px;
-    outline: none;
-  }
-  .search-bar input:focus { border-color: #aaa; }
-  .search-bar input::placeholder { color: #bbb; }
-  .composer {
-    max-width: 900px;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: #fafafa;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-  }
-  .composer h2 {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-  .composer-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-  }
-  .composer-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .composer-field span {
-    font-size: 12px;
-    color: #555;
-  }
-  .composer-field input,
-  .composer-field select {
-    width: 100%;
-    padding: 8px 10px;
+    margin: 0;
     background: #fff;
-    border: 1px solid #d8d8d8;
-    border-radius: 6px;
-    color: #1a1a1a;
-    font-size: 13px;
+    color: var(--ink);
+    font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
-  .composer-field input:focus,
-  .composer-field select:focus {
-    outline: 2px solid #2563eb;
-    outline-offset: 1px;
+  main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 64px; }
+  header { margin-bottom: 28px; }
+  h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .02em; }
+  h2 { margin: 0 0 8px; font-size: 18px; }
+  h3 { margin: 0 0 6px; font-size: 15px; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .meta { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .panel {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
   }
-  .composer-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
+  .search {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
   }
-  .advanced-options {
+  input:focus, textarea:focus, select:focus, button:focus-visible, summary:focus-visible {
+    outline: 3px solid #b9c8ff;
+    outline-offset: 2px;
+  }
+  .rule-list { margin-top: 14px; border-top: 1px solid var(--line); }
+  .rule-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .term { font: 13px/1.5 "SFMono-Regular", Consolas, monospace; color: var(--accent); }
+  .preferred { font-weight: 600; }
+  .alternatives { margin-top: 6px; color: var(--muted); font-size: 12px; }
+  .alternatives summary { cursor: pointer; }
+  .alternatives ul { margin: 6px 0 0; padding-left: 20px; }
+  .button {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+  }
+  .button:hover { background: var(--soft); }
+  .button.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .button.primary:hover { background: var(--accent-hover); }
+  .button:disabled { opacity: .45; cursor: not-allowed; }
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .action-card {
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--soft);
+  }
+  textarea, select, input[type="text"] {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+  }
+  textarea { min-height: 150px; resize: vertical; }
+  .field { display: block; margin-top: 14px; font-weight: 600; }
+  .field small { display: block; color: var(--muted); font-weight: 400; }
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .status { min-height: 22px; margin-top: 12px; color: var(--muted); }
+  .status.success { color: #067647; }
+  .status.error { color: var(--danger); }
+  .empty-state { margin-top: 14px; padding: 18px; border-radius: 8px; background: var(--soft); }
+  .hidden { display: none !important; }
+  .selected-rule {
     margin-top: 12px;
     padding: 10px 12px;
-    border: 1px solid #d8e1ee;
     border-radius: 8px;
-    background: #fbfcfe;
+    background: #eef2ff;
   }
-  .advanced-options summary {
-    cursor: pointer;
-    color: #5a6472;
-    font-size: 12px;
-    font-weight: 600;
+  .change-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+  @media (max-width: 720px) {
+    .rule-row { grid-template-columns: 1fr; gap: 8px; }
+    .actions-grid { grid-template-columns: 1fr; }
   }
-  .advanced-options .composer-grid { margin-top: 12px; }
-  .capture-panel {
-    max-width: 900px;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: #f6f8fb;
-    border: 1px solid #d9e2f0;
-    border-radius: 10px;
-  }
-  .capture-panel h2 {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
-  .capture-panel p {
-    font-size: 12px;
-    color: #5a6472;
-    margin-bottom: 12px;
-  }
-  .capture-panel textarea {
-    width: 100%;
-    min-height: 140px;
-    padding: 10px 12px;
-    resize: vertical;
-    background: #fff;
-    border: 1px solid #d8d8d8;
-    border-radius: 8px;
-    color: #1a1a1a;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .capture-panel textarea:focus {
-    outline: 2px solid #2563eb;
-    outline-offset: 1px;
-  }
-  .capture-output {
-    margin-top: 14px;
-    padding: 12px;
-    background: #fff;
-    border: 1px solid #d8d8d8;
-    border-radius: 8px;
-  }
-  .capture-output h3 {
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .capture-result-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .capture-result-line {
-    width: 100%;
-    text-align: left;
-    padding: 10px 12px;
-    background: #f8fafc;
-    border: 1px solid #d8e1ee;
-    border-radius: 8px;
-    color: #1f2937;
-    font-size: 12px;
-    line-height: 1.5;
-    cursor: pointer;
-  }
-  .capture-result-line:hover {
-    background: #eef4ff;
-    border-color: #b9cdf5;
-  }
-  .capture-result-empty {
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 12px;
-    line-height: 1.6;
-    color: #222;
-  }
-  .muted-note {
-    margin-top: 8px;
-    font-size: 11px;
-    color: #6b7280;
-  }
-  table { width: 100%; max-width: 900px; border-collapse: collapse; }
-  thead th {
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: #666;
-    text-transform: uppercase;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
-  tbody tr:hover { background: #f8f8f8; }
-  td { padding: 10px 12px; vertical-align: middle; }
-  .term { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; color: #2563eb; }
-  .section-label {
-    display: inline-block;
-    width: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #444;
-    text-transform: uppercase;
-    margin-right: 4px;
-  }
-  .cell { display: flex; align-items: center; gap: 8px; }
-  .preferred { font-weight: 500; color: #1a1a1a; }
-  .alt { color: #555; font-size: 13px; }
-  .copy-btn {
-    flex-shrink: 0;
-    background: #f1f1f1;
-    border: 1px solid #d8d8d8;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: #444;
-    font-size: 11px;
-    line-height: 1;
-    transition: color 0.1s, background 0.1s, border-color 0.1s;
-  }
-  .copy-btn:hover { color: #555; background: #ebebeb; border-color: #c8c8c8; }
-  .copy-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .copy-btn.copied { color: #2f7d3d; border-color: #9fd3aa; }
-  .primary-btn {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-  }
-  .primary-btn:hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
-  .danger-btn {
-    background: #fff7f7;
-    border-color: #efc8c8;
-    color: #b42318;
-  }
-  .danger-btn:hover { background: #fdecec; border-color: #e9a8a8; color: #912018; }
-  .status {
-    min-height: 20px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    color: #666;
-  }
-  .status.error { color: #9a3412; }
-  .status.success { color: #166534; }
-  .hidden { display: none; }
-  [dir="rtl"] header { flex-direction: row-reverse; justify-content: flex-end; }
-  [dir="rtl"] thead th,
-  [dir="rtl"] td { text-align: right; }
-  [dir="rtl"] .section-label { margin-right: 0; margin-left: 4px; }
-  [dir="rtl"] .cell { justify-content: flex-end; }
 </style>
 </head>
 <body>
-<header>
-  <h1>VEIL</h1>
-  <span id="count">__UI_COUNT_INIT__</span>
-</header>
-<div class="search-bar">
-  <input type="text" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" oninput="filterRows()">
-</div>
-<section class="capture-panel">
-  <h2 id="capture-title">__UI_CAPTURE_TITLE__</h2>
-  <p id="capture-description">__UI_CAPTURE_DESCRIPTION__</p>
-  <textarea id="capture-input" placeholder="__UI_CAPTURE_PLACEHOLDER__"></textarea>
-  <div class="composer-actions">
-    <button type="button" class="copy-btn primary-btn" id="capture-copy-exceptions-btn" onclick="copyCaptureReviewRequest()">__UI_CAPTURE_EXCEPTIONS_COPY_BTN__</button>
-    <button type="button" class="copy-btn" id="capture-analyze-btn" onclick="analyzeCaptureInput()">__UI_CAPTURE_BTN__</button>
-  </div>
-  <div class="capture-output">
-    <h3 id="capture-result-title">__UI_CAPTURE_RESULT_TITLE__</h3>
-    <div id="capture-output" class="capture-result-empty">__UI_CAPTURE_EMPTY__</div>
-    <div class="muted-note" id="capture-note">__UI_CAPTURE_NOTE__</div>
-  </div>
-</section>
-<section class="composer">
-  <h2 id="register-title">__UI_REGISTER_TITLE__</h2>
-  <div class="composer-grid">
-    <label class="composer-field">
-      <span id="label-term">__UI_FIELD_TERM__</span>
-      <input type="text" id="new-term" placeholder="__UI_REGISTER_TERM_PLACEHOLDER__">
-    </label>
-    <label class="composer-field">
-      <span id="label-preferred">__UI_FIELD_PREFERRED__</span>
-      <input type="text" id="new-preferred" placeholder="__UI_REGISTER_PREFERRED_PLACEHOLDER__">
-    </label>
-  </div>
-  <details class="advanced-options">
-    <summary id="advanced-options-title">__UI_ADVANCED_OPTIONS__</summary>
-    <div class="composer-grid">
-      <label class="composer-field">
-        <span id="label-alt2">__UI_FIELD_ALT2__</span>
-        <input type="text" id="new-alt2" placeholder="__UI_REGISTER_ALT2_PLACEHOLDER__">
-      </label>
-      <label class="composer-field">
-        <span id="label-alt3">__UI_FIELD_ALT3__</span>
-        <input type="text" id="new-alt3" placeholder="__UI_REGISTER_ALT3_PLACEHOLDER__">
-      </label>
-    </div>
-    <div class="composer-actions">
-      <button type="button" class="copy-btn" id="register-commands-btn" onclick="copyRegisterInstruction()">__UI_REGISTER_COMMANDS_BTN__</button>
-    </div>
-  </details>
-  <div class="composer-actions">
-    <button type="button" class="copy-btn primary-btn" id="register-btn" onclick="copyRegisterPrompt()">__UI_REGISTER_BTN__</button>
-  </div>
-</section>
-<p id="instruction" style="font-size:13px;color:#666;margin-bottom:16px;">__UI_INSTRUCTION__</p>
-<div id="status" class="status" aria-live="polite"></div>
-<table>
-  <thead>
-    <tr>
-      <th id="col-term" style="width:220px">__UI_COL_TERM__</th>
-      <th id="col-preferred" style="width:220px">__UI_COL_PREFERRED__</th>
-      <th id="col-alt2" style="width:220px">__UI_COL_ALT2__</th>
-      <th id="col-alt3">__UI_COL_ALT3__</th>
-      <th id="col-actions" style="width:120px">__UI_COL_ACTIONS__</th>
-    </tr>
-  </thead>
-  <tbody id="tbody">
+<main>
+  <header>
+    <h1 id="page-title">__UI_RULEBOOK_TITLE__</h1>
+    <p id="page-description" class="muted">__UI_RULEBOOK_DESCRIPTION__</p>
+    <p class="meta"><span id="count">__UI_COUNT_INIT__</span> &middot; <span id="generated-label">__UI_GENERATED_LABEL__</span> <time id="generated-at">__GENERATED_AT__</time></p>
+  </header>
+
+  <section class="panel" aria-labelledby="rulebook-heading">
+    <h2 id="rulebook-heading">__UI_RULEBOOK_HEADING__</h2>
+    <input class="search" type="search" id="search" placeholder="__UI_SEARCH_PLACEHOLDER__" autocomplete="off">
+    <div id="rule-list" class="rule-list">
 __ROWS__
-  </tbody>
-</table>
+    </div>
+    <p id="no-match" class="empty-state hidden">__UI_NO_MATCH__</p>
+    <p id="empty-rulebook" class="empty-state __EMPTY_CLASS__">__UI_EMPTY_RULEBOOK__</p>
+  </section>
+
+  <section class="panel" aria-labelledby="actions-heading">
+    <h2 id="actions-heading">__UI_ACTIONS_TITLE__</h2>
+    <p id="actions-description" class="muted">__UI_ACTIONS_DESCRIPTION__</p>
+    <div class="actions-grid">
+      <section class="action-card" aria-labelledby="review-heading">
+        <h3 id="review-heading">__UI_REVIEW_TITLE__</h3>
+        <p id="review-description" class="muted">__UI_REVIEW_DESCRIPTION__</p>
+        <label class="field" for="review-input">
+          <span id="review-label">__UI_REVIEW_LABEL__</span>
+          <textarea id="review-input" placeholder="__UI_REVIEW_PLACEHOLDER__"></textarea>
+        </label>
+        <div class="card-actions">
+          <button class="button primary" type="button" id="review-copy-btn" disabled>__UI_REVIEW_COPY_BTN__</button>
+        </div>
+      </section>
+
+      <section class="action-card" aria-labelledby="change-heading">
+        <h3 id="change-heading">__UI_CHANGE_TITLE__</h3>
+        <p id="change-description" class="muted">__UI_CHANGE_DESCRIPTION__</p>
+        <p id="change-empty" class="empty-state">__UI_CHANGE_EMPTY__</p>
+        <form id="change-form" class="change-form hidden">
+          <div class="selected-rule">
+            <span id="selected-term-label">__UI_SELECTED_TERM_LABEL__</span>
+            <strong id="selected-term"></strong>
+            <br>
+            <span id="selected-preferred-label">__UI_SELECTED_PREFERRED_LABEL__</span>
+            <strong id="selected-preferred"></strong>
+          </div>
+          <label class="field" for="change-intent">
+            <span id="change-intent-label">__UI_CHANGE_INTENT_LABEL__</span>
+            <select id="change-intent">
+              <option value="change">__UI_CHANGE_OPTION__</option>
+              <option value="retire">__UI_RETIRE_OPTION__</option>
+            </select>
+          </label>
+          <label class="field" id="requested-preferred-field" for="requested-preferred">
+            <span id="requested-preferred-label">__UI_REQUESTED_PREFERRED_LABEL__</span>
+            <input type="text" id="requested-preferred">
+          </label>
+          <label class="field" for="change-reason">
+            <span id="change-reason-label">__UI_CHANGE_REASON_LABEL__</span>
+            <small id="change-reason-help">__UI_CHANGE_REASON_HELP__</small>
+            <input type="text" id="change-reason">
+          </label>
+          <div class="card-actions">
+            <button class="button primary" type="submit" id="change-copy-btn">__UI_CHANGE_COPY_BTN__</button>
+            <button class="button" type="button" id="change-cancel-btn">__UI_CANCEL_BTN__</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </section>
+</main>
+
 <script>
   const _i18n = __UI_I18N__;
-  const _captureConfig = __CAPTURE_CONFIG__;
   const _defaultLang = "__UI_LANG__";
-  const _dbCliPath = __DB_CLI_PATH__;
-  const _dbPath = __DB_PATH__;
-  const _htmlPath = __HTML_PATH__;
-  let _captureResults = [];
   let _activeLocale = "en";
+  let _selectedRule = null;
 
   function normalizeLocale(raw) {
-    const value = String(raw || '').toLowerCase();
-    if (value.startsWith('ja')) return 'ja';
-    if (value.startsWith('ko')) return 'ko';
-    if (value.startsWith('ar')) return 'ar';
-    if (value.startsWith('zh')) {
-      if (value.includes('hant') || value.includes('tw') || value.includes('hk') || value.includes('mo')) {
-        return 'zh-hant';
-      }
-      return 'zh-hans';
-    }
-    return 'en';
+    return String(raw || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
   }
 
   function pickLocale() {
     const candidates = Array.isArray(navigator.languages) && navigator.languages.length
-      ? navigator.languages
-      : [navigator.language, _defaultLang];
+      ? navigator.languages : [navigator.language, _defaultLang];
     for (const raw of candidates) {
-      const normalized = normalizeLocale(raw);
-      if (_i18n[normalized]) {
-        return normalized;
-      }
+      const locale = normalizeLocale(raw);
+      if (_i18n[locale]) return locale;
     }
-    const fallback = normalizeLocale(_defaultLang);
-    return _i18n[fallback] ? fallback : 'en';
-  }
-
-  function localeTag(locale) {
-    if (locale === 'zh-hans') return 'zh-CN';
-    if (locale === 'zh-hant') return 'zh-TW';
-    return locale;
-  }
-
-  function isRtlLocale(locale) {
-    return locale === 'ar';
+    return _i18n[normalizeLocale(_defaultLang)] ? normalizeLocale(_defaultLang) : 'en';
   }
 
   function message(key, replacements = null) {
-    const pack = _i18n[_activeLocale] || _i18n.en || {};
-    const fallback = _i18n.en || {};
-    let value = pack[key] || fallback[key] || '';
+    const pack = _i18n[_activeLocale] || _i18n.en;
+    let value = pack[key] || _i18n.en[key] || '';
     if (replacements) {
       for (const [name, replacement] of Object.entries(replacements)) {
-        value = value.replaceAll('{' + name + '}', String(replacement));
+        value = value.split('{' + name + '}').join(String(replacement));
       }
     }
     return value;
   }
 
-  function visibleRowCount() {
-    return document.querySelectorAll('#tbody tr:not(.hidden)').length;
-  }
-
-  function updateCountDisplay(visible) {
-    const query = document.getElementById('search').value.toLowerCase();
-    const key = query ? 'count_matching' : 'count_registered';
-    document.getElementById('count').textContent = message(key, { n: visible });
-  }
-
-  function updateCopyButtons() {
-    document.querySelectorAll('.copy-btn').forEach(btn => {
-      if (
-        !btn.classList.contains('copied') &&
-        !btn.classList.contains('delete-btn') &&
-        btn.id !== 'register-btn' &&
-        btn.id !== 'register-commands-btn' &&
-        btn.id !== 'capture-analyze-btn' &&
-        btn.id !== 'capture-copy-exceptions-btn' &&
-        btn.id !== 'capture-copy-output-btn' &&
-        btn.id !== 'capture-copy-prompt-btn'
-      ) {
-        btn.textContent = message('copy_btn');
-      }
-      if (btn.classList.contains('delete-btn')) {
-        btn.textContent = message('delete_btn');
-        btn.title = message('delete_btn');
-        btn.setAttribute('aria-label', message('delete_btn'));
-      } else if (btn.id === 'register-btn') {
-        btn.textContent = message('register_btn');
-        btn.title = message('register_btn');
-        btn.setAttribute('aria-label', message('register_btn'));
-      } else if (btn.id === 'register-commands-btn') {
-        btn.textContent = message('register_commands_btn');
-        btn.title = message('register_commands_btn');
-        btn.setAttribute('aria-label', message('register_commands_btn'));
-      } else if (btn.id === 'capture-analyze-btn') {
-        btn.textContent = message('capture_btn');
-        btn.title = message('capture_btn');
-        btn.setAttribute('aria-label', message('capture_btn'));
-      } else if (btn.id === 'capture-copy-exceptions-btn') {
-        btn.textContent = message('capture_exceptions_copy_btn');
-        btn.title = message('capture_exceptions_copy_btn');
-        btn.setAttribute('aria-label', message('capture_exceptions_copy_btn'));
-      } else if (btn.id === 'capture-copy-output-btn') {
-        btn.textContent = message('capture_copy_output_btn');
-        btn.title = message('capture_copy_output_btn');
-        btn.setAttribute('aria-label', message('capture_copy_output_btn'));
-      } else if (btn.id === 'capture-copy-prompt-btn') {
-        btn.textContent = message('capture_copy_prompt_btn');
-        btn.title = message('capture_copy_prompt_btn');
-        btn.setAttribute('aria-label', message('capture_copy_prompt_btn'));
-      } else {
-        btn.title = message('copy_btn');
-        btn.setAttribute('aria-label', message('copy_btn'));
-      }
-    });
+  function setText(id, key) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = message(key);
   }
 
   function applyLocale(locale) {
     _activeLocale = _i18n[locale] ? locale : 'en';
-    document.documentElement.lang = localeTag(_activeLocale);
-    document.documentElement.dir = isRtlLocale(_activeLocale) ? 'rtl' : 'ltr';
+    document.documentElement.lang = _activeLocale;
     document.title = message('title');
+    const ids = {
+      'page-title': 'rulebook_title', 'page-description': 'rulebook_description',
+      'generated-label': 'generated_label', 'rulebook-heading': 'rulebook_heading',
+      'no-match': 'no_match', 'empty-rulebook': 'empty_rulebook',
+      'actions-heading': 'actions_title', 'actions-description': 'actions_description',
+      'review-heading': 'review_title', 'review-description': 'review_description',
+      'review-label': 'review_label', 'review-copy-btn': 'review_copy_btn',
+      'change-heading': 'change_title', 'change-description': 'change_description',
+      'change-empty': 'change_empty', 'selected-term-label': 'selected_term_label',
+      'selected-preferred-label': 'selected_preferred_label',
+      'change-intent-label': 'change_intent_label',
+      'requested-preferred-label': 'requested_preferred_label',
+      'change-reason-label': 'change_reason_label', 'change-reason-help': 'change_reason_help',
+      'change-copy-btn': 'change_copy_btn', 'change-cancel-btn': 'cancel_btn'
+    };
+    for (const [id, key] of Object.entries(ids)) setText(id, key);
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+      element.textContent = message(element.dataset.i18n);
+    });
     document.getElementById('search').placeholder = message('search_placeholder');
-    document.getElementById('instruction').textContent = message('instruction');
-    document.getElementById('capture-title').textContent = message('capture_title');
-    document.getElementById('capture-description').textContent = message('capture_description');
-    document.getElementById('capture-input').placeholder = message('capture_placeholder');
-    document.getElementById('capture-result-title').textContent = message('capture_result_title');
-    document.getElementById('capture-note').textContent = message('capture_note');
-    document.getElementById('register-title').textContent = message('register_title');
-    document.getElementById('advanced-options-title').textContent = message('advanced_options');
-    document.getElementById('label-term').textContent = message('field_term');
-    document.getElementById('label-preferred').textContent = message('field_preferred');
-    document.getElementById('label-alt2').textContent = message('field_alt2');
-    document.getElementById('label-alt3').textContent = message('field_alt3');
-    document.getElementById('new-term').placeholder = message('register_term_placeholder');
-    document.getElementById('new-preferred').placeholder = message('register_preferred_placeholder');
-    document.getElementById('new-alt2').placeholder = message('register_alt2_placeholder');
-    document.getElementById('new-alt3').placeholder = message('register_alt3_placeholder');
-    document.getElementById('col-term').textContent = message('col_term');
-    document.getElementById('col-preferred').textContent = message('col_preferred');
-    document.getElementById('col-alt2').textContent = message('col_alt2');
-    document.getElementById('col-alt3').textContent = message('col_alt3');
-    document.getElementById('col-actions').textContent = message('col_actions');
-    updateCopyButtons();
-    updateCountDisplay(visibleRowCount());
-    if (!_captureResults.length) {
-      const output = document.getElementById('capture-output');
-      output.className = 'capture-result-empty';
-      output.textContent = document.getElementById('capture-input').value.trim()
-        ? message('capture_none')
-        : message('capture_empty');
-    } else {
-      renderCaptureOutput(_captureResults);
-    }
+    document.getElementById('review-input').placeholder = message('review_placeholder');
+    const intent = document.getElementById('change-intent');
+    intent.options[0].textContent = message('change_option');
+    intent.options[1].textContent = message('retire_option');
+    document.querySelectorAll('.request-change-btn').forEach(button => {
+      button.textContent = message('request_change_btn');
+      button.setAttribute('aria-label', message('request_change_for', { term: button.dataset.term }));
+    });
+    updateCount();
   }
 
-  function setStatus(message, tone = '') {
-    const el = document.getElementById('status');
-    el.textContent = message;
-    el.className = 'status' + (tone ? ' ' + tone : '');
+  function visibleRules() {
+    return [...document.querySelectorAll('.rule-row')].filter(row => !row.classList.contains('hidden'));
   }
 
-  function flashCopied(btn, statusMessage, tone = 'success') {
-    btn.textContent = message('copy_done');
-    btn.classList.add('copied');
-    setStatus(statusMessage, tone);
-    setTimeout(() => {
-      btn.textContent = message('copy_btn');
-      btn.classList.remove('copied');
-    }, 1500);
+  function updateCount() {
+    const count = visibleRules().length;
+    const searching = Boolean(document.getElementById('search').value.trim());
+    document.getElementById('count').textContent = message(searching ? 'count_matching' : 'count_registered', { n: count });
+  }
+
+  function filterRules() {
+    const query = document.getElementById('search').value.trim().toLowerCase();
+    const rows = [...document.querySelectorAll('.rule-row')];
+    rows.forEach(row => row.classList.toggle('hidden', query && !row.dataset.search.includes(query)));
+    const noMatch = rows.length > 0 && visibleRules().length === 0;
+    document.getElementById('no-match').classList.toggle('hidden', !noMatch);
+    updateCount();
+  }
+
+  function setStatus(text, tone = '') {
+    const status = document.getElementById('status');
+    status.textContent = text;
+    status.className = 'status' + (tone ? ' ' + tone : '');
   }
 
   function openManualCopy(text) {
@@ -498,908 +295,103 @@ __ROWS__
     setStatus(message('copy_manual_done'), 'success');
   }
 
-  function copyText(text, successMessage) {
+  async function copyText(text, successMessage) {
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
       openManualCopy(text);
       return;
     }
-    navigator.clipboard.writeText(text).then(() => {
+    try {
+      await navigator.clipboard.writeText(text);
       setStatus(successMessage, 'success');
-    }).catch(() => {
+    } catch (_error) {
       openManualCopy(text);
-      setStatus(message('copy_failed'), 'error');
-    });
-  }
-
-  function copy(btn) {
-    const term = btn.dataset.term;
-    const candidate = btn.dataset.alt;
-    const text = message('copy_instruction', { term, candidate });
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      openManualCopy(text);
-      return;
     }
-    navigator.clipboard.writeText(text).then(() => {
-      flashCopied(btn, message('copy_done'), 'success');
-    }).catch(() => {
-      openManualCopy(text);
-      setStatus(message('copy_failed'), 'error');
-    });
   }
 
-  function psQuote(value) {
-    return `'${String(value).replace(/'/g, "''")}'`;
-  }
-
-  function buildDbCliCommand(subcommand, args) {
-    const parts = ['python', psQuote(_dbCliPath), subcommand, '--db', psQuote(_dbPath)];
-    for (const [flag, value] of args) {
-      if (value === null || value === undefined || value === '') continue;
-      parts.push(flag, psQuote(value));
-    }
-    return parts.join(' ');
-  }
-
-  function simpleSingularizeToken(token) {
-    if (token.endsWith('ies') && token.length > 4) return token.slice(0, -3) + 'y';
-    if (/(ches|shes|xes|zes|sses)$/.test(token)) return token.slice(0, -2);
-    if (token.endsWith('ses') && token.slice(0, -2).endsWith('s')) return token.slice(0, -2);
-    if (token.length > 4 && token.endsWith('s') && !/(ss|is|us|as|os|ews)$/.test(token)) return token.slice(0, -1);
-    return token;
-  }
-
-  function normalizeTermForCapture(term) {
-    let value = String(term || '').trim().toLowerCase();
-    value = value.replace(/^[\-*窶｢]+\s*/, '');
-    value = value.replace(/[_-]+/g, ' ');
-    value = value.replace(/\s+/g, ' ').trim();
-    const tokens = value.split(' ').filter(Boolean).map(simpleSingularizeToken);
-    return tokens.join(' ');
-  }
-
-  function registeredTermSet() {
-    const set = new Set();
-    document.querySelectorAll('#tbody tr').forEach(row => {
-      const normalized = row.dataset.termNormalized || '';
-      if (normalized) set.add(normalized);
-    });
-    return set;
-  }
-
-  function sanitizeCaptureText(text) {
-    return String(text || '')
-      .replace(/\(line\s+\d+\)/gi, ' ')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/`[^`]*`/g, ' ')
-      .replace(/\b[a-z0-9_]+=([^\s]+)/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  const CAPTURE_LABEL_INDUSTRY_TERM = _captureConfig.labels.industry_term;
-  const CAPTURE_LABEL_COINED_OR_SHORTENED = _captureConfig.labels.coined_or_shortened;
-  const CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER = _captureConfig.labels.file_config_identifier;
-  const CAPTURE_LABEL_OTHER = _captureConfig.labels.other;
-  const CAPTURE_LABEL_UNKNOWN = _captureConfig.labels.unknown;
-
-  const CAPTURE_PROPER_NOUN_TERMS = new Set(_captureConfig.proper_noun_terms);
-  const CAPTURE_KNOWN_INDUSTRY_ACRONYMS = new Set(_captureConfig.known_industry_acronyms || []);
-  const CAPTURE_KNOWN_INDUSTRY_TERMS = new Set(_captureConfig.known_industry_terms);
-  const CAPTURE_KNOWN_REPO_DIR_TERMS = new Set(_captureConfig.known_repo_dir_terms || []);
-  const CAPTURE_KNOWN_FILE_CONFIG_TERMS = new Set(_captureConfig.known_file_config_terms || []);
-  const CAPTURE_SHORTENED_TERMS = new Set(_captureConfig.shortened_terms);
-  const CAPTURE_GENERIC_SINGLE_WORDS = new Set(_captureConfig.generic_single_words);
-  const CAPTURE_KNOWN_COINED_TERMS = new Set(_captureConfig.known_coined_terms || []);
-  const CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS = new Set(_captureConfig.known_other_multiword_terms || []);
-  const CAPTURE_ADOPTABLE_OTHER_MULTIWORD_TERMS = new Set(_captureConfig.adoptable_other_multiword_terms || []);
-  const CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS = new Set(_captureConfig.previewable_generic_single_terms || []);
-  const CAPTURE_IDENTIFIER_TOKEN_RE = new RegExp(_captureConfig.identifier_token_pattern, 'g');
-  const CAPTURE_WORD_TOKEN_RE = new RegExp(_captureConfig.word_token_pattern, 'g');
-
-  function captureWordTokens(term) {
-    return normalizeTermForCapture(term).split(' ').filter(Boolean);
-  }
-
-  function captureIdentifierReason(term) {
-    const stripped = String(term || '').trim();
-    if (!stripped) return null;
-    const hasSpace = /\s/.test(stripped);
-    if (/[\/\*]/.test(stripped)) return 'path_or_glob_pattern';
-    if (stripped.includes('.') && stripped.length > 2) return 'filename_or_dotted_identifier';
-    if (stripped.includes('_')) return 'underscore_identifier';
-    if (!hasSpace && /^[0-9a-fA-F]{7,40}$/.test(stripped)) return 'hex_identifier';
-    if (!hasSpace && stripped === stripped.toUpperCase() && stripped.length >= 2) return 'uppercase_identifier';
-    if (!hasSpace && /[a-z][A-Z]|[A-Z][a-z].*[A-Z]/.test(stripped)) return 'camel_or_mixed_case_identifier';
-    return null;
-  }
-
-  function classifyCaptureTerm(term) {
-    const raw = String(term || '').trim().replace(/\s+/g, ' ');
-    const normalized = normalizeTermForCapture(raw);
-    const tokens = captureWordTokens(raw);
-    if (!normalized) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'empty_after_normalization' };
-    }
-    if (CAPTURE_PROPER_NOUN_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'proper_noun_non_target' };
-    }
-    if (CAPTURE_KNOWN_INDUSTRY_ACRONYMS.has(normalized) && raw === raw.toUpperCase()) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_INDUSTRY_TERM, reason: 'known_industry_acronym' };
-    }
-    if (CAPTURE_KNOWN_REPO_DIR_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: 'repo_directory_identifier' };
-    }
-    if (CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: 'config_term' };
-    }
-    if (CAPTURE_KNOWN_INDUSTRY_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_INDUSTRY_TERM, reason: 'known_industry_term' };
-    }
-    if (CAPTURE_SHORTENED_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_COINED_OR_SHORTENED, reason: 'common_shortened_form' };
-    }
-    if (tokens.length <= 1) {
-      if (CAPTURE_GENERIC_SINGLE_WORDS.has(normalized)) {
-        return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'generic_single_word' };
-      }
-    }
-    const identifierReason = captureIdentifierReason(raw);
-    if (identifierReason) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER, reason: identifierReason };
-    }
-    if (tokens.length <= 1) {
-      if (normalized.length <= 4) {
-        return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'too_short_without_clear_signal' };
-      }
-      return { term: raw, normalized, label: CAPTURE_LABEL_UNKNOWN, reason: 'single_word_without_clear_signal' };
-    }
-    if (CAPTURE_KNOWN_COINED_TERMS.has(normalized)) {
-      return { term: raw, normalized, label: CAPTURE_LABEL_COINED_OR_SHORTENED, reason: 'known_coined_phrase' };
-    }
-    return { term: raw, normalized, label: CAPTURE_LABEL_OTHER, reason: 'ordinary_multiword_phrase' };
-  }
-
-  function captureLabelPriority(label) {
-    if (label === CAPTURE_LABEL_INDUSTRY_TERM) return 4;
-    if (label === CAPTURE_LABEL_COINED_OR_SHORTENED) return 3;
-    if (label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return 2;
-    if (label === CAPTURE_LABEL_OTHER) return 1;
-    return 0;
-  }
-
-  function captureIsAdoptableCandidate(item) {
-    const tokenCount = captureWordTokens(item.term).length;
-    if ((item.count || 0) < 2) return false;
-    if (item.label === CAPTURE_LABEL_UNKNOWN || item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return false;
-    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return tokenCount > 1;
-    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
-    if (item.label === CAPTURE_LABEL_OTHER) {
-      return tokenCount > 1 && CAPTURE_ADOPTABLE_OTHER_MULTIWORD_TERMS.has(item.normalized);
-    }
-    return false;
-  }
-
-  function buildCaptureCandidates(term) {
-    const classified = classifyCaptureTerm(term);
-    const current = classified.term;
-    const normalized = classified.normalized;
-    const isAscii = /[a-z]/i.test(current);
-    let candidate1 = current;
-    let candidate2 = message('capture_keep_current');
-    if (classified.label !== CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER && isAscii && normalized && normalized !== current) {
-      candidate1 = normalized;
-      candidate2 = current;
-    }
-    return {
-      term: current,
-      normalized,
-      label: classified.label,
-      reason: classified.reason,
-      candidate1,
-      candidate2
-    };
-  }
-
-  function formatCaptureLine(item) {
-    return `- ${item.candidate1}${message('capture_candidate1_label')} | ${item.candidate2}${message('capture_candidate2_label')}`;
-  }
-
-  function captureOutputText(results) {
-    return results.length
-      ? results.map(formatCaptureLine).join('\n')
-      : message('capture_none');
-  }
-
-  function copyCaptureReviewRequest() {
-    const text = capturePromptText();
-    if (!text) {
-      setStatus(message('capture_empty'), 'error');
-      return;
-    }
-    copyText(text, message('capture_exceptions_copied'));
-  }
-
-  function loadCaptureResult(index) {
-    const item = _captureResults[index];
-    if (!item) return;
-    document.getElementById('new-term').value = item.term;
-    document.getElementById('new-preferred').value = item.requested_preferred || item.term;
-    document.getElementById('new-alt2').value = '';
-    document.getElementById('new-alt3').value = '';
-    document.getElementById('new-preferred').focus();
-    setStatus(message('capture_loaded', { term: item.term }), 'success');
-  }
-
-  function renderCaptureOutput(results) {
-    const output = document.getElementById('capture-output');
-    if (!results.length) {
-      output.className = 'capture-result-empty';
-      output.textContent = message('capture_none');
-      return;
-    }
-
-    output.className = 'capture-result-list';
-    output.innerHTML = '';
-    results.forEach((item, index) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'capture-result-line';
-      btn.textContent = item.term;
-      btn.setAttribute('aria-label', message('capture_loaded', { term: item.term }));
-      btn.onclick = () => loadCaptureResult(index);
-      output.appendChild(btn);
-    });
-  }
-
-  function collectCaptureTerms(text) {
-    const cleaned = sanitizeCaptureText(text);
-    if (!cleaned) return [];
-    const registered = registeredTermSet();
-    const counts = new Map();
-
-    function record(raw) {
-      const classified = classifyCaptureTerm(raw);
-      if (!classified.normalized || registered.has(classified.normalized)) return;
-      const existing = counts.get(classified.normalized);
-      if (existing) {
-        existing.count += 1;
-        if (captureWordTokens(classified.term).length > captureWordTokens(existing.raw).length) {
-          existing.raw = classified.term;
-          existing.classified = classified;
-        }
-        return;
-      }
-      counts.set(classified.normalized, {
-        raw: classified.term,
-        classified,
-        count: 1,
-      });
-    }
-
-    function shouldRecordPhrase(rawTokens) {
-      if (rawTokens.length <= 1) return true;
-      const normalizedTokens = rawTokens.map(normalizeTermForCapture);
-      if (new Set(normalizedTokens).size === 1) return false;
-      const normalizedPhrase = normalizeTermForCapture(rawTokens.join(' '));
-      const phraseLabel = classifyCaptureTerm(rawTokens.join(' ')).label;
-      if (phraseLabel === CAPTURE_LABEL_INDUSTRY_TERM || phraseLabel === CAPTURE_LABEL_COINED_OR_SHORTENED) return true;
-      if (phraseLabel === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER && CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(normalizedPhrase)) return true;
-      if (phraseLabel === CAPTURE_LABEL_OTHER && CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(normalizedPhrase)) return true;
-      const labels = rawTokens.map(token => classifyCaptureTerm(token).label);
-      if (labels.includes(CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER)) return false;
-      if (normalizedTokens.slice(1).some(token => CAPTURE_SHORTENED_TERMS.has(token))) return false;
-      if (rawTokens[1].includes('-')) return false;
-      return false;
-    }
-
-    const maskedChars = cleaned.split('');
-    for (const match of cleaned.matchAll(CAPTURE_IDENTIFIER_TOKEN_RE)) {
-      record(match[0]);
-      const start = match.index || 0;
-      const end = start + match[0].length;
-      for (let idx = start; idx < end; idx += 1) maskedChars[idx] = ' ';
-    }
-    const masked = maskedChars.join('');
-
-    masked.split(/\r?\n/).forEach(line => {
-      const tokens = Array.from(line.matchAll(CAPTURE_WORD_TOKEN_RE)).map(match => match[0]);
-      for (const windowSize of [3, 2]) {
-        for (let idx = 0; idx <= tokens.length - windowSize; idx += 1) {
-          const window = tokens.slice(idx, idx + windowSize);
-          if (shouldRecordPhrase(window)) record(window.join(' '));
-        }
-      }
-      tokens.forEach(token => {
-        if (token.length === 1) return;
-        if (token.length < 4 && token !== token.toUpperCase()) return;
-        record(token);
-      });
-    });
-
-    const provisional = Array.from(counts.values()).map(entry => ({
-      ...buildCaptureCandidates(entry.raw),
-      count: entry.count
-    }));
-
-    const multiwordCandidates = provisional.filter(item => {
-      const tokenCount = captureWordTokens(item.term).length;
-      return tokenCount > 1 && (
-        item.label === CAPTURE_LABEL_COINED_OR_SHORTENED ||
-        item.label === CAPTURE_LABEL_INDUSTRY_TERM ||
-        (item.label === CAPTURE_LABEL_OTHER && CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(item.normalized))
-      );
-    });
-    const coveredSingleTokens = new Set();
-    multiwordCandidates.forEach(item => captureWordTokens(item.term).forEach(token => coveredSingleTokens.add(token)));
-    const longerMultiwordPrefixes = new Set();
-    multiwordCandidates.forEach(item => {
-      if (multiwordCandidates.some(other => other.normalized !== item.normalized && other.normalized.startsWith(item.normalized + ' '))) {
-        longerMultiwordPrefixes.add(item.normalized);
-      }
-    });
-
-    return provisional
-      .filter(item => {
-        const tokenCount = captureWordTokens(item.term).length;
-        if (
-          tokenCount === 1 &&
-          coveredSingleTokens.has(item.normalized) &&
-          (item.label === CAPTURE_LABEL_OTHER || item.label === CAPTURE_LABEL_UNKNOWN) &&
-          !CAPTURE_PROPER_NOUN_TERMS.has(item.normalized)
-        ) {
-          return false;
-        }
-        if ((item.label === CAPTURE_LABEL_COINED_OR_SHORTENED || item.label === CAPTURE_LABEL_INDUSTRY_TERM) && longerMultiwordPrefixes.has(item.normalized)) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        const labelDelta = captureLabelPriority(b.label) - captureLabelPriority(a.label);
-        if (labelDelta) return labelDelta;
-        const countDelta = b.count - a.count;
-        if (countDelta) return countDelta;
-        const lengthDelta = b.term.length - a.term.length;
-        if (lengthDelta) return lengthDelta;
-        return a.term.toLowerCase().localeCompare(b.term.toLowerCase());
-      });
-  }
-
-  function extractCaptureCandidates(text, limit = 5) {
-    return collectCaptureTerms(text)
-      .filter(item => captureIsAdoptableCandidate(item))
-      .slice(0, limit)
-      .map(item => ({
-        term: item.term,
-        normalized: item.normalized,
-        label: item.label,
-        reason: item.reason,
-        candidate1: item.candidate1,
-        candidate2: item.candidate2
-      }));
-  }
-
-  function isPreviewableCaptureCandidate(item) {
-    const tokenCount = captureWordTokens(item.term).length;
-    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
-    if (item.label === CAPTURE_LABEL_UNKNOWN) return false;
-    if (item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) {
-      return tokenCount > 1 && CAPTURE_KNOWN_FILE_CONFIG_TERMS.has(item.normalized);
-    }
-    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return true;
-    if (item.label === CAPTURE_LABEL_OTHER) {
-      if (tokenCount > 1) return CAPTURE_KNOWN_OTHER_MULTIWORD_TERMS.has(item.normalized);
-      return CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS.has(item.normalized);
-    }
-    return false;
-  }
-
-  function containsJapaneseScript(text) {
-    return /[぀-ヿ㐀-䶿一-鿿]/.test(String(text || ''));
-  }
-
-  function isInvestigableCaptureCandidate(item, sourceText) {
-    const tokenCount = captureWordTokens(item.term).length;
-    if (item.label === CAPTURE_LABEL_INDUSTRY_TERM) return false;
-    if (item.reason === 'proper_noun_non_target') return false;
-    if (tokenCount > 1) return true;
-    if (item.label === CAPTURE_LABEL_OTHER) {
-      return CAPTURE_PREVIEWABLE_GENERIC_SINGLE_TERMS.has(item.normalized);
-    }
-    if (item.label === CAPTURE_LABEL_UNKNOWN) {
-      return containsJapaneseScript(sourceText) && /^[A-Za-z][A-Za-z0-9_-]*$/.test(item.term);
-    }
-    return true;
-  }
-
-  function extractCapturePreviewTerms(text, limit = 5) {
-    return collectCaptureTerms(text)
-      .filter(item => isPreviewableCaptureCandidate(item))
-      .slice(0, limit);
-  }
-
-  function extractCaptureInvestigationTerms(text, limit = 8) {
-    function labelPriority(label) {
-      if (label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER) return 5;
-      if (label === CAPTURE_LABEL_COINED_OR_SHORTENED) return 4;
-      if (label === CAPTURE_LABEL_UNKNOWN) return 3;
-      if (label === CAPTURE_LABEL_OTHER) return 2;
-      if (label === CAPTURE_LABEL_INDUSTRY_TERM) return 1;
-      return 0;
-    }
-
-    const results = collectCaptureTerms(text)
-      .filter(item => isInvestigableCaptureCandidate(item, text));
-    const coveredSingleTokens = new Set();
-    results.forEach(item => {
-      if (captureWordTokens(item.term).length <= 1) return;
-      captureWordTokens(item.term).forEach(token => coveredSingleTokens.add(token));
-    });
-
-    return results
-      .filter(item => !(
-        captureWordTokens(item.term).length === 1 &&
-        coveredSingleTokens.has(item.normalized)
-      ))
-      .sort((a, b) => {
-        const labelDelta = labelPriority(b.label) - labelPriority(a.label);
-        if (labelDelta) return labelDelta;
-        const countDelta = (b.count || 0) - (a.count || 0);
-        if (countDelta) return countDelta;
-        const tokenDelta = captureWordTokens(b.term).length - captureWordTokens(a.term).length;
-        if (tokenDelta) return tokenDelta;
-        const lengthDelta = b.term.length - a.term.length;
-        if (lengthDelta) return lengthDelta;
-        return a.term.toLowerCase().localeCompare(b.term.toLowerCase());
-      })
-      .slice(0, limit);
-  }
-
-  const CAPTURE_OUTCOME_EXCLUDE = 'exclude';
-  const CAPTURE_OUTCOME_OBSERVE = 'observe';
-  const CAPTURE_OUTCOME_EXISTING_MATCH = 'existing-match';
-  const CAPTURE_OUTCOME_EXCEPTION = 'exception';
-  const CAPTURE_REPEATED_EDGE_STOPWORDS = new Set([
-    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'from', 'has', 'have',
-    'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'were', 'with'
-  ]);
-  const CAPTURE_NON_INTENT_RE = /\b(?:did not|do not|does not|nobody asked|not an instruction|test fixture|sample text|rejected proposal|under discussion|no action|explains how|log recorded)\b|(?:提案は却下|却下した|指示ではない|登録しない|変更しない|統一しない|検討中|例文|テスト用)/i;
-  const CAPTURE_QUOTED_META_TERMS = new Set([
-    'quoted phrase', 'quoted term', 'quoted wording', 'the phrase', 'the term',
-    'というフレーズ', 'という表記', '引用語'
-  ]);
-  const CAPTURE_REPEATED_DESCRIPTION_RE = /(?:\b(?:two|three|four|five|multiple|repeated|monthly|weekly|twice|\d+\s+times?)\b[^.!?\r\n]{0,140}\b(?:describe|described|call|called|refer(?:red)?\s+to|label(?:led)?|name(?:d)?)\b)|(?:(?:二|三|四|五|[2-9])(?:回|件|週|か月|ヶ月)|月次|週次|毎週|繰り返し)[^。！？\r\n]{0,140}(?:説明|呼|記載|表現)/i;
-  const CAPTURE_DURABLE_CONFLICT_RE = /\b(?:competing|conflicting)\s+(?:durable\s+)?(?:forms?|terms?|wording)\b|\b(?:first|earlier).{0,100}\bprefers?\b.{0,100}\b(?:later|while)\b|競合(?:する)?(?:永続)?候補|同じ[^。！？\r\n]{0,80}(?:前半|先).{0,80}(?:後半|後).{0,80}優先/i;
-  const CAPTURE_DURABLE_DEFINITION_RE = /\b(?:durable|persistent|permanent|canonical)\s+definitions?\b|永続的な定義|永続(?:化)?する定義|正本(?:の)?定義/i;
-  const CAPTURE_DURABLE_INVENTORY_RE = /\b(?:complete|exactly|only)\b[^.!?\r\n]{0,80}\b(?:durable|persist(?:ed|ence|ent)?)\b|\b(?:durable|persistent)\b[^.!?\r\n]{0,80}\b(?:inventory|terms?\s+intended)\b|永続化?(?:を意図)?する(?:用語|語|候補)[^。！？\r\n]{0,40}(?:二つ|2つ|だけ)|永続(?:候補|語)[^。！？\r\n]{0,40}(?:二つ|2つ|だけ)/i;
-  const CAPTURE_TEMPORARY_SCOPE_RE = /\b(?:for|in)\s+this\s+(?:single|one-off|temporary|classroom|workshop|exercise)\b|\b(?:this|one)\s+(?:single|one-off|temporary)\b|(?:今回|この一回|一回限り|一度限り)[^。！？\r\n]{0,30}(?:に限り|だけ|のみ)|この(?:工作教室|勉強会|演習|例|図)(?:に限り|だけ|では)/i;
-
-  function captureSentenceBounds(text, position) {
-    const source = String(text || '');
-    const previousStops = [source.lastIndexOf('\n', position), source.lastIndexOf('.', position), source.lastIndexOf('。', position)];
-    const start = Math.max(...previousStops) + 1;
-    const nextStops = [source.indexOf('\n', position), source.indexOf('.', position), source.indexOf('。', position)].filter(value => value >= 0);
-    return { start, end: nextStops.length ? Math.min(...nextStops) : source.length };
-  }
-
-  function captureSignalEvidence(text, position) {
-    const source = String(text || '');
-    const { start, end } = captureSentenceBounds(source, position);
-    return source.slice(start, end).replace(/\s+/g, ' ').trim().slice(0, 240);
-  }
-
-  function captureSignalImpact(kind, evidence) {
-    if (kind === 'repeat_observation' || kind === 'descriptive_definition' || kind === 'non_target') return 'low';
-    if (kind === 'consistency_request' || kind === 'registration_request' || kind === 'change_request') return 'high';
-    const highImpact = /\b(?:always|must|required|every|block(?:s|ed|ing)?|control(?:s|led|ling)?|release|distribution|canonical|external|security|delete|write|commit|push|production|destructive|rollback|irreversible|removal|authority|approve)\b|必ず|常に|全(?:て|部)|阻止|制御|配布|正本|外部|安全|削除|書(?:き)?込|コミット|プッシュ/i;
-    return highImpact.test(evidence) ? 'high' : 'medium';
-  }
-
-  function cleanCaptureSignalTerm(term) {
-    let value = String(term || '').replace(/\s+/g, ' ').replace(/^[\s,.;:!?、。・]+|[\s,.;:!?、。・]+$/g, '');
-    const leading = /^(?:in this project|in this repository|in this repo|in this team|in this context|the|a|an|our|this)\s+/i;
-    let previous = null;
-    while (value && value !== previous) {
-      previous = value;
-      value = value.replace(leading, '').trim();
-    }
-    return value.replace(/\s+(?:consistently|everywhere|always)$/i, '').trim();
-  }
-
-  function maskNonAuthoritativeCaptureText(text) {
-    const spaces = value => ' '.repeat(value.length);
-    return String(text || '')
-      .replace(/```[\s\S]*?```/g, spaces)
-      .replace(/`[^`\r\n]*`/g, spaces)
-      .replace(/"[^"\r\n]{8,}"/g, spaces)
-      .replace(/'[^'\r\n]{8,}'/g, spaces);
-  }
-
-  function captureQuotedSignalSpec(source, match) {
-    const matchStart = match.index || 0;
-    const matchEnd = matchStart + match[0].length;
-    const position = matchStart + 1;
-    const { start: sentenceStart, end: sentenceEnd } = captureSentenceBounds(source, position);
-    const evidence = source.slice(sentenceStart, sentenceEnd);
-    const previousEnd = Math.max(0, sentenceStart - 1);
-    const previousStart = Math.max(
-      source.lastIndexOf('\n', previousEnd - 1),
-      source.lastIndexOf('.', previousEnd - 1),
-      source.lastIndexOf('。', previousEnd - 1),
-    ) + 1;
-    const scopedEvidence = source.slice(previousStart, sentenceEnd);
-    const before = source.slice(Math.max(sentenceStart, matchStart - 80), matchStart);
-    const after = source.slice(matchEnd, Math.min(sentenceEnd, matchEnd + 120));
-    const term = String(match.groups && match.groups.term || '');
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const englishNegation = new RegExp("\\b(?:do\\s+not|don't|never)\\s+(?:register|save|record|remember|persist)[^.!?\\r\\n]{0,50}[\"']" + escaped + "[\"']", 'i').test(evidence);
-    const japaneseNegation = new RegExp('[「『]' + escaped + '[」』][^。！？\\r\\n]{0,30}(?:登録|保存|記録|永続化|規則化)(?:は)?しない').test(evidence);
-    if (englishNegation || japaneseNegation) return null;
-
-    if (/["'「『][^"'」』\r\n]{2,60}["'」』]\s*(?:を|から|ではなく)\s*$/.test(before)) return null;
-    if (CAPTURE_REPEATED_DESCRIPTION_RE.test(scopedEvidence)) return ['repeat_observation', 'natural_language_repetition'];
-    if (CAPTURE_DURABLE_CONFLICT_RE.test(scopedEvidence)) return ['change_request', 'explicit_inventoried_conflict'];
-    if (CAPTURE_DURABLE_DEFINITION_RE.test(scopedEvidence)) return ['registration_request', 'explicit_durable_definition'];
-
-    const englishAction = /\b(?:register|save|record|remember|persist)\s+(?:(?:the\s+)?(?:quoted\s+)?(?:phrase|term|wording)\s+)?$/i.test(before);
-    const japaneseAction = /^\s*(?:という(?:フレーズ|表記|呼称)|という語|を)?[^、。！？\r\n]{0,70}(?:として|で)?\s*(?:登録|保存|記録)(?:して|する|してください|します)/i.test(after);
-    if (englishAction || japaneseAction) return ['registration_request', 'explicit_quoted_registration_request'];
-
-    const hasChangeMapping = /\b(?:change|replace|rename)\b|変更|置き換え|差し替え/i.test(evidence);
-    if (CAPTURE_DURABLE_INVENTORY_RE.test(scopedEvidence) && !hasChangeMapping) return ['registration_request', 'explicit_durable_inventory'];
-
-    const quotedDefinition = /^\s*(?:means|is\s+defined\s+as)\b|^\s*(?:とは|は)\s*[^。！？\r\n]{0,100}(?:意味|定義|指)/i.test(after);
-    if (quotedDefinition && CAPTURE_TEMPORARY_SCOPE_RE.test(evidence)) return ['descriptive_definition', 'descriptive_local_definition'];
-    if (quotedDefinition) return ['local_definition', 'explicit_quoted_local_definition'];
-    return null;
-  }
-
-  function extractCaptureContextSignals(text) {
-    const source = String(text || '');
-    const masked = maskNonAuthoritativeCaptureText(source);
-    const latinTerm = '[A-Za-z][A-Za-z0-9_-]*(?:[ \\t]+[A-Za-z][A-Za-z0-9_-]*){0,3}';
-    const latinTermLazy = '[A-Za-z][A-Za-z0-9_-]*(?:[ \\t]+[A-Za-z][A-Za-z0-9_-]*){0,5}?';
-    const jaTerm = '[\\u3040-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fffー]{2,30}?';
-    const mixedTerm = '(?:' + latinTerm + '|' + jaTerm + ')';
-    const jaSentencePrefix = '(?:^|[。！？\\r\\n]\\s*)(?:(?:この(?:プロジェクト|リポジトリ|チーム|文脈)では|今後(?:は)?|これから(?:は)?|VEILでは)\\s*)?';
-    const specs = [
-      [new RegExp('\\bchange\\s+(?:the\\s+)?preferred\\s+(?:wording|term|form)\\s+from\\s+(?<term>' + latinTermLazy + ')\\s+to\\s+(?<preferred>' + latinTermLazy + ')(?=\\s+(?:in|for)\\s+(?:the\\s+)?(?:registered\\s+)?vocabulary\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
-      [new RegExp('\\bregister\\s+(?<term>' + latinTerm + ')\\s+as\\s+(?<preferred>' + latinTerm + ')\\s+in\\s+VEIL\\b', 'gi'), 'registration_request', 'explicit_registration_mapping'],
-      [new RegExp('\\b(?:change|rename)\\s+(?<term>' + latinTerm + ')\\s+(?:to|as)\\s+(?<preferred>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
-      [new RegExp('\\breplace\\s+(?<term>' + latinTermLazy + ')\\s+with\\s+(?<preferred>' + latinTermLazy + ')(?=\\s+(?:in|for)\\s+(?:the\\s+)?(?:registered\\s+)?vocabulary\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_change_request'],
-      [new RegExp('\\buse\\s+(?<preferred>' + latinTerm + ')\\s+instead\\s+of\\s+(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_conflict_request'],
-      [new RegExp('\\buse\\s+(?<term>' + latinTermLazy + ')\\s+as\\s+(?:the\\s+)?preferred\\s+(?:form|wording|term)(?:\\s+instead)?(?=[,.;:!?\\r\\n]|$)', 'gi'), 'change_request', 'explicit_conflict_request'],
-      [new RegExp('(?<term>' + mixedTerm + ')\\s*(?:を|から)\\s*(?<preferred>' + mixedTerm + ')\\s*(?:に|へ)(?:変更|統一|置き換え|差し替え)', 'gi'), 'change_request', 'explicit_change_request'],
-      [new RegExp('(?<term>' + mixedTerm + ')\\s*ではなく\\s*(?<preferred>' + mixedTerm + ')\\s*(?:を)?(?:使|採用)', 'gi'), 'change_request', 'explicit_conflict_request'],
-      [new RegExp('(?<term>' + mixedTerm + ')\\s*を\\s*(?<preferred>' + mixedTerm + ')\\s*として登録', 'gi'), 'registration_request', 'explicit_registration_mapping'],
-      [new RegExp('\\b(?:please\\s+)?(?:also\\s+)?(?:register|remember|record|save)[ \\t]{1,2}(?:(?:the[ \\t]+)?(?:phrase|term|wording)[ \\t]{1,2})?(?<term>(?!(?:it|this|that|them|(?:the[ \\t]+)?quoted[ \\t]+wording|the[ \\t]+(?:phrase|term|wording))\\b)' + latinTermLazy + ')(?=\\s+(?:as|for|in\\s+VEIL)\\b|[,.;:!?\\r\\n]|$)', 'gi'), 'registration_request', 'explicit_registration_request'],
-      [new RegExp('\\b(?:use|call|refer to)\\s+(?:the\\s+(?:phrase|term)\\s+)?(?<term>' + latinTerm + ')\\s+(?:consistently|everywhere|from now on)\\b', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp('\\balways\\s+(?:use|call|refer to)\\s+(?:the\\s+(?:phrase|term)\\s+)?(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp('\\b(?:standardize on|standardise on)\\s+(?<term>' + latinTerm + ')(?=[,.;:!?\\r\\n]|$)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp('\\bmake\\s+(?<term>' + latinTerm + ')\\s+the\\s+standard\\s+term\\b', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?:(?:in|for) this [A-Za-z][A-Za-z0-9_-]*(?:\\s+[A-Za-z][A-Za-z0-9_-]*){0,2},?\\s+|here,?\\s+)?(?<term>' + latinTerm + ')\\s+means\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
-      [new RegExp('\\b(?<term>' + latinTerm + ')\\s+is\\s+defined\\s+as\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
-      [new RegExp('\\b(?:we\\s+)?define\\s+(?<term>' + latinTerm + ')\\s+as\\b', 'gi'), 'local_definition', 'explicit_local_definition'],
-      [new RegExp('\\b(?:register|remember|record)\\s+(?<term>' + latinTerm + ')\\s+(?:as|in VEIL\\b)', 'gi'), 'registration_request', 'explicit_registration_request'],
-      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?<term>[A-Z][a-z]{2,})\\s+(?=(?:will|would|has|had|is|was|reviewed|joined|said)\\b)', 'g'), 'non_target', 'proper_name_non_target'],
-      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?<term>' + latinTermLazy + ')\\s+(?:appears?|appeared|was\\s+used|is\\s+used|stayed|remained|shows?|showed)\\b[^.!?\\r\\n]{0,80}\\b(?:both|multiple|repeated(?:ly)?|consecutive|weekly|twice)\\b', 'gi'), 'repeat_observation', 'natural_language_repetition'],
-      [new RegExp('(?:^|[.!?\\r\\n]\\s*)(?:across\\s+)?(?:two|three|four|five|multiple|\\d+)\\s+(?:[A-Za-z][A-Za-z0-9_-]*\\s+){0,2}(?:notes|records|reports|messages|documents|sessions|weeks|months)\\b[^.!?\\r\\n]{0,100}\\b(?:describe|described|call|called|label(?:led)?|name(?:d)?)\\b[^.!?\\r\\n]{0,80}\\bas\\s+(?:the\\s+)?(?<term>' + latinTermLazy + ')(?=[.!?\\r\\n]|$)', 'gi'), 'repeat_observation', 'natural_language_repetition'],
-      [new RegExp('(?<term>' + latinTerm + ')\\s*(?:という表記)?\\s*(?:を)?(?:一貫して使|必ず使|に統一(?:して|する)|と呼(?:ぶ(?:ことにする)?|んでください)|を標準表記にする|として登録する)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp('(?<term>' + latinTerm + ')\\s*(?:とは|は)\\s*[^。\\r\\n]{0,80}(?:意味|定義|指す)', 'gi'), 'local_definition', 'explicit_local_definition'],
-      [new RegExp(jaSentencePrefix + '(?<term>' + jaTerm + ')\\s*(?:という表記)?\\s*(?:を)?(?:一貫して使|必ず使|に統一(?:して|する)|と呼(?:ぶ(?:ことにする)?|んでください)|を標準表記にする|として登録する)', 'gi'), 'consistency_request', 'explicit_consistency_request'],
-      [new RegExp(jaSentencePrefix + '(?<term>' + jaTerm + ')\\s*(?:とは|は)\\s*[^。\\r\\n]{0,80}(?:意味|定義|指す)', 'gi'), 'local_definition', 'explicit_local_definition'],
-      [new RegExp('(?:^|[。！？\\r\\n]\\s*)(?:この[^。！？\\r\\n]{1,24}では、?\\s*)?(?<term>' + jaTerm + ')\\s*を\\s*[^。！？\\r\\n]{1,80}と呼(?:びます|んでいます|ぶ)', 'gi'), 'descriptive_definition', 'descriptive_local_definition'],
-      [new RegExp('(?:^|[。！？\\r\\n]\\s*)(?:今回|この一回|一回限り|一度限り)[^。！？\\r\\n]{0,30}(?:に限り|だけ|のみ)[、,]?\\s*(?<term>' + jaTerm + ')\\s*(?:とは|は)\\s*[^。！？\\r\\n]{1,100}(?:を指(?:す|します)|を意味(?:する|します))', 'gi'), 'descriptive_definition', 'descriptive_local_definition'],
-      [new RegExp('(?:二|2)週続けて[^。！？\\r\\n]{0,60}を\\s*(?<term>' + jaTerm + ')\\s*と呼んで', 'gi'), 'repeat_observation', 'natural_language_repetition'],
-    ];
-    const quotedSpecs = [
-      [/\b(?:please\s+)?(?:also\s+)?(?:register|remember|record|save)\s+(?:(?:the\s+)?(?:phrase|term|quoted\s+wording)\s+)?["'「『](?<term>[^"'」』\r\n]{2,60})["'」』](?=\s+(?:as|for|in\s+VEIL)\b|[,.;:!?\r\n]|$)/gi, 'registration_request', 'explicit_quoted_registration_request'],
-      [/\buse\s+(?:the\s+)?(?:phrase|term)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+as\b[^.!?\r\n]{0,120}\b(?:save|register|record)\s+it\b/gi, 'registration_request', 'explicit_quoted_registration_request'],
-      [/\bregister\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+as\s+["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s+in\s+VEIL\b/gi, 'registration_request', 'explicit_registration_mapping'],
-      [/\b(?:change|rename)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+(?:to|as)\s+["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]/gi, 'change_request', 'explicit_change_request'],
-      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:を|から)\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*(?:に|へ)(?:変更|統一|置き換え|差し替え)/gi, 'change_request', 'explicit_change_request'],
-      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*ではなく\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*(?:を)?(?:使|採用)/gi, 'change_request', 'explicit_conflict_request'],
-      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*を\s*["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』]\s*として登録/gi, 'registration_request', 'explicit_registration_mapping'],
-      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:は|を)?使わず[^。！？\r\n]{0,80}["'「『](?<preferred>[^"'」』\r\n]{2,60})["'」』][^。！？\r\n]{0,60}(?:変更|統一|優先|正式な表記)/gi, 'change_request', 'explicit_conflict_request'],
-      [/\b(?:use|call|refer to)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s+(?:consistently|everywhere|from now on)\b/gi, 'consistency_request', 'explicit_quoted_consistency_request'],
-      [/\balways\s+(?:use|call|refer to)\s+["'「『](?<term>[^"'」』\r\n]{2,60})["'」』](?=[,.;:!?\r\n]|$)/gi, 'consistency_request', 'explicit_quoted_consistency_request'],
-      [/(?:ただし|一方|同じ決定(?:文)?で)[^。！？\r\n]{0,80}["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]\s*(?:を)?(?:優先|採用)/gi, 'change_request', 'explicit_conflict_request'],
-      [/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』][^。！？\r\n]{0,100}(?:名称|表記|呼称)?(?:として|で)?\s*(?:登録|保存|記録)(?:して|する|してください|します)/gi, 'registration_request', 'explicit_quoted_registration_request'],
-      [/[\"'「『](?<term>[^\"'」』\r\n]{2,60})[\"'」』]\s*(?:という呼称)?(?:を)?(?:一貫して使|必ず使|に統一|と呼ぶことにする|と呼んでください|として記録|に登録)/g, 'consistency_request', 'explicit_quoted_consistency_request'],
-      [/[\"'「『](?<term>[^\"'」』\r\n]{2,60})[\"'」』]\s*(?:とは|は)\s*[^。\r\n]{0,80}(?:意味|定義|指す)/g, 'local_definition', 'explicit_quoted_local_definition'],
-    ];
-    const signals = new Map();
-    function recordMatch(match, kind, reason) {
-        const term = cleanCaptureSignalTerm(match.groups && match.groups.term);
-        const normalized = normalizeTermForCapture(term);
-        if (!normalized || normalized.length < 2) return;
-        if (CAPTURE_QUOTED_META_TERMS.has(normalized)) return;
-        const position = match.index || 0;
-        const evidence = captureSignalEvidence(source, position);
-        if (CAPTURE_NON_INTENT_RE.test(evidence)) return;
-        const requestedPreferred = cleanCaptureSignalTerm(match.groups && match.groups.preferred) || null;
-        const signal = { term, normalized, kind, reason, impact: captureSignalImpact(kind, evidence), position, evidence, requested_preferred: requestedPreferred };
-        const current = signals.get(normalized);
-        const priority = { non_target: 0, repeat_observation: 0, descriptive_definition: 1, consistency_request: 1, local_definition: 2, registration_request: 3, change_request: 4 };
-        if (
-          !current ||
-          (priority[signal.kind] || 0) > (priority[current.kind] || 0) ||
-          (current.impact !== 'high' && signal.impact === 'high') ||
-          (!current.requested_preferred && signal.requested_preferred)
-        ) signals.set(normalized, signal);
-    }
-    function collect(pattern, kind, reason, target) {
-      for (const match of target.matchAll(pattern)) {
-        recordMatch(match, kind, reason);
-      }
-    }
-    specs.forEach(([pattern, kind, reason]) => collect(pattern, kind, reason, masked));
-    quotedSpecs.forEach(([pattern, kind, reason]) => collect(pattern, kind, reason, source));
-    for (const match of source.matchAll(/["'「『](?<term>[^"'」』\r\n]{2,60})["'」』]/g)) {
-      const spec = captureQuotedSignalSpec(source, match);
-      if (spec) recordMatch(match, spec[0], spec[1]);
-    }
-    return Array.from(signals.values()).sort((a, b) => a.position - b.position);
-  }
-
-  function captureExistingMatches(text) {
-    const normalized = normalizeTermForCapture(String(text || '').replace(/[^A-Za-z0-9_\-一-鿿ぁ-ヿ]+/g, ' '));
-    const normalizedText = ` ${normalized} `;
-    const matches = [];
-    registeredTermSet().forEach(term => {
-      let count = 0;
-      if (/[一-鿿ぁ-ヿ]/.test(term)) {
-        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const pattern = new RegExp('(^|[^A-Za-z0-9_\\-ァ-ヿ一-鿿])' + escaped + '(?=$|[^A-Za-z0-9_\\-ァ-ヿ一-鿿])', 'g');
-        count = Array.from(normalized.matchAll(pattern)).length;
-      } else {
-        const needle = ` ${term} `;
-        count = normalizedText.split(needle).length - 1;
-      }
-      if (count) matches.push({ term, count });
-    });
-    return matches;
-  }
-
-  function extractCaptureRepeatedObservations(text) {
-    const tokens = String(sanitizeCaptureText(text) || '').match(/[A-Za-z][A-Za-z0-9_-]*/g) || [];
-    const counts = new Map();
-    for (const width of [3, 2]) {
-      for (let index = 0; index <= tokens.length - width; index += 1) {
-        const words = tokens.slice(index, index + width);
-        const normalizedWords = words.map(normalizeTermForCapture);
-        if (CAPTURE_REPEATED_EDGE_STOPWORDS.has(normalizedWords[0]) || CAPTURE_REPEATED_EDGE_STOPWORDS.has(normalizedWords[normalizedWords.length - 1])) continue;
-        if (new Set(normalizedWords).size === 1) continue;
-        const term = words.join(' ');
-        const normalized = normalizeTermForCapture(term);
-        const current = counts.get(normalized) || { term, normalized, count: 0 };
-        current.count += 1;
-        counts.set(normalized, current);
-      }
-    }
-    return Array.from(counts.values())
-      .filter(item => item.count >= 2)
-      .sort((a, b) => {
-        const tokenDelta = captureWordTokens(b.normalized).length - captureWordTokens(a.normalized).length;
-        if (tokenDelta) return tokenDelta;
-        const countDelta = b.count - a.count;
-        if (countDelta) return countDelta;
-        return a.normalized.localeCompare(b.normalized);
-      });
-  }
-
-  function captureOutcomeFromClassified(item) {
-    if (item.label === CAPTURE_LABEL_COINED_OR_SHORTENED) return CAPTURE_OUTCOME_OBSERVE;
-    if (item.label === CAPTURE_LABEL_UNKNOWN) return CAPTURE_OUTCOME_OBSERVE;
-    if (item.label === CAPTURE_LABEL_FILE_CONFIG_IDENTIFIER || item.label === CAPTURE_LABEL_INDUSTRY_TERM) return CAPTURE_OUTCOME_EXCLUDE;
-    if (item.reason === 'proper_noun_non_target') return CAPTURE_OUTCOME_EXCLUDE;
-    if ((item.count || 0) >= 2) return CAPTURE_OUTCOME_OBSERVE;
-    return CAPTURE_OUTCOME_EXCLUDE;
-  }
-
-  function analyzeCaptureOutcomes(text) {
-    const source = String(text || '');
-    const registered = registeredTermSet();
-    const signals = extractCaptureContextSignals(source);
-    const consumed = new Set();
-    const results = [];
-    signals.forEach(signal => {
-      const isRegistered = registered.has(signal.normalized);
-      let outcome = CAPTURE_OUTCOME_OBSERVE;
-      if (signal.kind === 'non_target') outcome = CAPTURE_OUTCOME_EXCLUDE;
-      else if (signal.kind === 'repeat_observation' || signal.kind === 'descriptive_definition') outcome = CAPTURE_OUTCOME_OBSERVE;
-      else if (isRegistered && signal.kind === 'consistency_request') outcome = CAPTURE_OUTCOME_EXISTING_MATCH;
-      else if (signal.kind === 'consistency_request' || signal.kind === 'registration_request' || signal.kind === 'change_request' || signal.impact === 'high') outcome = CAPTURE_OUTCOME_EXCEPTION;
-      results.push({
-        term: signal.term,
-        normalized: signal.normalized,
-        outcome,
-        reason: outcome === CAPTURE_OUTCOME_EXISTING_MATCH ? 'explicit_request_already_registered' : signal.reason,
-        impact: signal.impact,
-        registered: isRegistered,
-        signal: signal.kind,
-        requested_preferred: signal.requested_preferred,
-      });
-      consumed.add(signal.normalized);
-    });
-
-    captureExistingMatches(source).forEach(item => {
-      if (consumed.has(item.term)) return;
-      results.push({ term: item.term, normalized: item.term, outcome: CAPTURE_OUTCOME_EXISTING_MATCH, reason: 'registered_term_match', impact: 'medium', registered: true, signal: null });
-      consumed.add(item.term);
-    });
-
-    extractCaptureRepeatedObservations(source).forEach(item => {
-      if (consumed.has(item.normalized) || registered.has(item.normalized)) return;
-      results.push({ term: item.term, normalized: item.normalized, outcome: CAPTURE_OUTCOME_OBSERVE, reason: 'repeated_unconfirmed_wording', impact: 'low', registered: false, signal: null });
-      consumed.add(item.normalized);
-    });
-
-    collectCaptureTerms(source).forEach(item => {
-      if (consumed.has(item.normalized)) return;
-      results.push({
-        term: item.term,
-        normalized: item.normalized,
-        outcome: captureOutcomeFromClassified(item),
-        reason: item.reason,
-        impact: 'low',
-        registered: false,
-        signal: null,
-      });
-      consumed.add(item.normalized);
-    });
-
-    const counts = { exclude: 0, observe: 0, 'existing-match': 0, exception: 0 };
-    results.forEach(item => { counts[item.outcome] += 1; });
-    const exceptions = results.filter(item => item.outcome === CAPTURE_OUTCOME_EXCEPTION);
-    return {
-      contract_version: '1',
-      analysis_mode: 'raw-text-diagnostic',
-      diagnostic_only: true,
-      write_allowed: false,
-      summary: {
-        user_action_required: exceptions.length > 0,
-        question_count: exceptions.length > 0 ? 1 : 0,
-        counts,
-        automatic_processed: counts.exclude + counts.observe + counts['existing-match'],
-      },
-      exceptions,
-      results,
-    };
-  }
-
-  function analyzeCaptureInput() {
-    const text = document.getElementById('capture-input').value.trim();
-    if (!text) {
-      _captureResults = [];
-      const output = document.getElementById('capture-output');
-      renderCaptureOutput([]);
-      output.textContent = message('capture_empty');
-      setStatus(message('capture_empty'), 'error');
-      return;
-    }
-    const analysis = analyzeCaptureOutcomes(text);
-    _captureResults = analysis.exceptions;
-    renderCaptureOutput(_captureResults);
-    setStatus(analysis.summary.user_action_required ? message('capture_ready') : message('capture_none'), 'success');
-  }
-
-  function copyCaptureOutput() {
-    const text = captureOutputText(_captureResults).trim();
-    if (!text) {
-      setStatus(message('capture_empty'), 'error');
-      return;
-    }
-    copyText(text, message('capture_copy_output_copied'));
-  }
-
-  function capturePromptText() {
-    const text = document.getElementById('capture-input').value.trim();
-    if (!text) return null;
+  function reviewRequestText() {
+    const source = document.getElementById('review-input').value;
+    if (!source.trim()) return '';
     return [
-      message('capture_prompt_header'),
-      text,
-      message('capture_prompt_footer'),
-    ].join('\n\n');
-  }
-
-  function copyCapturePrompt() {
-    const text = capturePromptText();
-    if (!text) {
-      setStatus(message('capture_empty'), 'error');
-      return;
-    }
-    copyText(text, message('capture_copy_prompt_copied'));
-  }
-
-  function registerPromptText() {
-    const term = document.getElementById('new-term').value.trim();
-    const preferred = document.getElementById('new-preferred').value.trim();
-    const alt2 = document.getElementById('new-alt2').value.trim();
-    const alt3 = document.getElementById('new-alt3').value.trim();
-    if (!term || !preferred) {
-      setStatus(message('register_missing'), 'error');
-      return null;
-    }
-    const lines = [
-      message('register_prompt_header'),
-      `- ${message('field_term')}: ${term}`,
-      `- ${message('field_preferred')}: ${preferred}`,
-    ];
-    if (alt2) lines.push(`- ${message('field_alt2')}: ${alt2}`);
-    if (alt3) lines.push(`- ${message('field_alt3')}: ${alt3}`);
-    lines.push(message('register_prompt_footer'));
-    return lines.join('\n');
-  }
-
-  function registerInstructionText() {
-    const term = document.getElementById('new-term').value.trim();
-    const preferred = document.getElementById('new-preferred').value.trim();
-    const alt2 = document.getElementById('new-alt2').value.trim();
-    const alt3 = document.getElementById('new-alt3').value.trim();
-    if (!term || !preferred) {
-      setStatus(message('register_missing'), 'error');
-      return null;
-    }
-    return [
-      message('register_instruction_header'),
-      buildDbCliCommand('upsert-rule', [
-        ['--term', term],
-        ['--preferred', preferred],
-        ['--preferred-alt-2', alt2],
-        ['--preferred-alt-3', alt3],
-      ]),
-      buildDbCliCommand('export-html', [['--html-path', _htmlPath]]),
+      message('review_request_header'),
+      message('review_request_instruction'),
+      '',
+      '---',
+      source,
+      '---'
     ].join('\n');
   }
 
-  function resetRegisterForm() {
-    document.getElementById('new-term').value = '';
-    document.getElementById('new-preferred').value = '';
-    document.getElementById('new-alt2').value = '';
-    document.getElementById('new-alt3').value = '';
+  function updateReviewState() {
+    document.getElementById('review-copy-btn').disabled = !document.getElementById('review-input').value.trim();
   }
 
-  function copyRegisterInstruction() {
-    const text = registerInstructionText();
-    if (!text) return;
-    copyText(text, message('register_commands_copied'));
-    resetRegisterForm();
+  function openChangeRequest(button) {
+    _selectedRule = { term: button.dataset.term, preferred: button.dataset.preferred };
+    document.getElementById('selected-term').textContent = _selectedRule.term;
+    document.getElementById('selected-preferred').textContent = _selectedRule.preferred;
+    document.getElementById('change-empty').classList.add('hidden');
+    document.getElementById('change-form').classList.remove('hidden');
+    document.getElementById('change-intent').value = 'change';
+    document.getElementById('requested-preferred').value = '';
+    document.getElementById('change-reason').value = '';
+    updateChangeIntent();
+    document.getElementById('requested-preferred').focus();
   }
 
-  function copyRegisterPrompt() {
-    const text = registerPromptText();
-    if (!text) return;
-    copyText(text, message('register_copied'));
-    resetRegisterForm();
+  function closeChangeRequest() {
+    _selectedRule = null;
+    document.getElementById('change-form').classList.add('hidden');
+    document.getElementById('change-empty').classList.remove('hidden');
   }
 
-  function copyDeleteInstruction(btn) {
-    const term = btn.dataset.term;
-    const lines = [
-      message('delete_instruction_header'),
-      buildDbCliCommand('delete-rule', [['--term', term]]),
-      buildDbCliCommand('export-html', [['--html-path', _htmlPath]]),
-    ];
-    copyText(lines.join('\n'), message('delete_copied'));
+  function updateChangeIntent() {
+    const changing = document.getElementById('change-intent').value === 'change';
+    document.getElementById('requested-preferred-field').classList.toggle('hidden', !changing);
+    document.getElementById('requested-preferred').required = changing;
   }
-  function filterRows() {
-    const q = document.getElementById('search').value.toLowerCase();
-    const rows = document.querySelectorAll('#tbody tr');
-    let visible = 0;
-    rows.forEach(row => {
-      const text = row.textContent.toLowerCase();
-      if (!q || text.includes(q)) {
-        row.classList.remove('hidden');
-        visible++;
-      } else {
-        row.classList.add('hidden');
-      }
-    });
-    updateCountDisplay(visible);
+
+  function changeRequestText() {
+    if (!_selectedRule) return '';
+    const intent = document.getElementById('change-intent').value;
+    const requested = document.getElementById('requested-preferred').value.trim();
+    const reason = document.getElementById('change-reason').value.trim();
+    if (intent === 'change' && !requested) return '';
+    return [
+      message('change_request_header'),
+      message('change_request_confirm'),
+      '',
+      message('request_operation', { value: message(intent === 'change' ? 'change_option' : 'retire_option') }),
+      message('request_term', { value: _selectedRule.term }),
+      message('request_current', { value: _selectedRule.preferred }),
+      ...(intent === 'change' ? [message('request_requested', { value: requested })] : []),
+      ...(reason ? [message('request_reason', { value: reason })] : [])
+    ].join('\n');
   }
+
+  document.getElementById('search').addEventListener('input', filterRules);
+  document.getElementById('review-input').addEventListener('input', updateReviewState);
+  document.getElementById('review-copy-btn').addEventListener('click', () => {
+    const text = reviewRequestText();
+    if (text) copyText(text, message('review_copied'));
+  });
+  document.querySelectorAll('.request-change-btn').forEach(button => {
+    button.addEventListener('click', () => openChangeRequest(button));
+  });
+  document.getElementById('change-intent').addEventListener('change', updateChangeIntent);
+  document.getElementById('change-cancel-btn').addEventListener('click', closeChangeRequest);
+  document.getElementById('change-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const text = changeRequestText();
+    if (!text) {
+      setStatus(message('change_missing'), 'error');
+      return;
+    }
+    copyText(text, message('change_copied'));
+  });
+
   applyLocale(pickLocale());
+  filterRules();
+  updateReviewState();
 </script>
 </body>
 </html>

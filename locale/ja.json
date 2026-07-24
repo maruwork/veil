@@ -97,6 +97,8 @@
     "upsert_rule_help": "1 つの rule を SQLite 正準 DB に追加または更新する。",
     "upsert_batch_help": "検証済み JSON から受け入れた rules を追加または更新する。",
     "upsert_batch_file_help": "contract_version と rules 配列を含む UTF-8 JSON ファイル。",
+    "maintain_batch_help": "検証済み JSON から既存ルールを変更または廃止する。",
+    "maintain_batch_file_help": "contract_version と operations 配列を含む UTF-8 JSON ファイル。",
     "delete_rule_help": "1 つの rule を SQLite 正準 DB から削除する。",
     "term_help": "元の term。",
     "preferred_help": "採用する preferred term。",
@@ -134,7 +136,10 @@
     "invalid_profile_level": "適用レベルが不正です。required / recommended / observe を使ってください。",
     "batch_validation_failed": "一括入力の検証に失敗しました。ルールは1件も書き込まれていません。",
     "batch_duplicate_term": "正規化後に同じ用語となる項目が一括入力内で重複しています。",
-    "batch_write_failed": "原子的な一括書込みに失敗しました。この一括入力のルールは1件も確定されていません。"
+    "batch_write_failed": "原子的な一括書込みに失敗しました。この一括入力のルールは1件も確定されていません。",
+    "maintenance_validation_failed": "保守入力の検証に失敗しました。ルールは1件も変更されていません。",
+    "maintenance_write_failed": "原子的な保守処理に失敗しました。依頼された操作は1件も確定されていません。",
+    "maintenance_stale": "依頼作成後にルールが変更されています。依頼された操作は1件も確定されていません。"
   },
   "html": {
     "title": "VEIL - 語彙ルール",
