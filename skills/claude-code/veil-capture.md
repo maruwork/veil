@@ -146,6 +146,55 @@ Preferred-form guidance for an exception:
 
 ---
 
+## Rule-maintenance requests
+
+Use this route only when the user intentionally requests a change to an
+existing registered rule, including a request copied from `veil.html`. It is
+separate from conversation capture and never discovers new rules.
+
+1. Read the current canonical row with `veil-db.py readback --json`.
+2. Require an exact existing source term. If the supplied current preferred
+   wording differs from canonical, stop and report that the request is stale;
+   do not guess which version to change.
+3. Show the exact operation once and ask for one confirmation:
+   - `change`: `{term}: {current preferred} -> {requested preferred}`
+   - `retire`: `retire {term}: {current preferred}`
+   Do not show candidates, alternatives, commands, or unrelated rows.
+4. After confirmation, serialize all confirmed operations to one isolated,
+   agent-created UTF-8 JSON file:
+
+   ```json
+   {
+     "contract_version": "1",
+     "operations": [
+       {"action": "change", "term": "...", "current_preferred": "...", "preferred": "...", "reason": null},
+       {"action": "retire", "term": "...", "current_preferred": "...", "preferred": null, "reason": null}
+     ]
+   }
+   ```
+
+5. Run the file through the host argument-array/subprocess facility:
+
+   ```
+   python {veil_root}/shared/tools/veil-db.py maintain-batch --db ~/.veil/veil.db --input-json <agent-generated-path> --json
+   ```
+
+   `current_preferred` is the exact canonical value shown for confirmation; the
+   DB rejects the complete batch if it has changed. Require `status=ok`,
+   `atomic=true`, and `processed_count` equal to the
+   confirmed operation count. Remove only the exact agent-created file in a
+   finally-style cleanup after success or failure.
+6. Regenerate HTML and update only already-registered sync targets using the
+   same export/sync rules as accepted-exception processing.
+7. Report the completed changes concisely. Never say a copied browser request
+   was saved before the confirmed atomic batch, HTML export, and required sync
+   have completed.
+
+Any validation, DB, export, or sync failure stops this route with the exact
+incomplete stage. A missing or stale rule is never converted into an upsert.
+
+---
+
 ## Accepted-exception processing
 
 Run this section only after the user's answer, or when the invoking request already supplied an exact preferred form and explicit registration instruction. Do not output intermediate results.

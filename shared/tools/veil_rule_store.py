@@ -12,12 +12,10 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from shared.tools.veil_capture_taxonomy import capture_taxonomy_payload
     from shared.tools.veil_delivery_freshness import render_with_manifest
     from shared.tools.veil_html_review import render_review_html
     from shared.tools.veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG, get_html_ui_for_lang
 except ModuleNotFoundError:
-    from veil_capture_taxonomy import capture_taxonomy_payload  # type: ignore[no-redef]
     from veil_delivery_freshness import render_with_manifest  # type: ignore[no-redef]
     from veil_html_review import render_review_html  # type: ignore[no-redef]
     from veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG, get_html_ui_for_lang  # type: ignore[no-redef]
@@ -713,6 +711,185 @@ def upsert_rules_atomic(db_path: str, rules: list[dict[str, Any]]) -> dict[str, 
     }
 
 
+def maintain_rules_atomic(db_path: str, operations: list[dict[str, Any]]) -> dict[str, Any]:
+    """Change or retire existing rules in one transaction.
+
+    This route deliberately cannot create a new rule. New vocabulary remains
+    owned by the semantic capture and accepted-exception flow.
+    """
+
+    if get_protected_repo_dir_name(db_path) is not None:
+        payload = build_protected_output_payload("db_path", db_path)
+        payload.update({"processed_count": 0, "results": [], "atomic": True})
+        return payload
+    if not operations or not os.path.exists(db_path):
+        return {
+            "status": "error",
+            "reason": (
+                "store.maintenance_validation_failed"
+                if not operations
+                else "store.no_db_file"
+            ),
+            "db_path": db_path,
+            "processed_count": 0,
+            "results": [],
+            "atomic": True,
+        }
+
+    prepared: list[dict[str, str | None]] = []
+    seen: set[str] = set()
+    for index, operation in enumerate(operations):
+        action = str(operation.get("action") or "").strip()
+        term = str(operation.get("term") or "").strip()
+        current_preferred = operation.get("current_preferred")
+        preferred = operation.get("preferred")
+        reason = operation.get("reason")
+        if (
+            action not in {"change", "retire"}
+            or not term
+            or not isinstance(current_preferred, str)
+            or not current_preferred.strip()
+            or (reason is not None and not isinstance(reason, str))
+            or (action == "retire" and preferred not in (None, ""))
+        ):
+            return {
+                "status": "error",
+                "reason": "store.maintenance_validation_failed",
+                "db_path": db_path,
+                "failed_index": index,
+                "processed_count": 0,
+                "results": [],
+                "atomic": True,
+            }
+        normalized = normalize_term(term)
+        if normalized in seen:
+            return {
+                "status": "error",
+                "reason": "store.batch_duplicate_term",
+                "db_path": db_path,
+                "failed_index": index,
+                "processed_count": 0,
+                "results": [],
+                "atomic": True,
+            }
+        if action == "change" and (not isinstance(preferred, str) or not preferred.strip()):
+            return {
+                "status": "error",
+                "reason": "store.maintenance_validation_failed",
+                "db_path": db_path,
+                "failed_index": index,
+                "processed_count": 0,
+                "results": [],
+                "atomic": True,
+            }
+        seen.add(normalized)
+        prepared.append(
+            {
+                "action": action,
+                "term": term,
+                "normalized": normalized,
+                "current_preferred": current_preferred.strip(),
+                "preferred": preferred.strip() if isinstance(preferred, str) else None,
+                "reason": reason.strip() if isinstance(reason, str) else None,
+            }
+        )
+
+    try:
+        init_db(db_path)
+        with closing(open_db(db_path)) as conn:
+            conn.execute("BEGIN")
+            timestamp = now_utc_iso()
+            results: list[dict[str, Any]] = []
+            for index, operation in enumerate(prepared):
+                row = conn.execute(
+                    """
+                    SELECT id, term_original, term_normalized, preferred, status
+                    FROM rules
+                    WHERE term_normalized = ?
+                    ORDER BY id
+                    LIMIT 1
+                    """,
+                    (operation["normalized"],),
+                ).fetchone()
+                if row is None:
+                    conn.rollback()
+                    return {
+                        "status": "error",
+                        "reason": "store.rule_not_found",
+                        "db_path": db_path,
+                        "failed_index": index,
+                        "processed_count": 0,
+                        "results": [],
+                        "atomic": True,
+                    }
+                stale_fields: list[str] = []
+                if row["term_original"] != operation["term"]:
+                    stale_fields.append("term_original")
+                if row["preferred"] != operation["current_preferred"]:
+                    stale_fields.append("preferred")
+                if row["status"] != "active":
+                    stale_fields.append("status")
+                if stale_fields:
+                    conn.rollback()
+                    return {
+                        "status": "error",
+                        "reason": "store.maintenance_stale",
+                        "db_path": db_path,
+                        "failed_index": index,
+                        "processed_count": 0,
+                        "results": [],
+                        "atomic": True,
+                        "stale_fields": stale_fields,
+                        "expected_term_original": operation["term"],
+                        "actual_term_original": row["term_original"],
+                        "expected_preferred": operation["current_preferred"],
+                        "actual_preferred": row["preferred"],
+                        "expected_status": "active",
+                        "actual_status": row["status"],
+                    }
+                if operation["action"] == "change":
+                    conn.execute(
+                        "UPDATE rules SET preferred = ?, status = 'active', updated_at = ? WHERE id = ?",
+                        (operation["preferred"], timestamp, row["id"]),
+                    )
+                    result_preferred = operation["preferred"]
+                else:
+                    conn.execute(
+                        "UPDATE rules SET status = 'retired', updated_at = ? WHERE id = ?",
+                        (timestamp, row["id"]),
+                    )
+                    result_preferred = row["preferred"]
+                results.append(
+                    {
+                        "status": "ok",
+                        "action": operation["action"],
+                        "term_original": row["term_original"],
+                        "term_normalized": row["term_normalized"],
+                        "preferred": result_preferred,
+                        "reason": operation["reason"],
+                    }
+                )
+            conn.commit()
+    except sqlite3.Error as exc:
+        return {
+            "status": "error",
+            "reason": "store.maintenance_write_failed",
+            "db_path": db_path,
+            "processed_count": 0,
+            "results": [],
+            "atomic": True,
+            "error": str(exc),
+        }
+
+    return {
+        "status": "ok",
+        "db_path": db_path,
+        "processed_count": len(results),
+        "results": results,
+        "atomic": True,
+    }
+
+
 def delete_rule(db_path: str, term_original: str) -> dict[str, Any]:
     if get_protected_repo_dir_name(db_path) is not None:
         return build_protected_output_payload("db_path", db_path)
@@ -874,25 +1051,18 @@ def export_html_from_db(
     rows = payload["rows"]  # type: ignore[assignment]
 
     resolved_ui = ui if ui is not None else _HTML_UI_EN
-    capture_config = capture_taxonomy_payload()
     content = render_review_html(
         rows,
         resolved_ui,
         template=_HTML_TEMPLATE,
         ui_by_lang=_HTML_UI_BY_LANG,
-        capture_config=capture_config,
-        db_cli_path=DB_CLI_PATH,
-        db_path=db_path,
-        html_path=html_path,
     )
     content = render_with_manifest(
         content,
         template=_HTML_TEMPLATE,
         ui_by_lang=_HTML_UI_BY_LANG,
-        capture_taxonomy=capture_config,
         rows=rows,
         settings={
-            "db_cli_path": DB_CLI_PATH,
             "db_path": Path(db_path).as_posix(),
             "html_path": Path(html_path).as_posix(),
             "default_lang": str(resolved_ui.get("lang", "en")),

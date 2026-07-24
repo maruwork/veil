@@ -82,12 +82,12 @@ several labels for one definition.
 - Treat obvious proper nouns such as `GitHub` or `PowerShell` as `other` when they are clearly outside the target categories.
 - Use `unknown` only when the first pass still cannot tell what kind of term it is.
 - Legacy candidate extraction remains available for regression and compatibility. Its repeated-term allowlists do not define the user interaction and do not authorize registration.
-- The HTML review panel is an optional recovery surface. Its regex preview is
-  contract v1 `raw-text-diagnostic` and cannot prove semantic coverage. The
-  primary action copies the complete text for the installed AI Skill; preview
-  entries may be loaded only for manual fine-tuning after AI review.
-- Python and HTML/JS raw-text diagnostics remain in lockstep only as regression
-  evidence. They are not evidence that arbitrary conversations are understood.
+- The HTML is a static Rulebook and Recovery surface. It copies the complete
+  text for the installed AI Skill and does not embed classification or
+  raw-text diagnostic logic.
+- Python raw-text diagnostics remain developer regression tooling. They are
+  not evidence that arbitrary conversations are understood and do not define
+  the browser interaction.
 
 ## Chat seed input
 
@@ -137,8 +137,9 @@ Each v1-v3 first eligible run failed, so none is release evidence. The capture
 boundary is release-ready only while all of the following stay true:
 
 - attachment long-tail regression produces no accidental unknown leakage;
-- Python label classification and HTML/JS label classification remain in lockstep;
-- Python and HTML/JS raw-text diagnostics match on their bounded regression contract;
+- Python label classification and raw-text diagnostics pass their bounded
+  developer regression contracts; the generated HTML does not embed either
+  classifier;
 - semantic schema, exact evidence, rename, conflict, critic disagreement, and
   no-write behavior pass invariant-focused tests;
 - a new unseen, independently authored and reviewed end-to-end synthetic
@@ -149,9 +150,10 @@ boundary is release-ready only while all of the following stay true:
 - normal sessions require zero questions and exception sessions at most one combined question;
 - Skill and HTML normal output contain no candidate table or numbered-candidate instruction;
 - accepted multi-result registration uses one validated all-or-nothing JSON batch; and
-- the formal browser runner proves recovery wording, diagnostic labeling,
-  complete-text AI prompt copy, locale behavior, fine-tuning, clipboard
-  fallback, and zero direct writes; and
+- the formal browser runner proves Rulebook-first navigation, search,
+  complete-text Skill-request copy, English/Japanese behavior, existing-rule
+  change and retirement requests, clipboard fallback, invalid-form blocking,
+  and zero direct writes; and
 - a separately approved, anonymized, two-reviewer real-conversation evaluation
   passes before claiming VEIL's overall UX is usable.
 

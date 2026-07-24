@@ -185,7 +185,7 @@ def test_check_malformed_html_manifest_is_error(tmp_path: Path):
     html = veil_dir / "veil.html"
     db_cmd("init-db", "--db", str(db), env_overrides=env)
     db_cmd("export-html", "--db", str(db), "--html-path", str(html), env_overrides=env)
-    html.write_text(html.read_text(encoding="utf-8").replace('"format":1', '"format":'), encoding="utf-8")
+    html.write_text(html.read_text(encoding="utf-8").replace('"format":2', '"format":'), encoding="utf-8")
     (claude_dir / "veil-capture.md").write_bytes((Path(PROJECT_ROOT) / "skills" / "claude-code" / "veil-capture.md").read_bytes())
     (codex_dir / "SKILL.md").write_bytes((Path(PROJECT_ROOT) / "skills" / "codex" / "veil-capture" / "SKILL.md").read_bytes())
     result = status_cmd("--db", str(db), "--check", "--json", check=False, env_overrides=env)

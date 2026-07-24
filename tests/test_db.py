@@ -8,11 +8,7 @@ from pathlib import Path
 
 from shared.tools.veil_delivery_freshness import read_manifest, verify_manifest
 from shared.tools.veil_html_assets import _HTML_TEMPLATE, _HTML_UI_BY_LANG
-from shared.tools.veil_rule_store import (
-    DB_CLI_PATH,
-    capture_taxonomy_payload,
-    parse_preferred_variants,
-)
+from shared.tools.veil_rule_store import parse_preferred_variants
 
 from .helpers import PROJECT_ROOT, db_cmd
 
@@ -305,117 +301,462 @@ def test_readback_empty(tmp_db):
     assert payload["rows"] == []
 
 
-def test_export_html(tmp_db, tmp_path):
+def test_maintain_batch_changes_and_retires_atomically(tmp_db, tmp_path: Path) -> None:
     db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
-    html_path = str(tmp_path / "veil.html")
-    db_cmd("export-html", "--db", tmp_db, "--html-path", html_path)
-    assert os.path.exists(html_path)
-    content = Path(html_path).read_text(encoding="utf-8")
-    assert "current state" in content
-    assert "present state" in content
-    assert "Manual copy prompt opened." in content
-    assert "Clipboard access is unavailable. Copy this text manually:" in content
-    assert "opacity: 0" not in content
-    assert "Register or change a rule" in content
-    assert "AI review recovery" in content
-    assert 'id="capture-input"' in content
-    assert 'id="capture-analyze-btn"' in content
-    assert 'id="capture-copy-exceptions-btn"' in content
-    assert "analyzeCaptureInput()" in content
-    assert "function copyCaptureReviewRequest()" in content
-    assert "Copy complete AI review request" in content
-    assert "evidence-backed semantic decision frames (contract v2)" in content
-    assert "separate critic pass" in content
-    assert "diagnostic_only: true" in content
-    assert "write_allowed: false" in content
-    assert content.index('id="capture-copy-exceptions-btn"') < content.index('id="capture-analyze-btn"')
-    assert "__UI_CAPTURE_EXCEPTIONS_COPY_BTN__" not in content
-    assert "Select a term to continue" not in content
-    assert "用語を選んで続け" not in content
-    assert "function analyzeCaptureOutcomes(text)" in content
-    assert "existing-match" in content
-    assert "loadCaptureResult(" in content
-    assert "capture-result-line" in content
-    assert "coined_or_shortened" in content
-    assert 'id="capture-copy-prompt-btn"' not in content
-    assert "The local preview found no possible exception." in content
-    assert "No vocabulary decision is needed." not in content
-    assert 'id="register-btn"' in content
-    assert 'id="register-commands-btn"' in content
-    assert 'id="col-actions"' in content
-    assert "copyDeleteInstruction(this)" in content
-    assert "copyRegisterPrompt()" in content
-    assert "delete-rule" in content
-    assert "export-html" in content
-    assert "upsert-rule" in content
-    assert "--level" not in content
-    assert 'id="new-level"' not in content
-    assert "Run these commands to delete this rule:" in content
-    assert "Run these commands to register this rule:" in content
-    assert "Copy save request" in content
-    assert "Advanced: copy commands" in content
-    assert "Register this VEIL rule in the current repository:" in content
-    assert "Update the SQLite canonical, then regenerate the mirror and veil.html." in content
-    assert "navigator.clipboard.writeText" in content
-    assert "openManualCopy(text)" in content
-    for forbidden_browser_write in ("fetch(", "XMLHttpRequest", "indexedDB", "localStorage", "sessionStorage", "WebSocket"):
-        assert forbidden_browser_write not in content
-    assert "navigator.languages" in content
-    assert "const _captureConfig =" in content
-    assert r"masked.split(/\r?\n/)" in content
-    assert r"].join('\n\n');" in content
-    assert r"].join('\n');" in content
-    assert r"lines.join('\n')" in content
-    assert '"zh-hans"' in content
-    assert '"zh-hant"' in content
-    assert '"ko"' in content
-    assert '"ar"' in content
-    assert "document.documentElement.dir = isRtlLocale" in content
-    assert "竊" not in content
-    assert "용어 규칙" in content
-    assert "词汇规则" in content
-    assert "詞彙規則" in content
-    assert "قواعد المصطلحات" in content
-    manifest, error = read_manifest(content)
-    assert error is None
-    assert manifest is not None
-    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
-    assert verify_manifest(
-        content,
-        template=_HTML_TEMPLATE,
-        ui_by_lang=_HTML_UI_BY_LANG,
-        capture_taxonomy=capture_taxonomy_payload(),
-        rows=rows,
-        settings={
-            "db_cli_path": DB_CLI_PATH,
-            "db_path": Path(tmp_db).as_posix(),
-            "html_path": Path(html_path).as_posix(),
-            "default_lang": "en",
-        },
-    ) == "OK"
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "old lane", "--preferred", "approved lane")
+    request = tmp_path / "maintenance.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "current state",
+                        "current_preferred": "present state",
+                        "preferred": "current condition",
+                        "reason": "accepted wording update",
+                    },
+                    {
+                        "action": "retire",
+                        "term": "old lane",
+                        "current_preferred": "approved lane",
+                        "preferred": None,
+                        "reason": "no longer used",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        db_cmd(
+            "maintain-batch",
+            "--db",
+            tmp_db,
+            "--input-json",
+            str(request),
+            "--json",
+        ).stdout
+    )
+    rows = {
+        row["term_normalized"]: row
+        for row in json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+    }
+
+    assert payload["status"] == "ok"
+    assert payload["atomic"] is True
+    assert payload["processed_count"] == 2
+    assert rows["current state"]["preferred"] == "current condition"
+    assert rows["current state"]["status"] == "active"
+    assert rows["old lane"]["status"] == "retired"
 
 
-def test_html_manifest_marks_missing_legacy_and_tampered_content(tmp_db, tmp_path):
+def test_maintain_batch_rolls_back_when_any_rule_is_missing(tmp_db, tmp_path: Path) -> None:
     db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
-    html_path = str(tmp_path / "veil.html")
-    db_cmd("export-html", "--db", tmp_db, "--html-path", html_path)
-    content = Path(html_path).read_text(encoding="utf-8")
+    request = tmp_path / "maintenance-missing.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "current state",
+                        "current_preferred": "present state",
+                        "preferred": "changed",
+                    },
+                    {
+                        "action": "retire",
+                        "term": "missing rule",
+                        "current_preferred": "missing preferred",
+                        "preferred": None,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
     rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
-    inputs = {
+
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert payload["atomic"] is True
+    assert payload["processed_count"] == 0
+    assert rows[0]["preferred"] == "present state"
+
+
+def test_maintain_batch_rejects_invalid_payload_before_write(tmp_db, tmp_path: Path) -> None:
+    request = tmp_path / "maintenance-invalid.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "retire",
+                        "term": "x",
+                        "current_preferred": "x preferred",
+                        "preferred": "not-null",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert payload["processed_count"] == 0
+    assert rows == []
+
+
+def test_maintain_batch_does_not_create_a_missing_canonical_db(tmp_path: Path) -> None:
+    db = tmp_path / "missing.db"
+    request = tmp_path / "maintenance-no-db.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "retire",
+                        "term": "current state",
+                        "current_preferred": "present state",
+                        "preferred": None,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        str(db),
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 1
+    assert payload["reason"] == "store.no_db_file"
+    assert payload["atomic"] is True
+    assert not db.exists()
+
+
+def test_maintain_batch_rejects_stale_current_preferred_atomically(
+    tmp_db,
+    tmp_path: Path,
+) -> None:
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
+    request = tmp_path / "maintenance-stale.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "current state",
+                        "current_preferred": "older state",
+                        "preferred": "current condition",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
+    assert result.returncode == 1
+    assert payload["reason"] == "store.maintenance_stale"
+    assert payload["atomic"] is True
+    assert payload["processed_count"] == 0
+    assert rows[0]["preferred"] == "present state"
+
+
+def test_maintain_batch_cannot_reactivate_a_rule_retired_after_request(
+    tmp_db,
+    tmp_path: Path,
+) -> None:
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
+    request = tmp_path / "maintenance-retired-race.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "current state",
+                        "current_preferred": "present state",
+                        "preferred": "current condition",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    db_cmd(
+        "upsert-rule",
+        "--db",
+        tmp_db,
+        "--term",
+        "current state",
+        "--preferred",
+        "present state",
+        "--status",
+        "retired",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    row = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"][0]
+
+    assert payload["reason"] == "store.maintenance_stale"
+    assert payload["stale_fields"] == ["status"]
+    assert row["preferred"] == "present state"
+    assert row["status"] == "retired"
+
+
+def test_maintain_batch_rejects_changed_original_term_for_same_normalized_key(
+    tmp_db,
+    tmp_path: Path,
+) -> None:
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
+    request = tmp_path / "maintenance-original-term-race.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "current state",
+                        "current_preferred": "present state",
+                        "preferred": "current condition",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with sqlite3.connect(tmp_db) as conn:
+        conn.execute(
+            "UPDATE rules SET term_original = ? WHERE term_normalized = ?",
+            ("Current State", "current state"),
+        )
+        conn.commit()
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    row = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"][0]
+
+    assert payload["reason"] == "store.maintenance_stale"
+    assert payload["stale_fields"] == ["term_original"]
+    assert row["term_original"] == "Current State"
+    assert row["preferred"] == "present state"
+
+
+def test_maintain_batch_rolls_back_earlier_operations_when_later_rule_is_stale(
+    tmp_db,
+    tmp_path: Path,
+) -> None:
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "first term", "--preferred", "first preferred")
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "second term", "--preferred", "second preferred")
+    request = tmp_path / "maintenance-late-stale.json"
+    request.write_text(
+        json.dumps(
+            {
+                "contract_version": "1",
+                "operations": [
+                    {
+                        "action": "change",
+                        "term": "first term",
+                        "current_preferred": "first preferred",
+                        "preferred": "first changed",
+                    },
+                    {
+                        "action": "change",
+                        "term": "second term",
+                        "current_preferred": "second preferred",
+                        "preferred": "second changed",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    db_cmd(
+        "upsert-rule",
+        "--db",
+        tmp_db,
+        "--term",
+        "second term",
+        "--preferred",
+        "second preferred",
+        "--status",
+        "retired",
+    )
+
+    result = db_cmd(
+        "maintain-batch",
+        "--db",
+        tmp_db,
+        "--input-json",
+        str(request),
+        "--json",
+        check=False,
+    )
+    payload = json.loads(result.stdout)
+    rows = {
+        row["term_original"]: row
+        for row in json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+    }
+
+    assert payload["reason"] == "store.maintenance_stale"
+    assert payload["failed_index"] == 1
+    assert payload["processed_count"] == 0
+    assert rows["first term"]["preferred"] == "first preferred"
+    assert rows["first term"]["status"] == "active"
+    assert rows["second term"]["preferred"] == "second preferred"
+    assert rows["second term"]["status"] == "retired"
+
+
+def _manifest_inputs(tmp_db: str, html_path: str) -> dict[str, object]:
+    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+    return {
         "template": _HTML_TEMPLATE,
         "ui_by_lang": _HTML_UI_BY_LANG,
-        "capture_taxonomy": capture_taxonomy_payload(),
         "rows": rows,
         "settings": {
-            "db_cli_path": DB_CLI_PATH,
             "db_path": Path(tmp_db).as_posix(),
             "html_path": Path(html_path).as_posix(),
             "default_lang": "en",
         },
     }
-    assert verify_manifest(content.replace(' type="application/json"', ' type="application/x-json"'), **inputs) == "STALE"
-    assert verify_manifest(content.replace('"format":1', '"format":'), **inputs) == "ERROR"
-    assert verify_manifest(content.replace("Vocabulary Rules", "Vocabulary Rules changed", 1), **inputs) == "ERROR"
+
+
+def test_export_html(tmp_db, tmp_path):
+    db_cmd(
+        "upsert-rule",
+        "--db",
+        tmp_db,
+        "--term",
+        "current state",
+        "--preferred",
+        "present state",
+        "--preferred-alt-2",
+        "current status",
+    )
+    html_path = str(tmp_path / "veil.html")
+    db_cmd("export-html", "--db", tmp_db, "--html-path", html_path)
+    content = Path(html_path).read_text(encoding="utf-8")
+
+    assert "current state" in content
+    assert "present state" in content
+    assert "current status" in content
+    assert content.index("Registered rules") < content.index("Actions")
+    assert 'id="search"' in content
+    assert 'id="review-input"' in content
+    assert 'id="review-copy-btn"' in content
+    assert 'id="change-form"' in content
+    assert content.count('id="review-copy-btn"') == 1
+    assert "Run the installed VEIL capture workflow" in content
+    assert "one validated atomic maintenance batch" in content
+    assert "navigator.clipboard.writeText" in content
+    assert "navigator.languages" in content
+    for forbidden in (
+        "_captureConfig",
+        "analyzeCaptureOutcomes",
+        "capture-analyze-btn",
+        "upsert-rule",
+        "delete-rule",
+        "export-html",
+        "fetch(",
+        "XMLHttpRequest",
+        "indexedDB",
+        "localStorage",
+        "sessionStorage",
+        "WebSocket",
+    ):
+        assert forbidden not in content
+
+    manifest, error = read_manifest(content)
+    assert error is None
+    assert manifest is not None
+    assert manifest["format"] == 2
+    assert verify_manifest(content, **_manifest_inputs(tmp_db, html_path)) == "OK"
+
+
+def test_html_manifest_marks_missing_and_tampered_content(tmp_db, tmp_path):
+    db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
+    html_path = str(tmp_path / "veil.html")
+    db_cmd("export-html", "--db", tmp_db, "--html-path", html_path)
+    content = Path(html_path).read_text(encoding="utf-8")
+    inputs = _manifest_inputs(tmp_db, html_path)
+
+    assert verify_manifest(
+        content.replace(' type="application/json"', ' type="application/x-json"'),
+        **inputs,
+    ) == "STALE"
+    assert verify_manifest(content.replace('"format":2', '"format":'), **inputs) == "ERROR"
+    assert verify_manifest(content.replace("VEIL rulebook", "VEIL changed", 1), **inputs) == "ERROR"
 
 
 def test_html_manifest_marks_changed_canonical_rows_stale(tmp_db, tmp_path):
@@ -423,12 +764,12 @@ def test_html_manifest_marks_changed_canonical_rows_stale(tmp_db, tmp_path):
     db_cmd("upsert-rule", "--db", tmp_db, "--term", "current state", "--preferred", "present state")
     db_cmd("export-html", "--db", tmp_db, "--html-path", html_path)
     db_cmd("upsert-rule", "--db", tmp_db, "--term", "current issue", "--preferred", "current problem")
-    rows = json.loads(db_cmd("readback", "--db", tmp_db, "--json").stdout)["rows"]
+
     assert verify_manifest(
-        Path(html_path).read_text(encoding="utf-8"), template=_HTML_TEMPLATE, ui_by_lang=_HTML_UI_BY_LANG,
-        capture_taxonomy=capture_taxonomy_payload(), rows=rows,
-        settings={"db_cli_path": DB_CLI_PATH, "db_path": Path(tmp_db).as_posix(), "html_path": Path(html_path).as_posix(), "default_lang": "en"},
+        Path(html_path).read_text(encoding="utf-8"),
+        **_manifest_inputs(tmp_db, html_path),
     ) == "STALE"
+
 
 def test_readback_releases_db_handle(tmp_path: Path) -> None:
     db = tmp_path / "handle-check.db"

@@ -34,7 +34,7 @@ jobs:
         run: bash -n install.sh
 
       - name: Capture syntax check
-        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py tests/html_delivery_acceptance.py
 
       - name: pytest
         run: python -m pytest tests/ -q
@@ -131,13 +131,27 @@ jobs:
           }
 
       - name: Capture syntax check
-        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py
+        run: python -m py_compile shared/tools/veil_capture_classifier.py shared/tools/veil_capture_taxonomy.py shared/tools/veil_capture_outcomes.py shared/tools/veil_decision_frames.py shared/tools/veil_html_assets.py shared/runtime/veil-classify.py tests/browser_e2e_runner.py tests/html_delivery_acceptance.py
 
       - name: pytest
         run: python -m pytest tests/ -q
 
       - name: Browser E2E
-        run: python tests/browser_e2e_runner.py --json
+        env:
+          VEIL_BROWSER_BINARY: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+        run: python tests/browser_e2e_runner.py --json --output "$env:RUNNER_TEMP\veil-browser-e2e.json"
+
+      - name: Disposable HTML delivery acceptance
+        run: python tests/html_delivery_acceptance.py --output "$env:RUNNER_TEMP\veil-html-delivery.json"
+
+      - name: Upload HTML UX acceptance records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-html-ux-acceptance-windows
+          path: |
+            ${{ runner.temp }}/veil-browser-e2e.json
+            ${{ runner.temp }}/veil-html-delivery.json
 
       - name: init-db
         shell: bash

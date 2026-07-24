@@ -1,37 +1,22 @@
 #!/usr/bin/env python3
-"""M2 review-HTML renderer.
-
-This module owns browser-review markup and interaction payload construction. It
-accepts canonical rows as input and never opens or writes the SQLite store.
-"""
+"""Render the generated, read-only VEIL Rulebook and Recovery surface."""
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import html
 import json
-from pathlib import Path
 from typing import Any, Mapping
 
 
-def _render_alt_cell(term: str, alt: str | None, copy_btn: str = "Copy") -> str:
-    if not alt or not str(alt).strip():
+def _render_alternatives(values: list[str], ui: Mapping[str, str]) -> str:
+    if not values:
         return ""
+    items = "".join(f"<li>{html.escape(value)}</li>" for value in values)
+    label = html.escape(ui.get("show_alternatives", "Show alternatives"))
     return (
-        f'<div class="cell">'
-        f'<span class="alt">{html.escape(str(alt))}</span>'
-        f'<button class="copy-btn" data-term="{html.escape(term)}" data-alt="{html.escape(str(alt))}" '
-        f'title="{html.escape(copy_btn)}" aria-label="{html.escape(copy_btn)}" onclick="copy(this)">'
-        f'{html.escape(copy_btn)}</button>'
-        f'</div>'
-    )
-
-
-def _render_delete_cell(term: str, preferred: str, delete_btn: str = "Delete") -> str:
-    return (
-        f'<button class="copy-btn danger-btn delete-btn" data-term="{html.escape(term)}" '
-        f'data-preferred="{html.escape(preferred)}" title="{html.escape(delete_btn)}" '
-        f'aria-label="{html.escape(delete_btn)}" onclick="copyDeleteInstruction(this)">'
-        f'{html.escape(delete_btn)}</button>'
+        f'<details class="alternatives"><summary data-i18n="show_alternatives">'
+        f"{label}</summary><ul>{items}</ul></details>"
     )
 
 
@@ -41,118 +26,78 @@ def render_review_html(
     *,
     template: str,
     ui_by_lang: Mapping[str, Mapping[str, str]],
-    capture_config: Mapping[str, Any],
-    db_cli_path: str,
-    db_path: str,
-    html_path: str,
 ) -> str:
-    """Render the M2 review UI from already-read canonical rows."""
-
-    def js(key: str, default: str) -> str:
-        return json.dumps(ui.get(key, default), ensure_ascii=False)[1:-1]
+    """Render active canonical rows without opening or writing the SQLite DB."""
 
     def h(key: str, default: str) -> str:
-        return html.escape(ui.get(key, default))
+        return html.escape(str(ui.get(key, default)))
 
-    copy_btn = ui.get("copy_btn", "Copy")
-    delete_btn = ui.get("delete_btn", "Delete")
-    rows_sorted = sorted(
+    active_rows = sorted(
         (row for row in rows if row.get("status") == "active"),
         key=lambda row: (str(row["term_normalized"]), str(row["term_original"]).lower()),
     )
-    row_parts: list[str] = []
-    for row in rows_sorted:
+    rendered_rows: list[str] = []
+    change_label = ui.get("request_change_btn", "Request change")
+    for row in active_rows:
         term = str(row["term_original"])
-        term_normalized = str(row["term_normalized"])
         preferred = str(row["preferred"])
-        alt2 = row.get("preferred_alt_2")
-        alt3 = row.get("preferred_alt_3")
-        first_char = term[0] if term else "?"
-        section = first_char.upper() if first_char.isalpha() else "?"
-        row_parts.append(
-            f"    <tr data-term=\"{html.escape(term)}\" data-term-normalized=\"{html.escape(term_normalized)}\">\n"
-            f"      <td><span class=\"section-label\">{html.escape(section)}</span>"
-            f"<span class=\"term\">{html.escape(term)}</span></td>\n"
-            f"      <td><span class=\"preferred\">{html.escape(preferred)}</span></td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt2) if alt2 else None, copy_btn)}</td>\n"
-            f"      <td>{_render_alt_cell(term, str(alt3) if alt3 else None, copy_btn)}</td>\n"
-            f"      <td>{_render_delete_cell(term, preferred, delete_btn)}</td>\n"
-            f"    </tr>"
+        alternatives = [
+            str(value).strip()
+            for value in (row.get("preferred_alt_2"), row.get("preferred_alt_3"))
+            if value and str(value).strip()
+        ]
+        search_value = " ".join([term, preferred, *alternatives]).lower()
+        rendered_rows.append(
+            f'      <article class="rule-row" data-search="{html.escape(search_value)}">\n'
+            f'        <div><span class="term">{html.escape(term)}</span></div>\n'
+            f'        <div><span class="preferred">{html.escape(preferred)}</span>'
+            f'{_render_alternatives(alternatives, ui)}</div>\n'
+            f'        <button class="button request-change-btn" type="button" '
+            f'data-term="{html.escape(term)}" data-preferred="{html.escape(preferred)}">'
+            f'{html.escape(change_label)}</button>\n'
+            f'      </article>'
         )
 
-    count = len(rows_sorted)
-    count_init = ui.get("count_registered", "{n} terms registered").replace("{n}", str(count))
+    count = len(active_rows)
+    values = {
+        "__UI_LANG__": h("lang", "en"),
+        "__UI_TITLE__": h("title", "VEIL rulebook"),
+        "__UI_RULEBOOK_TITLE__": h("rulebook_title", "VEIL rulebook"),
+        "__UI_RULEBOOK_DESCRIPTION__": h("rulebook_description", "Review registered terminology rules."),
+        "__UI_GENERATED_LABEL__": h("generated_label", "Generated"),
+        "__UI_RULEBOOK_HEADING__": h("rulebook_heading", "Registered rules"),
+        "__UI_SEARCH_PLACEHOLDER__": h("search_placeholder", "Search rules..."),
+        "__UI_NO_MATCH__": h("no_match", "No matching rule."),
+        "__UI_EMPTY_RULEBOOK__": h("empty_rulebook", "No rules are registered."),
+        "__UI_ACTIONS_TITLE__": h("actions_title", "Actions"),
+        "__UI_ACTIONS_DESCRIPTION__": h("actions_description", "Intentional recovery and maintenance only."),
+        "__UI_REVIEW_TITLE__": h("review_title", "Review a conversation"),
+        "__UI_REVIEW_DESCRIPTION__": h("review_description", "Copy the exact conversation for VEIL review."),
+        "__UI_REVIEW_LABEL__": h("review_label", "Exact conversation text"),
+        "__UI_REVIEW_PLACEHOLDER__": h("review_placeholder", "Paste the exact conversation..."),
+        "__UI_REVIEW_COPY_BTN__": h("review_copy_btn", "Copy review request"),
+        "__UI_CHANGE_TITLE__": h("change_title", "Request a rule change"),
+        "__UI_CHANGE_DESCRIPTION__": h("change_description", "Select a registered rule."),
+        "__UI_CHANGE_EMPTY__": h("change_empty", "Choose a rule above."),
+        "__UI_SELECTED_TERM_LABEL__": h("selected_term_label", "Source wording: "),
+        "__UI_SELECTED_PREFERRED_LABEL__": h("selected_preferred_label", "Current preferred wording: "),
+        "__UI_CHANGE_INTENT_LABEL__": h("change_intent_label", "Requested operation"),
+        "__UI_CHANGE_OPTION__": h("change_option", "Change preferred wording"),
+        "__UI_RETIRE_OPTION__": h("retire_option", "Retire this rule"),
+        "__UI_REQUESTED_PREFERRED_LABEL__": h("requested_preferred_label", "New preferred wording"),
+        "__UI_CHANGE_REASON_LABEL__": h("change_reason_label", "Reason"),
+        "__UI_CHANGE_REASON_HELP__": h("change_reason_help", "Optional."),
+        "__UI_CHANGE_COPY_BTN__": h("change_copy_btn", "Copy change request"),
+        "__UI_CANCEL_BTN__": h("cancel_btn", "Cancel"),
+        "__UI_COUNT_INIT__": html.escape(
+            ui.get("count_registered", "{n} rules registered").replace("{n}", str(count))
+        ),
+        "__EMPTY_CLASS__": "" if count == 0 else "hidden",
+        "__GENERATED_AT__": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "__UI_I18N__": json.dumps(ui_by_lang, ensure_ascii=False),
+        "__ROWS__": "\n".join(rendered_rows),
+    }
     content = template
-    content = content.replace("__UI_LANG__", h("lang", "en"))
-    content = content.replace("__DB_CLI_PATH__", json.dumps(db_cli_path, ensure_ascii=False))
-    content = content.replace("__DB_PATH__", json.dumps(Path(db_path).as_posix(), ensure_ascii=False))
-    content = content.replace("__HTML_PATH__", json.dumps(Path(html_path).as_posix(), ensure_ascii=False))
-    content = content.replace("__UI_TITLE__", h("title", "VEIL - Vocabulary Rules"))
-    content = content.replace("__UI_I18N__", json.dumps(ui_by_lang, ensure_ascii=False))
-    content = content.replace("__CAPTURE_CONFIG__", json.dumps(capture_config, ensure_ascii=False))
-    content = content.replace("__UI_COUNT_INIT__", html.escape(count_init))
-    labels = {
-        "__UI_SEARCH_PLACEHOLDER__": ("search_placeholder", "Search terms..."),
-        "__UI_CAPTURE_TITLE__": ("capture_title", "AI review recovery"),
-        "__UI_CAPTURE_DESCRIPTION__": ("capture_description", "Paste text and copy one complete AI review request. The optional local preview is diagnostic only."),
-        "__UI_CAPTURE_PLACEHOLDER__": ("capture_placeholder", "Paste the exact text to review..."),
-        "__UI_CAPTURE_BTN__": ("capture_btn", "Run local diagnostic preview"),
-        "__UI_CAPTURE_EXCEPTIONS_COPY_BTN__": ("capture_exceptions_copy_btn", "Copy complete AI review request"),
-        "__UI_CAPTURE_COPY_OUTPUT_BTN__": ("capture_copy_output_btn", "Copy Draft Output"),
-        "__UI_CAPTURE_COPY_PROMPT_BTN__": ("capture_copy_prompt_btn", "Copy AI Prompt"),
-        "__UI_CAPTURE_RESULT_TITLE__": ("capture_result_title", "Local diagnostic preview"),
-        "__UI_CAPTURE_EMPTY__": ("capture_empty", "Paste text to copy an AI review request or run the optional preview."),
-        "__UI_CAPTURE_NOTE__": ("capture_note", "Recovery only: the local preview is not semantic proof. Send the complete text to AI before any write."),
-        "__UI_INSTRUCTION__": ("instruction", "Normal review runs in the installed Skill. This page is a recovery surface for complete AI review requests and optional diagnostics."),
-        "__UI_REGISTER_TITLE__": ("register_title", "Register or change a rule"),
-        "__UI_ADVANCED_OPTIONS__": ("advanced_options", "Optional alternatives and recovery commands"),
-        "__UI_FIELD_TERM__": ("field_term", "Term"),
-        "__UI_FIELD_PREFERRED__": ("field_preferred", "Preferred"),
-        "__UI_FIELD_ALT2__": ("field_alt2", "Alternative 1"),
-        "__UI_FIELD_ALT3__": ("field_alt3", "Alternative 2"),
-        "__UI_REGISTER_TERM_PLACEHOLDER__": ("register_term_placeholder", "e.g. current state"),
-        "__UI_REGISTER_PREFERRED_PLACEHOLDER__": ("register_preferred_placeholder", "e.g. present state"),
-        "__UI_REGISTER_ALT2_PLACEHOLDER__": ("register_alt2_placeholder", "Optional alternative"),
-        "__UI_REGISTER_ALT3_PLACEHOLDER__": ("register_alt3_placeholder", "Optional alternative"),
-        "__UI_REGISTER_BTN__": ("register_btn", "Copy save request"),
-        "__UI_REGISTER_COMMANDS_BTN__": ("register_commands_btn", "Advanced: copy commands"),
-        "__UI_COL_TERM__": ("col_term", "Term"),
-        "__UI_COL_PREFERRED__": ("col_preferred", "Preferred"),
-        "__UI_COL_ALT2__": ("col_alt2", "Alternative 1"),
-        "__UI_COL_ALT3__": ("col_alt3", "Alternative 2"),
-        "__UI_COL_ACTIONS__": ("col_actions", "Actions"),
-    }
-    for placeholder, (key, default) in labels.items():
-        content = content.replace(placeholder, h(key, default))
-    messages = {
-        "__UI_COPY_INSTRUCTION__": ("copy_instruction", "Change '{term}' to '{candidate}'"),
-        "__UI_COPY_BTN__": ("copy_btn", "Copy"),
-        "__UI_DELETE_BTN__": ("delete_btn", "Delete"),
-        "__UI_COPY_DONE__": ("copy_done", "Copied"),
-        "__UI_COPY_MANUAL__": ("copy_manual", "Clipboard access is unavailable. Copy this text manually:"),
-        "__UI_COPY_MANUAL_DONE__": ("copy_manual_done", "Manual copy prompt opened."),
-        "__UI_COPY_FAILED__": ("copy_failed", "Copy failed. Copy the text manually from the prompt."),
-        "__UI_CAPTURE_COPY_OUTPUT_COPIED__": ("capture_copy_output_copied", "Draft output copied."),
-        "__UI_CAPTURE_COPY_PROMPT_COPIED__": ("capture_copy_prompt_copied", "AI prompt copied."),
-        "__UI_CAPTURE_NONE__": ("capture_none", "The local preview found no possible exception. Semantic AI review is not complete."),
-        "__UI_CAPTURE_READY__": ("capture_ready", "The local preview found possible review items. Send the complete text to AI before any write."),
-        "__UI_CAPTURE_CURRENT_LABEL__": ("capture_current_label", " (current)"),
-        "__UI_CAPTURE_CANDIDATE1_LABEL__": ("capture_candidate1_label", " (preferred)"),
-        "__UI_CAPTURE_CANDIDATE2_LABEL__": ("capture_candidate2_label", " (alternative)"),
-        "__UI_CAPTURE_FOOTER__": ("capture_footer", "The local preview is diagnostic only; semantic AI review owns the normal flow."),
-        "__UI_CAPTURE_KEEP_CURRENT__": ("capture_keep_current", "keep current wording"),
-        "__UI_CAPTURE_PROMPT_HEADER__": ("capture_prompt_header", "Run installed VEIL capture with semantic frames contract v2 and a separate critic pass on this exact text."),
-        "__UI_REGISTER_MISSING__": ("register_missing", "Term and preferred form are required."),
-        "__UI_REGISTER_COPIED__": ("register_copied", "Registration request copied."),
-        "__UI_REGISTER_COMMANDS_COPIED__": ("register_commands_copied", "Registration commands copied."),
-        "__UI_DELETE_COPIED__": ("delete_copied", "Deletion commands copied."),
-        "__UI_DELETE_INSTRUCTION_HEADER__": ("delete_instruction_header", "Run these commands to delete this rule:"),
-        "__UI_REGISTER_INSTRUCTION_HEADER__": ("register_instruction_header", "Run these commands to register this rule:"),
-        "__UI_REGISTER_PROMPT_HEADER__": ("register_prompt_header", "Register this VEIL rule in the current repository:"),
-        "__UI_REGISTER_PROMPT_FOOTER__": ("register_prompt_footer", "Update the SQLite canonical, then regenerate the mirror and veil.html."),
-        "__UI_COUNT_REGISTERED__": ("count_registered", "{n} terms registered"),
-        "__UI_COUNT_MATCHING__": ("count_matching", "{n} terms matching"),
-    }
-    for placeholder, (key, default) in messages.items():
-        content = content.replace(placeholder, js(key, default))
-    return content.replace("__ROWS__", "\n".join(row_parts))
+    for placeholder, value in values.items():
+        content = content.replace(placeholder, value)
+    return content
