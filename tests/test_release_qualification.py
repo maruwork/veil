@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from shared.tools.veil_release_qualification import qualify
+import json
+
+from shared.tools.veil_release_qualification import load_json, qualify
 
 
 REVISION = "a" * 40
@@ -100,3 +102,10 @@ def test_mixed_source_fingerprints_fail_closed() -> None:
 
     assert report["verdict"] == "evidence-incomplete"
     assert any(issue["code"] == "release.source_fingerprint_mismatch" for issue in report["issues"])
+
+
+def test_load_json_accepts_windows_utf8_bom_delivery_evidence(tmp_path) -> None:
+    path = tmp_path / "delivery.json"
+    path.write_bytes(b"\xef\xbb\xbf" + json.dumps({"status": "ok"}).encode("utf-8"))
+
+    assert load_json(path) == {"status": "ok"}

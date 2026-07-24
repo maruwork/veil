@@ -26,7 +26,10 @@ REQUIRED_HOSTED_CHECKS = {
 
 
 def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    # PowerShell's UTF-8 output can carry a BOM. Delivery evidence is produced
+    # on Windows, so accept either UTF-8 representation while retaining strict
+    # JSON parsing for every other input error.
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def current_revision() -> str:
