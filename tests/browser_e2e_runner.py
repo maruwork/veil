@@ -533,6 +533,25 @@ def _insert_text(connection: DevToolsConnection, text: str) -> None:
     time.sleep(0.04)
 
 
+def _close_browser_process(process: subprocess.Popen[bytes]) -> str:
+    """Best-effort cleanup must never hide a completed product assertion."""
+
+    if process.poll() is None:
+        process.terminate()
+    try:
+        _stdout, stderr = process.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        try:
+            _stdout, stderr = process.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            # Descendant browser processes can retain stderr after the launched
+            # process exits. The temporary profile is still removed by the
+            # caller; report no warning rather than crashing the E2E runner.
+            return ""
+    return stderr.decode("utf-8", errors="replace") if stderr else ""
+
+
 def run_keyboard_browser(
     browser: Path,
     url: str,
@@ -704,12 +723,7 @@ def run_keyboard_browser(
     finally:
         if connection is not None:
             connection.close()
-        process.terminate()
-        try:
-            _stdout, stderr = process.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            _stdout, stderr = process.communicate(timeout=5)
+        _close_browser_process(process)
         if process.returncode not in (0, None, -15, 1):
             # Browser warnings are returned separately; product assertions stay
             # in the structured result above.
@@ -775,13 +789,7 @@ def run_browser(browser: Path, url: str, profile_dir: Path) -> tuple[dict[str, o
     finally:
         if connection is not None:
             connection.close()
-        process.terminate()
-        try:
-            _stdout, stderr = process.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            _stdout, stderr = process.communicate(timeout=5)
-        stderr_text = stderr.decode("utf-8", errors="replace") if stderr else ""
+        stderr_text = _close_browser_process(process)
     if result is None:
         raise BrowserStartupError("functional browser harness produced no result")
     return result, stderr_text
