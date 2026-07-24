@@ -245,6 +245,11 @@ commit-derived live delivery separately.
 
 ### Human UX acceptance
 
+Use the fixed [five-person execution protocol](governance/20260725-veil-human-ux-acceptance-protocol.md).
+It creates a disposable fixture and fail-closed anonymous result report; it
+does not write to the canonical DB or turn a human-UX pass into a product
+release claim.
+
 Before product release, use at least five target users who did not author the
 page. Give each the same three tasks without explaining the page structure:
 
