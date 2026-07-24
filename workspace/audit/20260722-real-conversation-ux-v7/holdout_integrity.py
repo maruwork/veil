@@ -520,7 +520,6 @@ def freeze_holdout(
         staged_runtime.write_text(
             "".join(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n" for row in runtime_rows),
             encoding="utf-8",
-            newline="\n",
         )
         checkpoint("after-runtime-derive")
         records = {
@@ -624,6 +623,5 @@ def freeze_holdout(
                     indent=2,
                 ) + "\n",
                 encoding="utf-8",
-                newline="\n",
             )
         raise
