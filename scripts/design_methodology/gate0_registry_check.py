@@ -377,7 +377,11 @@ def main(argv: list[str] | None = None) -> int:
     for warning in result.warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
     if result.ok:
-        print(f"Gate-0 PASS: {registry.relative_to(root) if registry.is_relative_to(root) else registry}")
+        try:
+            display_registry = registry.relative_to(root)
+        except ValueError:
+            display_registry = registry
+        print(f"Gate-0 PASS: {display_registry}")
         return 0
 
     print(f"Gate-0 FAIL: {registry}", file=sys.stderr)

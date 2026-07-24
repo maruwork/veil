@@ -592,7 +592,12 @@ def freeze_holdout(
         for record_id in RECORD_IDS:
             _same_record(staged_manifest_value, staged_attestation_value, record_id)
             declared = resolve_project_path(root, staged_manifest_value[record_id]["path"])
-            actual_path = staging / declared.relative_to(frozen) if declared.is_relative_to(frozen) else declared
+            try:
+                frozen_relative = declared.relative_to(frozen)
+            except ValueError:
+                actual_path = declared
+            else:
+                actual_path = staging / frozen_relative
             if file_record_as(root, actual_path, declared) != staged_manifest_value[record_id]:
                 raise ValueError(f"staged {record_id} path, sha256, or bytes mismatch")
         if file_record_as(root, staged_manifest, manifest_path) != staged_attestation_value["manifest"]:
