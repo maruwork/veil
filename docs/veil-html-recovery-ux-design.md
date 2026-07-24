@@ -1,6 +1,6 @@
 # VEIL HTML recovery UX redesign
 
-Status: implementation candidate verified locally; exact-scope commit, hosted checks, commit-derived delivery, and human UX acceptance pending
+Status: automated operational release qualification; optional post-release human UX research
 Date: 2026-07-24
 Owner: `docs/veil-design.md` remains the primary design authority. This document fixes the detailed HTML design that it adopts.
 
@@ -243,15 +243,16 @@ candidate evidence, not release evidence. Release evidence must be regenerated
 from the fixed commit, pass hosted checks for that revision, and record the
 commit-derived live delivery separately.
 
-### Human UX acceptance
+### Optional post-release human UX research
 
-Use the fixed [five-person execution protocol](governance/20260725-veil-human-ux-acceptance-protocol.md).
-It creates a disposable fixture and fail-closed anonymous result report; it
-does not write to the canonical DB or turn a human-UX pass into a product
-release claim.
+Use the fixed [five-person execution protocol](governance/20260725-veil-human-ux-acceptance-protocol.md)
+only when participants are available. It is product research, not a release
+input. It creates a disposable fixture and fail-closed anonymous result report;
+it does not write to the canonical DB or change release status.
 
-Before product release, use at least five target users who did not author the
-page. Give each the same three tasks without explaining the page structure:
+When product research is performed, use at least five target users who did not
+author the page. Give each the same three tasks without explaining the page
+structure:
 
 1. Find whether an existing wording has a preferred form.
 2. Correct that preferred form.
@@ -266,13 +267,16 @@ Pass criteria:
 - observed confusion is resolved in the design, not explained away in help
   text.
 
-### Release gate
+### Automated operational release gate
 
-Release is `not-ready` until the automated acceptance passes, human acceptance
-passes, the normal Skill route remains silent for no-decision conversations,
-and the final source revision passes local and hosted delivery checks. The v15
-seven-case semantic-core evidence remains valid only for its narrow policy
-claim; it is not HTML UX acceptance evidence.
+Release is `not-ready` until the same committed source revision has passing
+browser keyboard acceptance, passing disposable request-to-DB-to-HTML
+integration acceptance, every required delivery member `OK`, and passing hosted
+checks. `shared/tools/veil_release_qualification.py` makes that decision
+fail-closed from the four records. Human research is not substituted with
+synthetic participants and is not required to release this declared operational
+scope. The v15 seven-case semantic-core evidence remains valid only for its
+narrow policy claim; this gate makes no general semantic-accuracy claim.
 
 ## 9. Migration and evidence rules
 

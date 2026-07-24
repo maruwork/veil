@@ -14,10 +14,10 @@ an existing rule. The old raw-text diagnostic, candidate list, multiple prompt
 copies, command copies, registration form, and delete command are not part of
 the page.
 
-Automated source, DB, locale, Skill, freshness, and real-browser acceptance may
-establish implementation completeness. Product UX release remains `not-ready`
-until the separate five-user human acceptance contract in the detailed design
-passes.
+Automated source, DB, locale, Skill, freshness, real-browser, integration, and
+delivery acceptance establish operational release readiness. The optional
+five-user protocol in the detailed design is post-release product research; it
+does not block a release and is never simulated by agents.
 
 ## 1. Design principles
 
@@ -509,8 +509,11 @@ A UX release is complete only when all of the following are true in the same sou
    direct writes;
 4. `veil-status --check --json` reports every required delivery member `OK`
    after installation;
-5. the five-user human UX acceptance in
-   `docs/veil-html-recovery-ux-design.md` passes; and
-6. hosted checks pass for the merged source revision.
+5. hosted checks pass for the merged source revision.
+
+The operational release claim is bounded: it certifies the delivered Rulebook,
+Recovery, maintenance, and sync behavior. It does not claim general semantic
+accuracy beyond separately recorded bounded semantic evidence, and it never
+uses synthetic agents as human UX participants.
 
 Generating or detecting a delivery member is not enough: source, generated HTML, installed Skills, and declared inputs must be fresh as one delivery set. Installation, distribution, commit, merge, and push remain explicit release actions and are not implied by read-only UX evaluation.

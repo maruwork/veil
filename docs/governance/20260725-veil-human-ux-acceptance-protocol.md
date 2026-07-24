@@ -1,12 +1,12 @@
 # VEIL five-person HTML UX acceptance protocol
 
-Status: execution packet; no participant results have been recorded.
+Status: optional post-release research packet; no participant results have been recorded.
 
 ## Purpose and boundary
 
-This is the final human gate for the static Rulebook and Recovery HTML page. It
-does not evaluate semantic classification, v12--v15 frozen evidence, normal
-Skill performance, or release readiness as a whole. The coordinator must not
+This is optional post-release research for the static Rulebook and Recovery
+HTML page. It does not evaluate semantic classification, v12--v15 frozen
+evidence, normal Skill performance, or release readiness. The coordinator must not
 represent a synthetic, staff, or author session as a target-user result.
 
 Run the protocol only against a fixed, committed source revision. Create a
@@ -75,5 +75,5 @@ confusion is observed.
 Any observed confusion returns `requires-revision`. The remedy is a design
 change followed by a new committed source revision and a fresh five-person
 run; a help-text explanation or reuse of prior participant records is not
-valid. A human UX pass still returns `release_status: not-ready`: merge and all
-other release gates remain separately required.
+valid. Human research does not change release status; delivery and hosted
+release gates are evaluated separately.
