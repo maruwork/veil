@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "rules": [
+    {
+      "id": "established-wording",
+      "en": "Use established wording. Do not coin new terminology or labels on your own.",
+      "ja": "定着した表現を使い、根拠なく新しい用語やラベルを作らない。"
+    },
+    {
+      "id": "preserve-authoritative-wording",
+      "en": "Preserve wording supplied by the user or an authoritative source; do not silently rename it or replace it with an invented synonym.",
+      "ja": "ユーザーまたは正本が示した表現を保ち、無断で改名したり、独自の同義語へ置き換えたりしない。"
+    },
+    {
+      "id": "no-nonstandard-abbreviations",
+      "en": "Do not introduce a nonstandard abbreviation. Use only an established abbreviation or spell the term out.",
+      "ja": "非標準の略語を導入しない。定着した略語だけを使い、それ以外は語を省略せずに書く。"
+    },
+    {
+      "id": "durable-term-approval",
+      "en": "Adopt a durable new term only when the user explicitly requests it or confirms it after VEIL presents it.",
+      "ja": "永続的な新名称はユーザーが明示的に要求するか、VEILの提示後に承認した場合だけ採用する。"
+    },
+    {
+      "id": "allowed-literals",
+      "en": "These rules do not restrict established proper names, code identifiers, or wording explicitly supplied by the user.",
+      "ja": "既存の固有名、コード識別子、またはユーザーが明示した表現はこの制限の対象外。"
+    }
+  ]
+}

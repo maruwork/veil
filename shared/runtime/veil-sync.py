@@ -43,6 +43,7 @@ MARKERS = {
 }
 
 YAML_EXTS = {".yml", ".yaml", ".toml", ".ini", ".cfg"}
+GENERIC_BEHAVIOR_PATH = ROOT / "shared" / "default-profile" / "generic-behavior.json"
 
 AI_CONFIG_NAMES = [
     "CLAUDE.md",
@@ -145,6 +146,26 @@ def load_behavior(paths):
         return ""
 
 
+def load_generic_behavior() -> str:
+    try:
+        with GENERIC_BEHAVIOR_PATH.open(encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return ""
+    rules = payload.get("rules") if isinstance(payload, dict) else None
+    if not isinstance(rules, list):
+        return ""
+    language = "ja" if t("sync.runtime_instruction").startswith("VEILバックグラウンド") else "en"
+    lines = []
+    for rule in rules:
+        if not isinstance(rule, dict):
+            continue
+        text = rule.get(language) or rule.get("en")
+        if isinstance(text, str) and text.strip():
+            lines.append(f"- {text.strip()}")
+    return "VEIL vocabulary guardrails:\n" + "\n".join(lines) if lines else ""
+
+
 def prepare_base_rules(paths, quiet=False):
     payload = readback_rules(paths["db_path"])
     if payload["status"] == "skip":
@@ -171,7 +192,7 @@ def prepare_base_rules(paths, quiet=False):
 def do_sync(paths, base="", quiet=False, targets=None):
     if targets is None:
         targets = load_targets(paths)
-    sections = [t("sync.runtime_instruction")]
+    sections = [load_generic_behavior(), t("sync.runtime_instruction")]
     if base:
         sections.append(t("sync.rules_section_header") + base)
     behavior = load_behavior(paths)

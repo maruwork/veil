@@ -32,7 +32,7 @@
     "purge_help": "Also remove the VEIL block from the target file when unregistering.",
     "block_removed": "  VEIL block removed: {path}",
     "rules_section_header": "Terminology rules:\n",
-    "runtime_instruction": "VEIL background workflow:\n- Use established wording. Do not coin new terminology or labels on your own.\n- Preserve wording supplied by the user or an authoritative source; do not silently rename it or replace it with an invented synonym.\n- Do not introduce a nonstandard abbreviation. Use only an established abbreviation or spell the term out.\n- Adopt a durable new term only when the user explicitly requests it or confirms it after VEIL presents it.\n- These rules do not restrict established proper names, code identifiers, or wording explicitly supplied by the user.\n- At the end of a substantive task or conversation boundary, run the installed `veil-capture` workflow automatically once; do not ask the user to start it.\n- If no vocabulary decision is required, remain silent about VEIL.\n- If exceptions exist, ask one combined question for all of them and write only accepted mappings.",
+    "runtime_instruction": "VEIL background workflow:\n- At the end of a substantive task or conversation boundary, run the installed `veil-capture` workflow automatically once; do not ask the user to start it.\n- If no vocabulary decision is required, remain silent about VEIL.\n- If exceptions exist, ask one combined question for all of them and write only accepted mappings.",
     "source_error": "Error: cannot load source rules: {reason}"
   },
   "status": {

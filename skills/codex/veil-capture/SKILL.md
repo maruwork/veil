@@ -11,13 +11,12 @@ Analyze before responding. If an argument is provided, analyze only that string;
 otherwise analyze the current conversation's user and AI turns. Do all extraction,
 self-review, and validation in the background. Do not show excluded terms, observed terms, candidate tables, candidate numbers, frames, commands, or retry steps.
 
-1. Read `~/.veil/config.json` to get `veil_root`.
+1. Read `~/.veil/config.json` to get `veil_root`, then read
+   `{veil_root}/shared/default-profile/generic-behavior.json` and apply its
+   generic behavior rules.
 2. Produce a complete inventory of possible vocabulary decisions as semantic
    frames. Do not treat ordinary prose, proper names, identifiers, paths,
    commands, examples, quotations, or repetition alone as durable decisions.
-   An agent-authored coined term, novel abbreviation, or unsupported rename is
-   non-authoritative and is not a durable decision unless the user explicitly
-   adopts it or an authoritative source in the exact scope establishes it.
    For a definition, correction, or contrast, frame the **primary lexical
    target**: the wording whose meaning, allowed use, or preferred form is being
    decided. A generic predicate or explanatory phrase is evidence, not a

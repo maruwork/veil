@@ -49,7 +49,7 @@ def test_veil_capture_skill_files_keep_safe_registration_contract() -> None:
         assert "host argument-array/subprocess API" in content
         assert '--term "{term}"' not in content
         assert "Never automatically create a new canonical rule from repetition alone." in content
-        assert "An agent-authored coined term, novel abbreviation, or unsupported rename" in content
+        assert "shared/default-profile/generic-behavior.json" in content
         assert "The batch write is all-or-nothing" in content
         assert "`atomic=true`" in content
         assert "whether the batch succeeded or failed" in content
