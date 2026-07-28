@@ -34,6 +34,7 @@ def test_add_injects_veil_block(seeded, tmp_path, tmp_cfg):
     content = open(target, encoding="utf-8").read()
     assert "VEIL_START" in content
     assert "present state" in content
+    assert "Do not coin new terminology" in content
     assert "run the installed `veil-capture` workflow automatically once" in content
     assert "remain silent about VEIL" in content
 
@@ -44,6 +45,7 @@ def test_add_injects_background_workflow_even_without_vocabulary_rules(tmp_path,
 
     content = Path(target).read_text(encoding="utf-8")
     assert "VEIL_START" in content
+    assert "Do not coin new terminology" in content
     assert "run the installed `veil-capture` workflow automatically once" in content
     assert "Terminology rules:" not in content
 
